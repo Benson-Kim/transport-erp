@@ -3,19 +3,22 @@
  * Common utilities for database operations
  */
 
+import { Prisma, PrismaClient} from '@prisma/client';
 import prisma from './prisma';
 
 /**
  * Soft Delete Helper
  * Adds soft delete conditions to queries
  */
-export function excludeDeleted<T extends { deletedAt?: Date | null }>(
-  where?: Prisma.Args<T, 'findMany'>['where'],
-): Prisma.Args<T, 'findMany'>['where'] {
+export function excludeDeleted<
+  Model extends keyof PrismaClient, // e.g. "user" | "post"
+>(
+  where?: Prisma.Args<PrismaClient[Model], 'findMany'>['where']
+): Prisma.Args<PrismaClient[Model], 'findMany'>['where'] {
   return {
     ...where,
     deletedAt: null,
-  } as any;
+  } as Prisma.Args<PrismaClient[Model], 'findMany'>['where'];
 }
 
 /**
@@ -102,20 +105,21 @@ export async function createAuditLog({
   userAgent?: string;
 }) {
   return prisma.auditLog.create({
-    data: {
-      userId,
-      action: action as any,
-      tableName,
-      recordId,
-      oldValues: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,
-      newValues: newValues ? JSON.parse(JSON.stringify(newValues)) : null,
-      ipAddress,
-      userAgent,
-      metadata: {
-        timestamp: new Date().toISOString(),
-      },
+  data: {
+    userId: userId ?? null,
+    action,
+    tableName,
+    recordId,
+    oldValues: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,
+    newValues: newValues ? JSON.parse(JSON.stringify(newValues)) : null,
+    ipAddress: ipAddress ?? null,
+    userAgent: userAgent ?? null,
+    metadata: {
+      timestamp: new Date().toISOString(),
     },
-  });
+  },
+});
+
 }
 
 /**
@@ -142,11 +146,13 @@ export async function processBatch<T, R>(
  * Transaction Helper
  * Wrapper for Prisma transactions with error handling
  */
+type IsolationLevel = "ReadUncommitted" | "ReadCommitted" | "RepeatableRead" | "Serializable";
+
 export async function withTransaction<T>(
   fn: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
   return prisma.$transaction(
-    async (tx) => {
+    async (tx: Prisma.TransactionClient) => {
       try {
         return await fn(tx);
       } catch (error) {
@@ -157,7 +163,7 @@ export async function withTransaction<T>(
     {
       maxWait: 5000,
       timeout: 10000,
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      isolationLevel:"Serializable" as IsolationLevel,
     },
   );
 }
@@ -249,14 +255,13 @@ export async function bulkInsert<T>(
 export function createSearchCondition(
   searchTerm: string,
   fields: string[],
-): Prisma.Sql {
+): { text: string; params: any[] } {
   const pattern = `%${searchTerm.toLowerCase()}%`;
-
-  const conditions = fields.map((field) =>
-    Prisma.sql`LOWER(${Prisma.raw(`"${field}"`)}) LIKE ${pattern}`,
-  );
-
-  return Prisma.sql`(${Prisma.join(conditions, Prisma.sql` OR `)})`;
+  const clauses = fields.map((field, idx) => `"${field}" ILIKE $${idx + 1}`);
+  return {
+    text: `(${clauses.join(" OR ")})`,
+    params: Array(fields.length).fill(pattern),
+  };
 }
 
 
