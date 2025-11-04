@@ -1,0 +1,37 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: transport-erp
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:Password@postgres:5432/transport_erp-dev?schema=public"
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: transport-erp-postgres
+    environment:
+      POSTGRES_DB: transport_erp-dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
