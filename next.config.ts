@@ -24,9 +24,6 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for better development warnings
   reactStrictMode: true,
 
-  // Enable SWC minification for better performance
-  swcMinify: true,
-
   // Experimental features
   experimental: {
     // Server Actions configuration

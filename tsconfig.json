@@ -2,11 +2,14 @@
   "compilerOptions": {
     /* Language and Environment */
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "jsx": "preserve",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "bundler",
-
     /* Strict Type-Checking Options */
     "strict": true,
     "noImplicitAny": true,
@@ -17,7 +20,6 @@
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
-
     /* Additional Checks */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -27,7 +29,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
-
     /* Module Resolution Options */
     "allowJs": true,
     "skipLibCheck": true,
@@ -38,24 +39,46 @@
     "isolatedModules": true,
     "noEmit": true,
     "incremental": true,
-
     /* Path Aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
-      "@/lib/*": ["./src/lib/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/actions/*": ["./src/actions/*"],
-      "@/api/*": ["./src/api/*"],
-      "@/styles/*": ["./src/styles/*"],
-      "@/utils/*": ["./src/lib/utils/*"],
-      "@/config/*": ["./src/lib/config/*"],
-      "@/constants/*": ["./src/lib/constants/*"],
-      "@/validations/*": ["./src/lib/validations/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ],
+      "@/actions/*": [
+        "./src/actions/*"
+      ],
+      "@/api/*": [
+        "./src/api/*"
+      ],
+      "@/styles/*": [
+        "./src/styles/*"
+      ],
+      "@/utils/*": [
+        "./src/lib/utils/*"
+      ],
+      "@/config/*": [
+        "./src/lib/config/*"
+      ],
+      "@/constants/*": [
+        "./src/lib/constants/*"
+      ],
+      "@/validations/*": [
+        "./src/lib/validations/*"
+      ]
     },
-
     /* Plugins */
     "plugins": [
       {
