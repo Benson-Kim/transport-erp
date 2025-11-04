@@ -57,7 +57,7 @@ src/
 ├── types/             # TypeScript type definitions
 ├── actions/           # Server actions
 └── api/               # API route handlers
-``
+```
 
 ## Available Scripts
 
