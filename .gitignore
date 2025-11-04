@@ -10,8 +10,17 @@
 !.yarn/releases
 !.yarn/versions
 
+# Security
+*.key
+*.cert
+*.pem
+private/
+
 # testing
 /coverage
+/.nyc_output
+*.test.js
+*.spec.js
 
 # next.js
 /.next/
@@ -19,10 +28,17 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -39,3 +55,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cache
+.eslintcache
+.stylelintcache
+.prettiercache
+
+# Bundle analyzer
+/analyze/
+/.next/analyze/
+
+# Sentry
+.sentryclirc
+
+# PWA
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/worker-*.js
+/public/worker-*.js.map
+/public/sw.js
+/public/sw.js.map
+
+# Storybook
+/storybook-static
+
