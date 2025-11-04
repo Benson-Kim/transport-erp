@@ -1,6 +1,7 @@
 # UI Components Design System
 
-A comprehensive design system built with Tailwind CSS, providing consistent, accessible, and performant UI components.
+A comprehensive design system built with Tailwind CSS, providing consistent, accessible, and
+performant UI components.
 
 ## Design Principles
 
@@ -12,7 +13,8 @@ A comprehensive design system built with Tailwind CSS, providing consistent, acc
 
 ## Design Tokens
 
-Our design system is built on a foundation of design tokens that ensure consistency across all components.
+Our design system is built on a foundation of design tokens that ensure consistency across all
+components.
 
 ### Colors
 
@@ -65,47 +67,53 @@ tokens.spacing(16); // 4rem (64px)
 ## Component Categories
 
 ### Layout Components
-- **Container**: Responsive max-width container  
-- **Grid**: Flexible grid system with auto-fill/fit  
-- **Stack**: Vertical/horizontal stacking with gaps  
-- **Divider**: Visual separation between sections  
+
+- **Container**: Responsive max-width container
+- **Grid**: Flexible grid system with auto-fill/fit
+- **Stack**: Vertical/horizontal stacking with gaps
+- **Divider**: Visual separation between sections
 
 ### Form Components
-- **Input**: Text, email, password, number inputs  
-- **TextArea**: Multi-line text input  
-- **Select**: Dropdown selection  
-- **Checkbox**: Single and grouped checkboxes  
-- **Radio**: Radio button groups  
-- **Switch**: Toggle switches  
-- **DatePicker**: Date selection with calendar  
-- **FileUpload**: File upload with drag-and-drop  
+
+- **Input**: Text, email, password, number inputs
+- **TextArea**: Multi-line text input
+- **Select**: Dropdown selection
+- **Checkbox**: Single and grouped checkboxes
+- **Radio**: Radio button groups
+- **Switch**: Toggle switches
+- **DatePicker**: Date selection with calendar
+- **FileUpload**: File upload with drag-and-drop
 
 ### Feedback Components
-- **Alert**: Info, success, warning, error messages  
-- **Toast**: Temporary notifications  
-- **Modal**: Dialog overlays  
-- **Popover**: Contextual information  
-- **Tooltip**: Hover hints  
-- **Progress**: Loading indicators  
-- **Skeleton**: Loading placeholders  
+
+- **Alert**: Info, success, warning, error messages
+- **Toast**: Temporary notifications
+- **Modal**: Dialog overlays
+- **Popover**: Contextual information
+- **Tooltip**: Hover hints
+- **Progress**: Loading indicators
+- **Skeleton**: Loading placeholders
 
 ### Navigation Components
-- **Navbar**: Top navigation bar  
-- **Sidebar**: Side navigation  
-- **Tabs**: Tabbed content  
-- **Breadcrumb**: Navigation path  
-- **Pagination**: Page navigation  
+
+- **Navbar**: Top navigation bar
+- **Sidebar**: Side navigation
+- **Tabs**: Tabbed content
+- **Breadcrumb**: Navigation path
+- **Pagination**: Page navigation
 
 ### Data Display Components
-- **Table**: Data tables with sorting/filtering  
-- **Card**: Content containers  
-- **Badge**: Status indicators  
-- **Avatar**: User profile images  
-- **List**: Organized data lists  
+
+- **Table**: Data tables with sorting/filtering
+- **Card**: Content containers
+- **Badge**: Status indicators
+- **Avatar**: User profile images
+- **List**: Organized data lists
 
 ## Usage Examples
 
 ### Using the `cn()` utility
+
 ```typescript
 import { cn } from '@/lib/utils/cn';
 
@@ -131,6 +139,7 @@ import { cn } from '@/lib/utils/cn';
 ```
 
 ### Using design tokens
+
 ```typescript
 import { tokens, responsive } from '@/lib/design-tokens';
 
@@ -152,6 +161,7 @@ const responsiveClasses = responsive.classes(
 ```
 
 ### WCAG Color Contrast
+
 ```typescript
 import { wcag } from '@/lib/design-tokens';
 
@@ -171,6 +181,7 @@ console.log(textColor); // '#ffffff'
 ## Common Patterns
 
 ### Card with hover effect
+
 ```jsx
 <div className={cn(
   'card',
@@ -188,6 +199,7 @@ console.log(textColor); // '#ffffff'
 ```
 
 ### Form field with validation
+
 ```jsx
 <div className="space-y-2">
   <label className="label" htmlFor="email">
@@ -213,14 +225,15 @@ console.log(textColor); // '#ffffff'
 
 All components follow these standards:
 
-- **Props Interface**: Clearly typed props with JSDoc  
-- **Ref Forwarding**: Support for React refs  
-- **Accessibility**: Proper ARIA attributes  
-- **Keyboard Navigation**: Full keyboard support  
-- **Theming**: Support for light/dark modes  
-- **Composition**: Can be composed with other components  
+- **Props Interface**: Clearly typed props with JSDoc
+- **Ref Forwarding**: Support for React refs
+- **Accessibility**: Proper ARIA attributes
+- **Keyboard Navigation**: Full keyboard support
+- **Theming**: Support for light/dark modes
+- **Composition**: Can be composed with other components
 
 ### Example component structure
+
 ```typescript
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
@@ -245,22 +258,22 @@ Button.displayName = 'Button';
 
 ## Performance Guidelines
 
-- Use `cn()` for class merging  
-- Memoize expensive computations (`React.memo`, `useMemo`)  
-- Lazy load heavy components (dynamic imports)  
-- Optimize images with Next.js `<Image />`  
-- Minimize re-renders with stable keys/dependencies  
+- Use `cn()` for class merging
+- Memoize expensive computations (`React.memo`, `useMemo`)
+- Lazy load heavy components (dynamic imports)
+- Optimize images with Next.js `<Image />`
+- Minimize re-renders with stable keys/dependencies
 
 ## Accessibility Checklist
 
-- Keyboard navigation works correctly  
-- Screen reader announcements are clear  
-- Focus indicators are visible  
-- Color contrast meets WCAG AA (4.5:1)  
-- Interactive elements have proper ARIA labels  
-- Error messages are associated with inputs  
-- Loading states are announced  
-- Modals trap focus correctly  
+- Keyboard navigation works correctly
+- Screen reader announcements are clear
+- Focus indicators are visible
+- Color contrast meets WCAG AA (4.5:1)
+- Interactive elements have proper ARIA labels
+- Error messages are associated with inputs
+- Loading states are announced
+- Modals trap focus correctly
 
 ## Resources
 

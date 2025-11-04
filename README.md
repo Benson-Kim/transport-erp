@@ -1,6 +1,7 @@
 # Enterprise Dashboard Application
 
-A complete enterprise management system built with Next.js 16, TypeScript, and modern web technologies.
+A complete enterprise management system built with Next.js 16, TypeScript, and modern web
+technologies.
 
 ## Tech Stack
 
@@ -24,39 +25,22 @@ A complete enterprise management system built with Next.js 16, TypeScript, and m
 
 ## Installation
 
-1. **Clone the repository**
-   ``bash
-   git clone <repository-url>
-   cd enterprise-dashboard
-   ``
+1. **Clone the repository** `bash git clone <repository-url> cd enterprise-dashboard `
 
-2. **Install dependencies**
-     ``bash
-     npm install
-     ``
+2. **Install dependencies** `bash  npm install  `
 
-3. **Set up environment variables**
-     ``bash
-     cp .env.example .env
-     ``
-Edit .env with your configuration values.
+3. **Set up environment variables** `bash      cp .env.example .env      ` Edit .env with your
+   configuration values.
 
-4. **Set up the database**
-     ``bash
-     npm run db:push
-     npm run db:seed
-     ``
+4. **Set up the database** `bash  npm run db:push  npm run db:seed  `
 
-5. **Run development server**
-     ``bash
-     npm run dev
-     ``
+5. **Run development server** `bash  npm run dev  `
 
 Open http://localhost:3000 in your browser.
 
 ## Project Structure
 
-``
+```
 src/
 ├── app/               # Next.js App Router pages
 │   ├── (auth)/        # Authentication pages
@@ -145,3 +129,4 @@ src/
 This project is proprietary and confidential.
 
 Built with ❤️ using Next.js 16 and TypeScript
+```

@@ -4,7 +4,7 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["jsonProtocol", "fullTextSearch", "views"]
+  previewFeatures = ["fullTextSearchPostgres", "views"]
   binaryTargets   = ["native"]
 }
 
@@ -102,7 +102,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -126,38 +126,38 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
-  password      String?   // Optional for OAuth users
+  password      String? // Optional for OAuth users
   name          String
   role          UserRole  @default(VIEWER)
   avatar        String?
   phone         String?
   department    String?
   isActive      Boolean   @default(true)
-  
+
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret  String?
-  
+
   // Metadata
-  lastLoginAt      DateTime?
-  lastLoginIp      String?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
   passwordChangedAt DateTime?
-  
+
   // Relations
   accounts         Account[]
   sessions         Session[]
-  services         Service[]       @relation("ServiceCreator")
-  assignedServices Service[]       @relation("ServiceAssignee")
+  services         Service[]      @relation("ServiceCreator")
+  assignedServices Service[]      @relation("ServiceAssignee")
   loadingOrders    LoadingOrder[]
-  invoices         Invoice[]       @relation("InvoiceCreator")
+  invoices         Invoice[]      @relation("InvoiceCreator")
   auditLogs        AuditLog[]
   notifications    Notification[]
-  
+
   // Audit fields
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  
+
   @@index([email])
   @@index([role])
   @@index([deletedAt])
@@ -165,53 +165,53 @@ model User {
 }
 
 model Company {
-  id              String   @id @default(cuid())
-  code            String   @unique // Internal company code
-  legalName       String
-  tradeName       String?
-  vatNumber       String   @unique // VAT/Tax ID
-  registrationNo  String?  // Company registration number
-  
+  id             String  @id @default(cuid())
+  code           String  @unique // Internal company code
+  legalName      String
+  tradeName      String?
+  vatNumber      String  @unique // VAT/Tax ID
+  registrationNo String? // Company registration number
+
   // Address
-  addressLine1    String
-  addressLine2    String?
-  city            String
-  state           String?
-  postalCode      String
-  country         String   @default("ES")
-  
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  postalCode   String
+  country      String  @default("ES")
+
   // Contact
-  phone           String
-  fax             String?
-  email           String
-  website         String?
-  
+  phone   String
+  fax     String?
+  email   String
+  website String?
+
   // Banking
-  bankName        String?
-  bankAccount     String?
-  swiftCode       String?
-  iban            String?
-  
+  bankName    String?
+  bankAccount String?
+  swiftCode   String?
+  iban        String?
+
   // Settings
-  currency        String   @default("EUR")
-  timezone        String   @default("Europe/Madrid")
-  fiscalYearEnd   String?  // MM-DD format
-  invoicePrefix   String?
-  logoUrl         String?
-  
+  currency      String  @default("EUR")
+  timezone      String  @default("Europe/Madrid")
+  fiscalYearEnd String? // MM-DD format
+  invoicePrefix String?
+  logoUrl       String?
+
   // Metadata
-  metadata        Json?    // Flexible field for additional data
-  isActive        Boolean  @default(true)
-  
+  metadata Json? // Flexible field for additional data
+  isActive Boolean @default(true)
+
   // Relations
   asClient   Client[]
   asSupplier Supplier[]
-  
+
   // Audit fields
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  
+
   @@index([vatNumber])
   @@index([code])
   @@index([deletedAt])
@@ -219,54 +219,54 @@ model Company {
 }
 
 model Client {
-  id             String   @id @default(cuid())
-  clientCode     String   @unique // Internal client code
-  companyId      String?  // Optional link to company
-  
+  id         String  @id @default(cuid())
+  clientCode String  @unique // Internal client code
+  companyId  String? // Optional link to company
+
   // Basic Information
-  name           String
-  tradeName      String?
-  vatNumber      String?
-  
+  name      String
+  tradeName String?
+  vatNumber String?
+
   // Addresses
-  billingAddress Json     // { line1, line2, city, state, postalCode, country }
-  shippingAddress Json?   // Optional different shipping address
-  
+  billingAddress  Json // { line1, line2, city, state, postalCode, country }
+  shippingAddress Json? // Optional different shipping address
+
   // Contacts
-  billingEmail   String
-  trafficEmail   String?  // For operational communications
-  contactPerson  String?
-  contactPhone   String?
-  contactMobile  String?
-  
+  billingEmail  String
+  trafficEmail  String? // For operational communications
+  contactPerson String?
+  contactPhone  String?
+  contactMobile String?
+
   // Financial
-  creditLimit    Decimal? @db.Decimal(10, 2)
-  paymentTerms   Int      @default(30) // Days
-  discount       Decimal? @db.Decimal(5, 2) // Percentage
-  
+  creditLimit  Decimal? @db.Decimal(10, 2)
+  paymentTerms Int      @default(30) // Days
+  discount     Decimal? @db.Decimal(5, 2) // Percentage
+
   // Settings
-  currency       String   @default("EUR")
-  language       String   @default("es")
-  sendReminders  Boolean  @default(true)
-  autoInvoice    Boolean  @default(false)
-  
+  currency      String  @default("EUR")
+  language      String  @default("es")
+  sendReminders Boolean @default(true)
+  autoInvoice   Boolean @default(false)
+
   // Metadata
-  notes          String?  @db.Text
-  tags           String[] // For categorization
-  metadata       Json?
-  isActive       Boolean  @default(true)
-  
+  notes    String?  @db.Text
+  tags     String[] // For categorization
+  metadata Json?
+  isActive Boolean  @default(true)
+
   // Relations
-  company        Company? @relation(fields: [companyId], references: [id])
-  services       Service[]
-  contacts       ClientContact[]
-  documents      Document[]
-  
+  company   Company?        @relation(fields: [companyId], references: [id])
+  services  Service[]
+  contacts  ClientContact[]
+  documents Document[]
+
   // Audit fields
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  
+
   @@index([clientCode])
   @@index([vatNumber])
   @@index([companyId])
@@ -275,86 +275,86 @@ model Client {
 }
 
 model ClientContact {
-  id         String   @id @default(cuid())
-  clientId   String
-  
-  name       String
-  position   String?
-  email      String
-  phone      String?
-  mobile     String?
-  isPrimary  Boolean  @default(false)
-  
+  id       String @id @default(cuid())
+  clientId String
+
+  name      String
+  position  String?
+  email     String
+  phone     String?
+  mobile    String?
+  isPrimary Boolean @default(false)
+
   // Relations
-  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   // Audit fields
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([clientId])
   @@map("client_contacts")
 }
 
 model Supplier {
-  id             String   @id @default(cuid())
-  supplierCode   String   @unique // Internal supplier code
-  companyId      String?  // Optional link to company
-  
+  id           String  @id @default(cuid())
+  supplierCode String  @unique // Internal supplier code
+  companyId    String? // Optional link to company
+
   // Basic Information
-  name           String
-  tradeName      String?
-  vatNumber      String?
-  
+  name      String
+  tradeName String?
+  vatNumber String?
+
   // Address
-  addressLine1   String
-  addressLine2   String?
-  city           String
-  state          String?
-  postalCode     String
-  country        String   @default("ES")
-  
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  postalCode   String
+  country      String  @default("ES")
+
   // Contact
-  email          String
-  phone          String?
-  fax            String?
-  contactPerson  String?
-  contactMobile  String?
-  
+  email         String
+  phone         String?
+  fax           String?
+  contactPerson String?
+  contactMobile String?
+
   // Financial Settings
-  irpfRate       Decimal? @db.Decimal(5, 2) // IRPF retention rate (Spain)
-  vatRate        Decimal  @db.Decimal(5, 2) @default(21.00)
-  paymentTerms   Int      @default(30) // Days
-  paymentMethod  String?  // TRANSFER, CASH, CARD, etc.
-  
+  irpfRate      Decimal? @db.Decimal(5, 2) // IRPF retention rate (Spain)
+  vatRate       Decimal  @default(21.00) @db.Decimal(5, 2)
+  paymentTerms  Int      @default(30) // Days
+  paymentMethod String? // TRANSFER, CASH, CARD, etc.
+
   // Banking
-  bankName       String?
-  bankAccount    String?
-  swiftCode      String?
-  iban           String?
-  
+  bankName    String?
+  bankAccount String?
+  swiftCode   String?
+  iban        String?
+
   // Settings
-  currency       String   @default("EUR")
-  autoApprove    Boolean  @default(false)
-  requirePO      Boolean  @default(false) // Require purchase order
-  
+  currency    String  @default("EUR")
+  autoApprove Boolean @default(false)
+  requirePO   Boolean @default(false) // Require purchase order
+
   // Metadata
-  notes          String?  @db.Text
-  tags           String[]
-  metadata       Json?
-  isActive       Boolean  @default(true)
-  
+  notes    String?  @db.Text
+  tags     String[]
+  metadata Json?
+  isActive Boolean  @default(true)
+
   // Relations
-  company        Company? @relation(fields: [companyId], references: [id])
-  services       Service[]
-  invoices       Invoice[]
-  documents      Document[]
-  
+  company   Company?   @relation(fields: [companyId], references: [id])
+  services  Service[]
+  invoices  Invoice[]
+  documents Document[]
+
   // Audit fields
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  deletedAt      DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@index([supplierCode])
   @@index([vatNumber])
   @@index([companyId])
@@ -363,67 +363,67 @@ model Supplier {
 }
 
 model Service {
-  id                String         @id @default(cuid())
-  serviceNumber     String         @unique // AUTO-GENERATED: SRV-YYYY-NNNNN
-  date              DateTime
-  
+  id            String   @id @default(cuid())
+  serviceNumber String   @unique // AUTO-GENERATED: SRV-YYYY-NNNNN
+  date          DateTime
+
   // Relations
-  clientId          String
-  supplierId        String
-  createdById       String
-  assignedToId      String?
-  
+  clientId     String
+  supplierId   String
+  createdById  String
+  assignedToId String?
+
   // Service Details
-  description       String         @db.Text
-  reference         String?        // Client reference number
-  origin            String
-  destination       String
-  distance          Int?           // in kilometers
-  vehicleType       String?
-  vehiclePlate      String?
-  driverName        String?
-  
+  description  String  @db.Text
+  reference    String? // Client reference number
+  origin       String
+  destination  String
+  distance     Int? // in kilometers
+  vehicleType  String?
+  vehiclePlate String?
+  driverName   String?
+
   // Financial
-  costAmount        Decimal        @db.Decimal(10, 2)
-  costCurrency      String         @default("EUR")
-  saleAmount        Decimal        @db.Decimal(10, 2)
-  saleCurrency      String         @default("EUR")
-  margin            Decimal        @db.Decimal(10, 2) // Calculated field
-  marginPercentage  Decimal        @db.Decimal(5, 2)  // Calculated field
-  
+  costAmount       Decimal @db.Decimal(10, 2)
+  costCurrency     String  @default("EUR")
+  saleAmount       Decimal @db.Decimal(10, 2)
+  saleCurrency     String  @default("EUR")
+  margin           Decimal @db.Decimal(10, 2) // Calculated field
+  marginPercentage Decimal @db.Decimal(5, 2) // Calculated field
+
   // VAT/Tax
-  costVatRate       Decimal        @default(21.00) @db.Decimal(5, 2)
-  costVatAmount     Decimal        @db.Decimal(10, 2)
-  saleVatRate       Decimal        @default(21.00) @db.Decimal(5, 2)
-  saleVatAmount     Decimal        @db.Decimal(10, 2)
-  
+  costVatRate   Decimal @default(21.00) @db.Decimal(5, 2)
+  costVatAmount Decimal @db.Decimal(10, 2)
+  saleVatRate   Decimal @default(21.00) @db.Decimal(5, 2)
+  saleVatAmount Decimal @db.Decimal(10, 2)
+
   // Status
-  status            ServiceStatus  @default(DRAFT)
-  completedAt       DateTime?
-  cancelledAt       DateTime?
+  status             ServiceStatus @default(DRAFT)
+  completedAt        DateTime?
+  cancelledAt        DateTime?
   cancellationReason String?
-  
+
   // Metadata
-  notes             String?        @db.Text
-  internalNotes     String?        @db.Text // Not shown to clients
-  attachments       String[]       // File paths
-  customFields      Json?          // For flexible additional fields
-  
+  notes         String?  @db.Text
+  internalNotes String?  @db.Text // Not shown to clients
+  attachments   String[] // File paths
+  customFields  Json? // For flexible additional fields
+
   // Relations
-  client            Client         @relation(fields: [clientId], references: [id])
-  supplier          Supplier       @relation(fields: [supplierId], references: [id])
-  createdBy         User           @relation("ServiceCreator", fields: [createdById], references: [id])
-  assignedTo        User?          @relation("ServiceAssignee", fields: [assignedToId], references: [id])
-  loadingOrders     ServiceLoadingOrder[]
-  invoiceItems      InvoiceItem[]
-  documents         Document[]
-  statusHistory     ServiceStatusHistory[]
-  
+  client        Client                 @relation(fields: [clientId], references: [id])
+  supplier      Supplier               @relation(fields: [supplierId], references: [id])
+  createdBy     User                   @relation("ServiceCreator", fields: [createdById], references: [id])
+  assignedTo    User?                  @relation("ServiceAssignee", fields: [assignedToId], references: [id])
+  loadingOrders ServiceLoadingOrder[]
+  invoiceItems  InvoiceItem[]
+  documents     Document[]
+  statusHistory ServiceStatusHistory[]
+
   // Audit fields
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  deletedAt         DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@index([serviceNumber])
   @@index([date])
   @@index([clientId])
@@ -435,48 +435,48 @@ model Service {
 }
 
 model ServiceStatusHistory {
-  id          String        @id @default(cuid())
-  serviceId   String
-  fromStatus  ServiceStatus?
-  toStatus    ServiceStatus
-  reason      String?
-  changedBy   String
-  changedAt   DateTime      @default(now())
-  
+  id         String         @id @default(cuid())
+  serviceId  String
+  fromStatus ServiceStatus?
+  toStatus   ServiceStatus
+  reason     String?
+  changedBy  String
+  changedAt  DateTime       @default(now())
+
   // Relations
-  service     Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
   @@index([serviceId])
   @@map("service_status_history")
 }
 
 model LoadingOrder {
-  id              String   @id @default(cuid())
-  orderNumber     String   @unique // AUTO-GENERATED: LO-YYYY-NNNNN
-  generatedAt     DateTime @default(now())
-  generatedById   String
-  
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique // AUTO-GENERATED: LO-YYYY-NNNNN
+  generatedAt   DateTime @default(now())
+  generatedById String
+
   // Details
-  clientId        String?  // Optional direct client link
-  notes           String?  @db.Text
-  
+  clientId String? // Optional direct client link
+  notes    String? @db.Text
+
   // PDF Storage
-  pdfPath         String?
-  pdfGeneratedAt  DateTime?
-  pdfSize         Int?     // File size in bytes
-  
+  pdfPath        String?
+  pdfGeneratedAt DateTime?
+  pdfSize        Int? // File size in bytes
+
   // Metadata
-  metadata        Json?
-  
+  metadata Json?
+
   // Relations
-  generatedBy     User     @relation(fields: [generatedById], references: [id])
-  services        ServiceLoadingOrder[]
-  
+  generatedBy User                  @relation(fields: [generatedById], references: [id])
+  services    ServiceLoadingOrder[]
+
   // Audit fields
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  deletedAt       DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@index([orderNumber])
   @@index([generatedById])
   @@index([deletedAt])
@@ -484,15 +484,15 @@ model LoadingOrder {
 }
 
 model ServiceLoadingOrder {
-  id             String       @id @default(cuid())
+  id             String @id @default(cuid())
   serviceId      String
   loadingOrderId String
-  position       Int          // Order position in the loading order
-  
+  position       Int // Order position in the loading order
+
   // Relations
-  service        Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  loadingOrder   LoadingOrder @relation(fields: [loadingOrderId], references: [id], onDelete: Cascade)
-  
+  service      Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  loadingOrder LoadingOrder @relation(fields: [loadingOrderId], references: [id], onDelete: Cascade)
+
   @@unique([serviceId, loadingOrderId])
   @@index([serviceId])
   @@index([loadingOrderId])
@@ -500,62 +500,62 @@ model ServiceLoadingOrder {
 }
 
 model Invoice {
-  id              String        @id @default(cuid())
-  invoiceNumber   String        @unique // AUTO-GENERATED: INV-YYYY-NNNNN
-  invoiceDate     DateTime
-  dueDate         DateTime
-  
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique // AUTO-GENERATED: INV-YYYY-NNNNN
+  invoiceDate   DateTime
+  dueDate       DateTime
+
   // Relations
-  supplierId      String
-  createdById     String
-  
+  supplierId  String
+  createdById String
+
   // Financial
-  subtotal        Decimal       @db.Decimal(10, 2)
-  taxAmount       Decimal       @db.Decimal(10, 2)
-  totalAmount     Decimal       @db.Decimal(10, 2)
-  currency        String        @default("EUR")
-  
+  subtotal    Decimal @db.Decimal(10, 2)
+  taxAmount   Decimal @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+  currency    String  @default("EUR")
+
   // Payment
-  status          InvoiceStatus @default(DRAFT)
-  paymentStatus   PaymentStatus @default(PENDING)
-  paidAmount      Decimal       @default(0) @db.Decimal(10, 2)
-  paidAt          DateTime?
-  paymentMethod   String?
+  status           InvoiceStatus @default(DRAFT)
+  paymentStatus    PaymentStatus @default(PENDING)
+  paidAmount       Decimal       @default(0) @db.Decimal(10, 2)
+  paidAt           DateTime?
+  paymentMethod    String?
   paymentReference String?
-  
+
   // IRPF (Spain specific)
-  irpfRate        Decimal?      @db.Decimal(5, 2)
-  irpfAmount      Decimal?      @db.Decimal(10, 2)
-  
+  irpfRate   Decimal? @db.Decimal(5, 2)
+  irpfAmount Decimal? @db.Decimal(10, 2)
+
   // Details
-  description     String?       @db.Text
-  notes           String?       @db.Text
-  termsConditions String?       @db.Text
-  
+  description     String? @db.Text
+  notes           String? @db.Text
+  termsConditions String? @db.Text
+
   // PDF Storage
-  pdfPath         String?
-  pdfGeneratedAt  DateTime?
-  
+  pdfPath        String?
+  pdfGeneratedAt DateTime?
+
   // Email Tracking
-  sentAt          DateTime?
-  sentTo          String?
-  viewedAt        DateTime?
-  reminderSentAt  DateTime?
-  
+  sentAt         DateTime?
+  sentTo         String?
+  viewedAt       DateTime?
+  reminderSentAt DateTime?
+
   // Metadata
-  metadata        Json?
-  
+  metadata Json?
+
   // Relations
-  supplier        Supplier      @relation(fields: [supplierId], references: [id])
-  createdBy       User          @relation("InvoiceCreator", fields: [createdById], references: [id])
-  items           InvoiceItem[]
-  payments        Payment[]
-  
+  supplier  Supplier      @relation(fields: [supplierId], references: [id])
+  createdBy User          @relation("InvoiceCreator", fields: [createdById], references: [id])
+  items     InvoiceItem[]
+  payments  Payment[]
+
   // Audit fields
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  deletedAt       DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   @@index([invoiceNumber])
   @@index([supplierId])
   @@index([status])
@@ -565,88 +565,88 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String   @id @default(cuid())
-  invoiceId   String
-  serviceId   String?  // Optional link to service
-  
+  id        String  @id @default(cuid())
+  invoiceId String
+  serviceId String? // Optional link to service
+
   // Item Details
   description String
-  quantity    Decimal  @db.Decimal(10, 2)
-  unitPrice   Decimal  @db.Decimal(10, 2)
-  amount      Decimal  @db.Decimal(10, 2)
-  
+  quantity    Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  amount      Decimal @db.Decimal(10, 2)
+
   // Tax
-  taxRate     Decimal  @db.Decimal(5, 2)
-  taxAmount   Decimal  @db.Decimal(10, 2)
-  
+  taxRate   Decimal @db.Decimal(5, 2)
+  taxAmount Decimal @db.Decimal(10, 2)
+
   // Relations
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  service     Service? @relation(fields: [serviceId], references: [id])
-  
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id])
+
   @@index([invoiceId])
   @@index([serviceId])
   @@map("invoice_items")
 }
 
 model Payment {
-  id               String        @id @default(cuid())
-  paymentNumber    String        @unique // AUTO-GENERATED: PAY-YYYY-NNNNN
-  invoiceId        String
-  
-  amount           Decimal       @db.Decimal(10, 2)
-  currency         String        @default("EUR")
-  paymentDate      DateTime
-  paymentMethod    String        // TRANSFER, CASH, CARD, CHEQUE, etc.
-  reference        String?       // Bank reference
-  
-  status           PaymentStatus @default(COMPLETED)
-  
-  notes            String?       @db.Text
-  receiptPath      String?       // PDF receipt path
-  
+  id            String @id @default(cuid())
+  paymentNumber String @unique // AUTO-GENERATED: PAY-YYYY-NNNNN
+  invoiceId     String
+
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @default("EUR")
+  paymentDate   DateTime
+  paymentMethod String // TRANSFER, CASH, CARD, CHEQUE, etc.
+  reference     String? // Bank reference
+
+  status PaymentStatus @default(COMPLETED)
+
+  notes       String? @db.Text
+  receiptPath String? // PDF receipt path
+
   // Relations
-  invoice          Invoice       @relation(fields: [invoiceId], references: [id])
-  
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
   // Audit fields
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([invoiceId])
   @@index([paymentDate])
   @@map("payments")
 }
 
 model Document {
-  id            String       @id @default(cuid())
-  documentType  DocumentType
-  documentNumber String?     // Optional document number
-  
+  id             String       @id @default(cuid())
+  documentType   DocumentType
+  documentNumber String? // Optional document number
+
   // Relations
-  clientId      String?
-  supplierId    String?
-  serviceId     String?
-  
+  clientId   String?
+  supplierId String?
+  serviceId  String?
+
   // File Details
-  fileName      String
-  filePath      String
-  fileSize      Int         // in bytes
-  mimeType      String
-  
+  fileName String
+  filePath String
+  fileSize Int // in bytes
+  mimeType String
+
   // Metadata
-  description   String?
-  tags          String[]
-  metadata      Json?
-  
+  description String?
+  tags        String[]
+  metadata    Json?
+
   // Relations
-  client        Client?      @relation(fields: [clientId], references: [id])
-  supplier      Supplier?    @relation(fields: [supplierId], references: [id])
-  service       Service?     @relation(fields: [serviceId], references: [id])
-  
+  client   Client?   @relation(fields: [clientId], references: [id])
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+  service  Service?  @relation(fields: [serviceId], references: [id])
+
   // Audit fields
-  uploadedBy    String
-  uploadedAt    DateTime     @default(now())
-  deletedAt     DateTime?
-  
+  uploadedBy String
+  uploadedAt DateTime  @default(now())
+  deletedAt  DateTime?
+
   @@index([clientId])
   @@index([supplierId])
   @@index([serviceId])
@@ -660,30 +660,30 @@ model Document {
 // =============================================
 
 model AuditLog {
-  id          String      @id @default(cuid())
-  userId      String?     // Null for system actions
-  action      AuditAction
-  tableName   String
-  recordId    String
-  
+  id        String      @id @default(cuid())
+  userId    String? // Null for system actions
+  action    AuditAction
+  tableName String
+  recordId  String
+
   // Change tracking
-  oldValues   Json?       // Previous values
-  newValues   Json?       // New values
-  
+  oldValues Json? // Previous values
+  newValues Json? // New values
+
   // Context
-  ipAddress   String?
-  userAgent   String?
-  requestId   String?     // For request tracing
-  
+  ipAddress String?
+  userAgent String?
+  requestId String? // For request tracing
+
   // Metadata
-  metadata    Json?       // Additional context
-  
+  metadata Json? // Additional context
+
   // Relations
-  user        User?       @relation(fields: [userId], references: [id])
-  
+  user User? @relation(fields: [userId], references: [id])
+
   // Timestamp
-  createdAt   DateTime    @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([tableName, recordId])
   @@index([action])
@@ -692,42 +692,42 @@ model AuditLog {
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-  userId      String
-  
-  title       String
-  message     String   @db.Text
-  type        String   // info, success, warning, error
-  category    String   // system, invoice, service, etc.
-  
-  actionUrl   String?  // Optional link to related item
+  id     String @id @default(cuid())
+  userId String
+
+  title    String
+  message  String @db.Text
+  type     String // info, success, warning, error
+  category String // system, invoice, service, etc.
+
+  actionUrl   String? // Optional link to related item
   actionLabel String?
-  
-  isRead      Boolean  @default(false)
-  readAt      DateTime?
-  
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
   // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Audit fields
-  createdAt   DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@index([userId, isRead])
   @@index([createdAt])
   @@map("notifications")
 }
 
 model SystemSetting {
-  id          String   @id @default(cuid())
-  key         String   @unique
+  id          String  @id @default(cuid())
+  key         String  @unique
   value       Json
   description String?
-  isPublic    Boolean  @default(false) // Can be exposed to client
-  
+  isPublic    Boolean @default(false) // Can be exposed to client
+
   // Audit fields
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([key])
   @@map("system_settings")
 }
