@@ -1,0 +1,166 @@
+/**
+ * Authentication Validation Schemas
+ * Zod schemas for auth-related forms and data
+ */
+
+import { z } from 'zod';
+
+/**
+ * Password validation rules
+ */
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/\d/, 'Password must contain at least one number')
+  .regex(
+    /[^A-Za-z0-9]/,
+    'Password must contain at least one special character'
+  );
+
+/**
+ * Login form schema
+ */
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional().default(false),
+});
+
+export type LoginFormData = z.infer<typeof loginSchema>;
+
+/**
+ * Registration form schema
+ */
+export const registerSchema = z
+  .object({
+    email: z
+      .string()
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address')
+      .toLowerCase()
+      .trim(),
+    name: z
+      .string()
+      .min(2, 'Name must be at least 2 characters')
+      .max(100, 'Name must be less than 100 characters')
+      .regex(
+        /^[a-zA-Z\s'-]+$/,
+        'Name can only contain letters, spaces, hyphens and apostrophes'
+      ),
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+    acceptTerms: z
+      .boolean()
+      .refine((val) => val === true, 'You must accept the terms and conditions'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type RegisterFormData = z.infer<typeof registerSchema>;
+
+/**
+ * Forgot password schema
+ */
+export const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Please enter a valid email address'),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+/**
+ * Reset password schema
+ */
+export const resetPasswordSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+/**
+ * Change password schema
+ */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: passwordSchema,
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'New password must be different from current password',
+    path: ['newPassword'],
+  });
+
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+
+/**
+ * Profile update schema
+ */
+export const profileSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^\+?[\d\s()-]+$/.test(val),
+      'Please enter a valid phone number'
+    ),
+  department: z.string().optional(),
+  avatar: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+});
+
+export type ProfileFormData = z.infer<typeof profileSchema>;
+
+/**
+ * Two-factor authentication schema
+ */
+export const twoFactorSchema = z.object({
+  code: z
+    .string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d+$/, 'Code must contain only numbers'),
+});
+
+export type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
+
+/**
+ * Validate email format
+ */
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+/**
+ * Sanitize user input
+ */
+export function sanitizeInput(input: string): string {
+  return input
+    .trim()
+    .replace(/[<>]/g, '') // Remove potential HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, ''); // Remove event handlers
+}
