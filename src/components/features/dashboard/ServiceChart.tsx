@@ -16,8 +16,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Download, TrendingUp } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { formatNumber } from '@/lib/utils/formatting';
@@ -115,13 +115,7 @@ export function ServicesChart({ data }: ServicesChartProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1">
-          <CardTitle>Services Overview</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Monthly service distribution
-          </p>
-        </div>
+      <CardHeader title='Services Overview' subtitle='Monthly service distribution' className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-sm">
             <TrendingUp className="h-4 w-4 text-green-600" />
@@ -129,17 +123,17 @@ export function ServicesChart({ data }: ServicesChartProps) {
             <span className="text-muted-foreground">avg/month</span>
           </div>
           <Button
-            size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={handleExport}
             className="h-8"
+            aria-label='export services data'
           >
             <Download className="h-3 w-3 mr-1" />
             Export
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardBody>
         <ResponsiveContainer width="100%" height={350}>
           <BarChart
             data={data}
@@ -193,7 +187,7 @@ export function ServicesChart({ data }: ServicesChartProps) {
             />
           </BarChart>
         </ResponsiveContainer>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }

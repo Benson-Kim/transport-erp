@@ -16,7 +16,7 @@ import { Eye, EyeOff, Loader2, Mail, Lock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { signInWithCredentials } from '@/actions/auth-actions';
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth-schema';
-import { Alert, AlertDescription, Button, Checkbox, Input, Label } from '@/components/ui';
+import { Alert, Button, Checkbox, Input, Label } from '@/components/ui';
 
 export function LoginForm() {
   const router = useRouter();
@@ -57,9 +57,9 @@ export function LoginForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Error Alert */}
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="error">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          {error}
         </Alert>
       )}
 

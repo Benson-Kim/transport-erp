@@ -7,8 +7,8 @@
 
 import Link from 'next/link';
 import { UserRole } from '@prisma/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import {
   Plus,
   FileText,
@@ -20,6 +20,7 @@ import {
   Download,
   Upload,
   Send,
+  ArrowRight,
 } from 'lucide-react';
 import { usePermissions } from '@/hooks/use-permissions';
 
@@ -36,7 +37,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'New Service',
       icon: Plus,
       href: '/services/new',
-      variant: 'default' as const,
+      variant: 'primary' as const,
       show: permissions.can('services', 'create'),
     },
     {
@@ -44,7 +45,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'Generate Loading Order',
       icon: FileText,
       href: '/loading-orders/new',
-      variant: 'outline' as const,
+      variant: 'secondary' as const,
       show: permissions.can('loading_orders', 'create'),
     },
     {
@@ -52,7 +53,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'Generate Invoice',
       icon: Receipt,
       href: '/invoices/new',
-      variant: 'outline' as const,
+      variant: 'secondary' as const,
       show: permissions.can('invoices', 'create'),
     },
     {
@@ -60,7 +61,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'Manage Clients',
       icon: Users,
       href: '/clients',
-      variant: 'outline' as const,
+      variant: 'secondary' as const,
       show: permissions.can('clients', 'view'),
     },
     {
@@ -68,7 +69,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'Manage Suppliers',
       icon: Building2,
       href: '/suppliers',
-      variant: 'outline' as const,
+      variant: 'secondary' as const,
       show: permissions.can('suppliers', 'view'),
     },
     {
@@ -76,7 +77,7 @@ export function QuickActions({ userRole }: QuickActionsProps) {
       label: 'View Reports',
       icon: TrendingUp,
       href: '/reports',
-      variant: 'outline' as const,
+      variant: 'secondary' as const,
       show: permissions.can('reports', 'view'),
     },
   ];
@@ -114,11 +115,9 @@ export function QuickActions({ userRole }: QuickActionsProps) {
   return (
     <div className="space-y-6">
       {/* Primary Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <Card variant='bordered'>
+        <CardHeader title='Quick Actions' />
+        <CardBody className="space-y-2">
           {visibleActions.map((action) => (
             <Link key={action.id} href={action.href} className="block">
               <Button
@@ -131,21 +130,20 @@ export function QuickActions({ userRole }: QuickActionsProps) {
               </Button>
             </Link>
           ))}
-        </CardContent>
+        </CardBody>
       </Card>
 
       {/* Shortcuts */}
       {visibleShortcuts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Shortcuts</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <Card variant='bordered'>
+          <CardHeader title='Shortcuts' />
+          
+          <CardBody>
             <div className="grid grid-cols-2 gap-2">
               {visibleShortcuts.map((shortcut) => (
                 <Button
                   key={shortcut.label}
-                  variant="outline"
+                  variant="primary"
                   size="sm"
                   className="h-20 flex-col gap-1"
                   onClick={shortcut.onClick}
@@ -165,37 +163,36 @@ export function QuickActions({ userRole }: QuickActionsProps) {
                 </Button>
               ))}
             </div>
-          </CardContent>
+          </CardBody>
         </Card>
       )}
 
       {/* Help & Support */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Need Help?</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Card variant='bordered'>
+        <CardHeader title='>Need Help?' />
+        
+        <CardBody className="space-y-3">
           <p className="text-sm text-muted-foreground">
             Get started with our guides and documentation.
           </p>
           <div className="space-y-2">
             <Link href="/help/getting-started" className="block">
-              <Button variant="link" className="h-auto p-0 text-sm">
-                Getting Started Guide →
+              <Button variant="ghost" className="h-auto p-0 text-sm">
+                Getting Started Guide <ArrowRight />
               </Button>
             </Link>
             <Link href="/help/video-tutorials" className="block">
-              <Button variant="link" className="h-auto p-0 text-sm">
-                Video Tutorials →
+              <Button variant="ghost" className="h-auto p-0 text-sm">
+                Video Tutorials <ArrowRight />
               </Button>
             </Link>
             <Link href="/help/contact" className="block">
-              <Button variant="link" className="h-auto p-0 text-sm">
-                Contact Support →
+              <Button variant="ghost" className="h-auto p-0 text-sm">
+                Contact Support <ArrowRight />
               </Button>
             </Link>
           </div>
-        </CardContent>
+        </CardBody>
       </Card>
     </div>
   );

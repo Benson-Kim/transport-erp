@@ -17,8 +17,8 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Download, Euro } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { formatCurrency } from '@/lib/utils/formatting';
@@ -123,13 +123,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="space-y-1">
-          <CardTitle>Revenue Trends</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Monthly revenue and margin analysis
-          </p>
-        </div>
+      <CardHeader title='Revenue Trends' subtitle=' Monthly revenue and margin analysis' className="flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 text-sm">
             <Euro className="h-4 w-4 text-purple-600" />
@@ -140,7 +134,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
           </div>
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={handleExport}
             className="h-8"
           >
@@ -149,7 +143,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardBody>
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart
             data={data}
@@ -219,7 +213,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }

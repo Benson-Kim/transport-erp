@@ -1,110 +1,110 @@
 /**
  * Button Component
- * Accessible button with multiple variants and sizes
+ * Accessible button with multiple variants and states
  */
 
-'use client';
-
-import * as React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils/cn';
+import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils/cn';
+import { ComponentSize } from '@/types/ui';
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default:
-          'bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600',
-        destructive:
-          'bg-error-600 text-white hover:bg-error-700 dark:bg-error-500 dark:hover:bg-error-600',
-        outline:
-          'border border-neutral-300 bg-transparent hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800',
-        secondary:
-          'bg-neutral-100 text-neutral-900 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700',
-        ghost:
-          'hover:bg-neutral-100 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-neutral-100',
-        link:
-          'text-primary-600 underline-offset-4 hover:underline dark:text-primary-400',
-        success:
-          'bg-success-600 text-white hover:bg-success-700 dark:bg-success-500 dark:hover:bg-success-600',
-      },
-      size: {
-        default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
-        xl: 'h-12 rounded-md px-10 text-base',
-        icon: 'h-10 w-10',
-        'icon-sm': 'h-9 w-9',
-        'icon-lg': 'h-11 w-11',
-      },
-      fullWidth: {
-        true: 'w-full',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      size: 'default',
-      fullWidth: false,
-    },
-  }
-);
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  size?: ComponentSize;
   loading?: boolean;
   loadingText?: string;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  icon?: ReactNode;
+  iconPosition?: 'left' | 'right';
+  fullWidth?: boolean;
+  asChild?: boolean;
 }
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+const variantClasses = {
+  primary: 'button-primary',
+  secondary: 'button-secondary',
+  danger: 'button-danger',
+  ghost: 'button-ghost',
+};
+
+const sizeClasses = {
+  sm: 'h-8 px-3 text-xs',
+  md: 'h-10 px-4 text-sm',
+  lg: 'h-12 px-6 text-base',
+};
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
-      className,
-      variant,
-      size,
-      fullWidth,
+      variant = 'primary',
+      size = 'md',
       loading = false,
       loadingText,
-      leftIcon,
-      rightIcon,
       disabled,
+      icon,
+      iconPosition = 'left',
+      fullWidth = false,
       children,
+      className,
+      onClick,
+      type = 'button',
       ...props
     },
     ref
   ) => {
     const isDisabled = disabled || loading;
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!isDisabled && onClick) {
+        onClick(e);
+      }
+    };
+
+    const content = (
+      <>
+        {loading && (
+          <Loader2 
+            className="animate-spin" 
+            size={size === 'sm' ? 14 : size === 'md' ? 16 : 18}
+            aria-hidden="true"
+          />
+        )}
+        {!loading && icon && iconPosition === 'left' && (
+          <span className="icon" aria-hidden="true">{icon}</span>
+        )}
+        <span className="button-text">
+          {loading && loadingText ? loadingText : children}
+        </span>
+        {!loading && icon && iconPosition === 'right' && (
+          <span className="icon" aria-hidden="true">{icon}</span>
+        )}
+      </>
+    );
+
     return (
       <button
-        className={cn(buttonVariants({ variant, size, fullWidth, className }))}
         ref={ref}
+        type={type}
+        className={cn(
+          'button',
+          variantClasses[variant],
+          sizeClasses[size],
+          fullWidth && 'w-full',
+          'inline-flex items-center justify-center gap-2',
+          'transition-all duration-150',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+          isDisabled && 'cursor-not-allowed opacity-60',
+          className
+        )}
         disabled={isDisabled}
+        onClick={handleClick}
         aria-busy={loading}
+        aria-disabled={isDisabled}
         {...props}
       >
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-            <span>{loadingText || children}</span>
-          </>
-        ) : (
-          <>
-            {leftIcon && <span className="mr-2">{leftIcon}</span>}
-            <span>{children}</span>
-            {rightIcon && <span className="ml-2">{rightIcon}</span>}
-          </>
-        )}
+        {content}
       </button>
     );
   }
 );
 
 Button.displayName = 'Button';
-
-export { Button, buttonVariants };

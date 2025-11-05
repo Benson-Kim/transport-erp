@@ -6,15 +6,15 @@
 'use client';
 
 import { useMemo } from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Activity, 
-  CheckCircle2, 
-  Euro, 
-  Percent 
+import {
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  CheckCircle2,
+  Euro,
+  Percent
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
 
@@ -119,15 +119,16 @@ function StatsCard({
   return (
     <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer group">
       <a href={href} className="block">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {label}
-          </CardTitle>
+        <CardHeader
+          title={label}
+          className="flex flex-row items-center justify-between space-y-0 pb-2"
+        >
           <div className={cn('rounded-lg p-2', bgColor)}>
             <Icon className={cn('h-4 w-4', iconColor)} />
           </div>
         </CardHeader>
-        <CardContent>
+
+        <CardBody>
           <div className="space-y-1">
             <div className="text-2xl font-bold group-hover:text-primary transition-colors">
               {value}
@@ -159,7 +160,7 @@ function StatsCard({
               </span>
             </div>
           </div>
-        </CardContent>
+        </CardBody>
       </a>
     </Card>
   );

@@ -3,22 +3,22 @@
  * Loading states for dashboard sections
  */
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export const DashboardSkeleton = {
   Stats: () => (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[...Array(4)].map((_, i) => (
-        <Card key={i}>
+        <Card key={i} variant='bordered'>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-8 w-8 rounded-lg" />
           </CardHeader>
-          <CardContent>
+          <CardBody>
             <Skeleton className="h-8 w-32 mb-2" />
             <Skeleton className="h-3 w-20" />
-          </CardContent>
+          </CardBody>
         </Card>
       ))}
     </div>
@@ -30,9 +30,9 @@ export const DashboardSkeleton = {
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-4 w-48 mt-1" />
       </CardHeader>
-      <CardContent>
+      <CardBody>
         <Skeleton className="h-[350px] w-full" />
-      </CardContent>
+      </CardBody>
     </Card>
   ),
 
@@ -41,13 +41,13 @@ export const DashboardSkeleton = {
       <CardHeader>
         <Skeleton className="h-6 w-32" />
       </CardHeader>
-      <CardContent className="p-0">
+      <CardBody className="p-0">
         <div className="space-y-2 p-4">
           {[...Array(5)].map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>
-      </CardContent>
+      </CardBody>
     </Card>
   ),
 };

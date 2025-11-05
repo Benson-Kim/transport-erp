@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/Alert';
+import { Button } from '@/components/ui/Button';
 import { AlertCircle } from 'lucide-react';
 
 interface Props {
@@ -32,19 +32,17 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <Alert variant="destructive">
+        <Alert variant="error">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
             {this.props.fallback || 'Something went wrong'}
             <Button
               size="sm"
-              variant="outline"
+              variant="secondary"
               className="ml-2"
               onClick={() => this.setState({ hasError: false })}
             >
               Retry
             </Button>
-          </AlertDescription>
         </Alert>
       );
     }

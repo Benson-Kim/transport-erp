@@ -1,117 +1,194 @@
 /**
  * Input Component
- * Accessible form input with error states
+ * Accessible text input with extensive features
  */
 
-'use client';
-
-import * as React from 'react';
+'use client'
+import { InputHTMLAttributes, forwardRef, useState, useCallback, ReactNode } from 'react';
+import { X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { cva, type VariantProps } from 'class-variance-authority';
-
-const inputVariants = cva(
-  'flex w-full rounded-md border bg-background text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-  {
-    variants: {
-      variant: {
-        default:
-          'border-neutral-300 focus-visible:ring-primary-500 dark:border-neutral-700',
-        error:
-          'border-error-500 focus-visible:ring-error-500 dark:border-error-500',
-        success:
-          'border-success-500 focus-visible:ring-success-500 dark:border-success-500',
-      },
-      inputSize: {
-        default: 'h-10 px-3 py-2',
-        sm: 'h-9 px-2.5 py-1.5 text-xs',
-        lg: 'h-11 px-4 py-3',
-        xl: 'h-12 px-4 py-3 text-base',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
-      inputSize: 'default',
-    },
-  }
-);
+import { ComponentSize, ComponentStatus, InputType } from '@/types/ui';
 
 export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
-    VariantProps<typeof inputVariants> {
-  error?: boolean;
-  success?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
-  leftAddon?: React.ReactNode;
-  rightAddon?: React.ReactNode;
+  extends Omit<
+    InputHTMLAttributes<HTMLInputElement>,
+    'size' | 'type' | 'prefix' | 'suffix'
+  > {
+  type?: InputType;
+  size?: ComponentSize;
+  status?: ComponentStatus;
+  error?: string;
+  prefix?: ReactNode;
+  suffix?: ReactNode;
+  clearable?: boolean;
+  showPasswordToggle?: boolean;
+  showCharacterCount?: boolean;
+  maxCharacters?: number;
+  onClear?: () => void;
 }
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
+
+const sizeClasses = {
+  sm: 'h-8 text-xs',
+  md: 'h-10 text-sm',
+  lg: 'h-12 text-base',
+};
+
+const statusClasses = {
+  default: '',
+  success: 'border-green-500 focus:border-green-500',
+  warning: 'border-yellow-500 focus:border-yellow-500',
+  error: 'border-danger focus:border-danger',
+};
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
     {
-      className,
       type = 'text',
-      variant,
-      inputSize,
+      size = 'md',
+      status = 'default',
       error,
-      success,
-      leftIcon,
-      rightIcon,
-      leftAddon,
-      rightAddon,
+      prefix,
+      suffix,
+      clearable = false,
+      showPasswordToggle = false,
+      showCharacterCount = false,
+      maxCharacters,
+      disabled,
+      readOnly,
+      value,
+      onChange,
+      onClear,
+      className,
       ...props
     },
     ref
   ) => {
-    const computedVariant = error ? 'error' : success ? 'success' : variant;
-    
-    const input = (
-      <input
-        type={type}
-        className={cn(
-          inputVariants({ variant: computedVariant, inputSize }),
-          leftIcon && 'pl-10',
-          rightIcon && 'pr-10',
-          className
-        )}
-        ref={ref}
-        aria-invalid={error ? 'true' : 'false'}
-        {...props}
-      />
-    );
+    const [showPassword, setShowPassword] = useState(false);
+    const [internalValue, setInternalValue] = useState(value || '');
 
-    if (leftIcon || rightIcon || leftAddon || rightAddon) {
-      return (
-        <div className="relative flex items-center">
-          {leftAddon && (
-            <span className="flex h-10 items-center rounded-l-md border border-r-0 border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
-              {leftAddon}
-            </span>
+    const effectiveType = type === 'password' && showPassword ? 'text' : type;
+    const hasError = status === 'error' || !!error;
+    const characterCount = String(internalValue).length;
+
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      
+      if (maxCharacters && newValue.length > maxCharacters) {
+        return;
+      }
+      
+      setInternalValue(newValue);
+      onChange?.(e);
+    }, [onChange, maxCharacters]);
+
+    const handleClear = useCallback(() => {
+      setInternalValue('');
+      onClear?.();
+      
+      // Create synthetic event
+      const input = document.querySelector(`input[value="${internalValue}"]`) as HTMLInputElement;
+      if (input && onChange) {
+        const event = new Event('change', { bubbles: true });
+        Object.defineProperty(event, 'target', { value: input, writable: false });
+        onChange(event as any);
+      }
+    }, [internalValue, onChange, onClear]);
+
+    const togglePassword = useCallback(() => {
+      setShowPassword(prev => !prev);
+    }, []);
+
+    return (
+      <div className="relative w-full">
+        <div className={cn(
+          'relative flex items-center',
+          disabled && 'opacity-60 cursor-not-allowed'
+        )}>
+          {prefix && (
+            <div className="absolute left-3 flex items-center pointer-events-none">
+              <span className="text-neutral-500 text-sm">{prefix}</span>
+            </div>
           )}
-          {leftIcon && (
-            <span className="pointer-events-none absolute left-3 flex items-center text-neutral-500 dark:text-neutral-400">
-              {leftIcon}
-            </span>
-          )}
-          {input}
-          {rightIcon && (
-            <span className="pointer-events-none absolute right-3 flex items-center text-neutral-500 dark:text-neutral-400">
-              {rightIcon}
-            </span>
-          )}
-          {rightAddon && (
-            <span className="flex h-10 items-center rounded-r-md border border-l-0 border-neutral-300 bg-neutral-50 px-3 text-sm text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
-              {rightAddon}
-            </span>
-          )}
+          
+          <input
+            ref={ref}
+            type={effectiveType}
+            value={internalValue}
+            onChange={handleChange}
+            disabled={disabled}
+            readOnly={readOnly}
+            className={cn(
+              'input',
+              sizeClasses[size],
+              statusClasses[status],
+              hasError && 'input-error',
+              prefix && 'pl-10',
+              (suffix || clearable || showPasswordToggle) && 'pr-10',
+              className
+            )}
+            aria-invalid={hasError}
+            aria-describedby={error ? `${props.id}-error` : undefined}
+            {...props}
+          />
+          
+          <div className="absolute right-3 flex items-center gap-1">
+            {clearable && internalValue && !disabled && !readOnly && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="p-1 hover:bg-neutral-100 rounded transition-colors"
+                aria-label="Clear input"
+              >
+                <X size={16} className="text-neutral-500" />
+              </button>
+            )}
+            
+            {type === 'password' && showPasswordToggle && (
+              <button
+                type="button"
+                onClick={togglePassword}
+                className="p-1 hover:bg-neutral-100 rounded transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? (
+                  <EyeOff size={16} className="text-neutral-500" />
+                ) : (
+                  <Eye size={16} className="text-neutral-500" />
+                )}
+              </button>
+            )}
+            
+            {suffix && (
+              <span className="text-neutral-500 text-sm">{suffix}</span>
+            )}
+          </div>
         </div>
-      );
-    }
-
-    return input;
+        
+        {(error || showCharacterCount) && (
+          <div className="flex items-center justify-between mt-1">
+            {error && (
+              <div id={`${props.id}-error`} className="flex items-center gap-1 text-danger text-xs" role="alert">
+                <AlertCircle size={12} />
+                <span>{error}</span>
+              </div>
+            )}
+            
+            {showCharacterCount && (
+              <div className={cn(
+                'text-xs ml-auto',
+                maxCharacters && characterCount >= maxCharacters
+                  ? 'text-danger'
+                  : 'text-neutral-500'
+              )}>
+                {characterCount}{maxCharacters ? `/${maxCharacters}` : ''}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 );
 
 Input.displayName = 'Input';
-
-export { Input, inputVariants };

@@ -4,21 +4,23 @@
  */
 
 import { Suspense } from 'react';
-import { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
 import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
-import { PageHeader } from '@/components/ui/page-header';
-import { DashboardDateRange } from '@/components/features/dashboard/DashboardDateRange';
-import { StatsCards } from '@/components/features/dashboard/StatsCards';
-import { ServicesChart } from '@/components/features/dashboard/ServicesChart';
-import { RevenueChart } from '@/components/features/dashboard/RevenueChart';
-import { RecentServices } from '@/components/features/dashboard/RecentServices';
-import { QuickActions } from '@/components/features/dashboard/QuickActions';
-import { DashboardSkeleton } from '@/components/features/dashboard/DashboardSkeleton';
-import { ErrorBoundary } from '@/components/ui/error-boundary';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { format } from 'date-fns';
+
+import { Button } from '@/components/ui/Button';
+import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Alert } from '@/components/ui/Alert';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { formatCurrency } from '@/lib/utils/formatting';
+import { TrendingUp, TrendingDown, Truck, CheckCircle2, Euro, Percent, Info } from 'lucide-react';
+import { DashboardDateRange, DashboardSkeleton, QuickActions, RecentServices, RevenueChart, ServicesChart, StatsCards } from '@/components/features/dashboard';
+import { ErrorBoundary, PageHeader } from '@/components/ui';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',
@@ -36,11 +38,8 @@ interface DashboardPageProps {
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   // Check authentication
   const session = await auth();
-  if (!session?.user) {
-    redirect('/login');
-  }
+  if (!session?.user) redirect('/login');
 
-  // Parse date range from search params
   const dateRange = {
     from: searchParams.from || undefined,
     to: searchParams.to || undefined,
@@ -71,9 +70,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       {isNewUser && (
         <Alert>
           <Info className="h-4 w-4" />
-          <AlertDescription>
             Welcome to Enterprise Dashboard! Start by creating your first service or importing existing data.
-          </AlertDescription>
         </Alert>
       )}
 

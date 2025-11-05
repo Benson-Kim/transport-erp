@@ -9,8 +9,8 @@ import { UserRole } from '@prisma/client';
 import { getUsers } from '@/actions/user-actions';
 import { UsersList } from '@/components/features/users/users-list';
 import { CreateUserDialog } from '@/components/features/users/create-user-dialog';
-import { PageHeader } from '@/components/ui/page-header';
-import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { Card } from '@/components/ui/Card';
 
 export const metadata: Metadata = {
   title: 'User Management | Settings',

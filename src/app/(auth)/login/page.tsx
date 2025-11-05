@@ -7,7 +7,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
-import { Logo } from '@/components/ui/logo';
+import { Logo } from '@/components/ui/Logo';
 import { LoginForm, OAuthButtons } from '@/components/features/auth';
 
 export const metadata: Metadata = {

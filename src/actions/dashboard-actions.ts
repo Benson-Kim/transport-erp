@@ -6,7 +6,6 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import prisma from '@/lib/prisma';
 import { ServiceStatus } from '@prisma/client';
 import {
   startOfMonth,
@@ -20,6 +19,7 @@ import {
   aggregateServicesByMonth,
   aggregateRevenueByMonth,
 } from '@/lib/utils/dashboard-helpers';
+import prisma from '@/lib/prisma/prisma';
 
 interface DashboardDateRange {
   from?: string;
@@ -71,7 +71,7 @@ interface DashboardData {
  */
 export const getDashboardData = unstable_cache(
   async ({
-    userId,
+    // userId,
     dateRange,
   }: {
     userId: string;
@@ -261,7 +261,7 @@ export async function refreshDashboardData() {
   
   // Revalidate the dashboard cache
   const { revalidateTag } = await import('next/cache');
-  revalidateTag('dashboard');
+  revalidateTag('dashboard', 'default');
   
   return { success: true };
 }

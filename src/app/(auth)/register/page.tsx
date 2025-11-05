@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
 import { LoginForm } from '@/components/features/auth/login-form';
 import { OAuthButtons } from '@/components/features/auth/oauth-buttons';
-import { Logo } from '@/components/ui/logo';
+import { Logo } from '@/components/ui/Logo';
 
 export const metadata: Metadata = {
   title: 'Sign In | Enterprise Dashboard',

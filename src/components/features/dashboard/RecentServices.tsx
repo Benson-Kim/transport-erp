@@ -10,12 +10,11 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import {
   Card,
-  CardContent,
+  CardBody,
   CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import {
   ArrowRight,
   Truck,
@@ -26,6 +25,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { ServiceStatus } from '@prisma/client';
 
 interface Service {
   id: string;
@@ -34,7 +34,7 @@ interface Service {
   clientName: string;
   origin: string;
   destination: string;
-  status: 'DRAFT' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: ServiceStatus;
   amount: number;
   currency: string;
 }
@@ -49,16 +49,18 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
 
   const getStatusIcon = (status: Service['status']) => {
     switch (status) {
-      case 'DRAFT':
+      case ServiceStatus.DRAFT:
         return <Clock className="h-3 w-3" />;
-      case 'CONFIRMED':
+      case ServiceStatus.CONFIRMED:
         return <AlertCircle className="h-3 w-3" />;
-      case 'IN_PROGRESS':
+      case ServiceStatus.IN_PROGRESS:
         return <Truck className="h-3 w-3" />;
-      case 'COMPLETED':
+      case ServiceStatus.COMPLETED:
         return <CheckCircle className="h-3 w-3" />;
-      case 'CANCELLED':
+      case ServiceStatus.CANCELLED:
         return <XCircle className="h-3 w-3" />;
+      case ServiceStatus.INVOICED:
+          return <XCircle className="h-3 w-3" />;
       default:
         return null;
     }
@@ -66,16 +68,18 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
 
   const getStatusColor = (status: Service['status']) => {
     switch (status) {
-      case 'DRAFT':
+      case ServiceStatus.DRAFT:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      case 'CONFIRMED':
+      case ServiceStatus.CONFIRMED:
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'IN_PROGRESS':
+      case ServiceStatus.IN_PROGRESS:
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'COMPLETED':
+      case ServiceStatus.COMPLETED:
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'CANCELLED':
+      case ServiceStatus.CANCELLED:
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case ServiceStatus.INVOICED:
+          return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -92,10 +96,8 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
   if (services.length === 0 && !isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Recent Services</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardHeader title='Recent Services' />
+        <CardBody>
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Truck className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">No services yet</p>
@@ -108,24 +110,19 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
               </Button>
             </Link>
           </div>
-        </CardContent>
+        </CardBody>
       </Card>
     );
   }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Recent Services</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Your latest service activity
-          </p>
-        </div>
+      <CardHeader title='Recent Services' subtitle=' Your latest service activity' className="flex flex-row items-center justify-between">
+       
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            variant="outline"
+            variant="secondary"
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="h-8"
@@ -139,14 +136,14 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
             Refresh
           </Button>
           <Link href="/services">
-            <Button size="sm" variant="outline" className="h-8">
+            <Button size="sm" variant="secondary" className="h-8">
               View All
               <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </Link>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardBody className="p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -203,7 +200,7 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
                   </td>
                   <td className="px-4 py-3">
                     <Badge
-                      variant="secondary"
+                      variant="active"
                       className={cn('gap-1', getStatusColor(service.status))}
                     >
                       {getStatusIcon(service.status)}
@@ -221,7 +218,7 @@ export function RecentServices({ services, isLoading = false }: RecentServicesPr
             </tbody>
           </table>
         </div>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }
