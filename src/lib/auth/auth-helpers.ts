@@ -3,8 +3,9 @@
  * Utilities for auth operations, token generation, and password management
  */
 
+export const runtime = 'nodejs';
+
 import { hash, compare } from 'bcryptjs';
-import { randomBytes } from 'crypto';
 import { addHours } from 'date-fns';
 import { UserRole } from '@prisma/client';
 import prisma from '../prisma/prisma';
@@ -45,7 +46,10 @@ export async function verifyPassword(
  * Generate a secure random token
  */
 export function generateToken(length: number = 32): string {
-  return randomBytes(length).toString('hex');
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+
+  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
