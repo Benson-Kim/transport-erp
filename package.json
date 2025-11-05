@@ -30,6 +30,7 @@
     "docker:db:reset": "docker compose exec app npx prisma migrate reset --force"
   },
   "dependencies": {
+    "@auth/core": "^0.34.3",
     "@auth/prisma-adapter": "^2.11.1",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.18.0",
@@ -46,7 +47,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.552.0",
     "next": "16.0.1",
-    "next-auth": "^4.24.13",
+    "next-auth": "^5.0.0-beta.30",
     "nodemailer": "^7.0.10",
     "puppeteer": "^24.28.0",
     "react": "19.2.0",

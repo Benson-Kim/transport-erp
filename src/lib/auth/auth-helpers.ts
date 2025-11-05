@@ -6,8 +6,9 @@
 import { hash, compare } from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { addHours } from 'date-fns';
-import prisma from '@/lib/prisma';
 import { UserRole } from '@prisma/client';
+import prisma from '../prisma/prisma';
+
 
 /**
  * Password hashing configuration
@@ -235,6 +236,13 @@ export async function resetPasswordWithToken(
     await prisma.session.deleteMany({
       where: { userId: user.id },
     });
+
+    if (user.id) {
+  await prisma.session.deleteMany({
+    where: { userId: user.id },
+  });
+}
+
     
     return { success: true };
   } catch (error) {
@@ -400,7 +408,7 @@ export async function updatePassword(
       select: { password: true },
     });
     
-    if (!user?.password) {
+    if (!user || !user.password) {
       return { success: false, error: 'User not found' };
     }
     

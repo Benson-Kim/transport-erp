@@ -3,17 +3,21 @@
  * Complete authentication setup with credentials and OAuth providers
  */
 
-import NextAuth, { User } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import Google from 'next-auth/providers/google';
-import { PrismaAdapter } from '@auth/prisma-adapter';
 import { compare } from 'bcryptjs';
-import { loginSchema } from '@/lib/validations/auth-schema';
-import { rateLimiter } from '@/lib/rate-limiter';
-import { UserRole } from '@/types/prisma';
-import { generateVerificationToken } from './auth-helpers';
+
+import prisma from '../prisma/prisma';
+import { UserRole } from '@prisma/client';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+
+import NextAuth, { AuthOptions, User, Account } from 'next-auth';
+import { Adapter } from 'next-auth/adapters';
+import Google from 'next-auth/providers/google';
+import Credentials from 'next-auth/providers/credentials';
+
 import { sendVerificationEmail } from '../email';
-import { Account } from 'next-auth';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { generateVerificationToken } from './auth-helpers';
+import { loginSchema } from '@/lib/validations/auth-schema';
 
 /**
  * Credential input shape used by the credentials provider
@@ -21,56 +25,17 @@ import { Account } from 'next-auth';
 type CredentialsInput = {
   email?: string;
   password?: string;
-  rememberMe?: boolean;
+  rememberMe?: string;
   ip?: string;
   userAgent?: string;
 };
 
 /**
- * Module augmentation for NextAuth types
- */
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name: string;
-      role: UserRole;
-      emailVerified: Date | null;
-      twoFactorEnabled: boolean;
-      department?: string | null;
-      avatar?: string | null;
-    };
-  }
-
-  interface User {
-    id: string;
-    email: string;
-    name: string;
-    role: UserRole;
-    emailVerified: Date | null;
-    twoFactorEnabled: boolean;
-    department?: string | null;
-    avatar?: string | null;
-  }
-}
-
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string;
-    role: UserRole;
-    emailVerified: Date | null;
-    twoFactorEnabled: boolean;
-    department?: string | null;
-  }
-}
-
-/**
  * NextAuth configuration
  */
-export const authConfig = {
+export const authConfig: AuthOptions = {
   // Adapter for database persistence
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as Adapter,
 
   // Session configuration
   session: {
@@ -113,6 +78,7 @@ export const authConfig = {
           }
 
           // Validate input (loginSchema should validate required fields)
+          
           const validatedFields = loginSchema.parse({
             email: credentials.email,
             password: credentials.password,
@@ -258,7 +224,7 @@ export const authConfig = {
     async signIn({ user, account }: { user: User; account: Account | null }) {
       // If provider is not credentials, we handle OAuth flow
       if (account?.provider !== 'credentials') {
-        if (!user?.email) return false;
+        if (!user.email) return false;
 
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -289,7 +255,7 @@ export const authConfig = {
       }
 
       // For credentials provider, ensure emailVerified
-      if (!user?.email) return false;
+      if (!user.email) return false;
 
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email },
@@ -303,31 +269,32 @@ export const authConfig = {
     },
 
     // JWT callback
-    async jwt({ token, user, trigger, session }: { token: any; user?: User; trigger?: string; session?: any }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         // Initial sign in -> augment token
-        (token as any).id = (user as any).id;
-        (token as any).role = (user as any).role;
-        (token as any).emailVerified = (user as any).emailVerified;
-        (token as any).twoFactorEnabled = (user as any).twoFactorEnabled;
-        (token as any).department = (user as any).department;
+        token.id = user.id;
+        token.role = user.role;
+        token.emailVerified = user.emailVerified ?? null;
+        token.twoFactorEnabled = user.twoFactorEnabled ?? false;
+        token.department = user.department ?? null;
+        token.avatar = user.avatar ?? null;
       }
 
       if (trigger === 'update' && session) {
-        token = { ...token, ...(session as any) };
+        token = { ...token, ...session };
       }
 
       return token;
     },
 
     // Session callback
-    async session({ session, token }:  { token: any; session?: any;}) {
+    async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = (token as any).id;
-        session.user.role = (token as any).role;
-        session.user.emailVerified = (token as any).emailVerified ?? null;
-        session.user.twoFactorEnabled = (token as any).twoFactorEnabled ?? false;
-        session.user.department = (token as any).department ?? null;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.emailVerified = token.emailVerified ?? null;
+        session.user.twoFactorEnabled = token.twoFactorEnabled ?? false;
+        session.user.department = token.department ?? null;
       }
 
       return session;
@@ -381,7 +348,6 @@ export const authConfig = {
   },
 
   // Security options
-  trustHost: true,
   useSecureCookies: process.env.NODE_ENV === 'production',
 
   // Debug mode

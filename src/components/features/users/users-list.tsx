@@ -18,7 +18,7 @@ import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils/cn';
-import { UserRole } from '@/types/prisma';
+import { UserRole } from '@prisma/client';
 
 interface User {
   id: string;
