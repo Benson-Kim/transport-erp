@@ -22,12 +22,24 @@ const passwordSchema = z
 /**
  * Login form schema
  */
+const rememberMeField = z
+  .union([z.boolean(), z.string()])
+  .transform((val) => {
+    if (typeof val === 'boolean') return val;
+    const v = val.toLowerCase().trim();
+    if (['true', '1', 'on', 'yes'].includes(v)) return true;
+    if (['false', '0', 'off', 'no', ''].includes(v)) return false;
+    return false;
+  })
+  .optional()
+  .default(false);
+
 export const loginSchema = z.object({
   email: z
   .email('Please enter a valid email address')
     .min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
-  rememberMe: z.boolean().optional().default(false),
+  rememberMe: rememberMeField,
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

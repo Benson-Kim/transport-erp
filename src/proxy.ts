@@ -25,7 +25,7 @@ const PUBLIC_ROUTES = [
  */
 const API_ROUTES = ['/api/auth'];
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Allow public routes

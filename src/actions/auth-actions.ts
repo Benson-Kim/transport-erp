@@ -29,12 +29,15 @@ import {
 import { getServerAuth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
+import { sendVerificationEmail } from '@/lib/email';
+// import prisma from '@/lib/prisma/prisma';
+
 
 /**
  * Get client IP and user agent
  */
-function getClientInfo() {
-  const headersList = headers();
+export async function getClientInfo() {
+  const headersList = await headers();
   const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
   const userAgent = headersList.get('user-agent') || '';
   return { ip, userAgent };
@@ -46,7 +49,7 @@ function getClientInfo() {
 export async function signInWithCredentials(data: LoginFormData) {
   try {
     const validatedData = loginSchema.parse(data);
-    const { ip, userAgent } = getClientInfo();
+    const { ip, userAgent } = await getClientInfo();
     
     const result = await signIn('credentials', {
       email: validatedData.email,
@@ -102,7 +105,7 @@ export async function registerUser(data: RegisterFormData) {
     });
     
     // Send verification email
-    // await sendVerificationEmail(user.email, verificationToken);
+    await sendVerificationEmail(user.email, verificationToken);
     
     return {
       success: true,
@@ -237,17 +240,64 @@ export async function verifyEmail(token: string) {
 /**
  * Resend verification email
  */
-export async function resendVerificationEmail(email: string) {
-  try {
-    // Implementation for resending verification email
-    // This would generate a new token and send the email
+// export async function resendVerificationEmail(email: string) {
+//   try {
+//     // Implementation for resending verification email
+//     // This would generate a new token and send the email
     
-    return {
-      success: true,
-      message: 'Verification email sent. Please check your inbox.',
-    };
-  } catch (error) {
-    console.error('Resend verification error:', error);
-    return { success: false, error: 'Failed to send verification email' };
-  }
-}
+//     return {
+//       success: true,
+//       message: 'Verification email sent. Please check your inbox.',
+//     };
+//   } catch (error) {
+//     console.error('Resend verification error:', error);
+//     return { success: false, error: 'Failed to send verification email' };
+//   }
+// }
+
+
+
+// /**
+//  * Resend verification email
+//  */
+// export async function resendVerificationEmail(email: string) {
+//   try {
+//     // 1️⃣ Find existing user
+//     const user = await prisma.user.findUnique({ where: { email } });
+//     if (!user) {
+//       return { success: false, error: 'User not found' };
+//     }
+
+//     if (user.emailVerified) {
+//       return { success: false, error: 'Email is already verified.' };
+//     }
+
+//     // 2️⃣ Generate a new verification token
+//     const token = generateToken(32);
+
+//     // 3️⃣ Save or update token in your verification token table
+//     await prisma.verificationToken.upsert({
+//       where: { userId: user.id },
+//       update: {
+//         token,
+//         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h expiry
+//       },
+//       create: {
+//         userId: user.id,
+//         token,
+//         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+//       },
+//     });
+
+//     // 4️⃣ Send the verification email
+//     await sendVerificationEmail(user.email, token);
+
+//     return {
+//       success: true,
+//       message: 'Verification email sent. Please check your inbox.',
+//     };
+//   } catch (error) {
+//     console.error('Resend verification error:', error);
+//     return { success: false, error: 'Failed to send verification email' };
+//   }
+// }

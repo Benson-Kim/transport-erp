@@ -1,39 +1,61 @@
 /**
- * NextAuth.js v5 Configuration
  * Complete authentication setup with credentials and OAuth providers
  */
 
 import { compare } from 'bcryptjs';
-
 import prisma from '../prisma/prisma';
 import { UserRole } from '@prisma/client';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
-import NextAuth, { AuthOptions, User, Account } from 'next-auth';
-import { Adapter } from 'next-auth/adapters';
+import NextAuth, {
+  type NextAuthConfig,
+  type User as NextAuthUser,
+  type Session as NextAuthSession,
+} from 'next-auth';
+import type { Adapter } from 'next-auth/adapters';
+import type { JWT as DefaultJWT } from 'next-auth/jwt';
+
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 
-import { sendVerificationEmail } from '../email';
+import { sendVerificationEmail, sendWelcomeEmail } from '../email';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { generateVerificationToken } from './auth-helpers';
 import { loginSchema } from '@/lib/validations/auth-schema';
 
-/**
- * Credential input shape used by the credentials provider
- */
-type CredentialsInput = {
-  email?: string;
-  password?: string;
-  rememberMe?: string;
-  ip?: string;
-  userAgent?: string;
+// Local helper types to narrow token and session shapes
+type AppJWT = DefaultJWT & {
+  id?: string;
+  role?: UserRole;
+  emailVerified?: Date | null;
+  twoFactorEnabled?: boolean;
+  department?: string | null;
+  avatar?: string | null;
+};
+
+type AppUser = NextAuthUser & {
+  role?: UserRole;
+  emailVerified?: Date | null;
+  twoFactorEnabled?: boolean;
+  department?: string | null;
+  avatar?: string | null;
+};
+
+type AppSession = NextAuthSession & {
+  user: NextAuthSession['user'] & {
+    id: string;
+    role?: UserRole;
+    emailVerified?: Date | null;
+    twoFactorEnabled?: boolean;
+    department?: string | null;
+    avatar?: string | null;
+  };
 };
 
 /**
  * NextAuth configuration
  */
-export const authConfig: AuthOptions = {
+export const authConfig = {
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
 
@@ -69,27 +91,31 @@ export const authConfig: AuthOptions = {
         password: { label: 'Password', type: 'password' },
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
-      async authorize(credentials: CredentialsInput | undefined) {
+      async authorize(credentials, req): Promise<NextAuthUser | null> {
         try {
-          // Require credentials to be present
           if (!credentials) {
-            // If NextAuth calls authorize without credentials, reject
             throw new Error('Missing credentials');
           }
 
-          // Validate input (loginSchema should validate required fields)
-          
+          // Validate input
           const validatedFields = loginSchema.parse({
             email: credentials.email,
             password: credentials.password,
             rememberMe: credentials.rememberMe,
           });
 
-          // Check rate limiting
+          // Get IP/User-Agent from the Request
+          const ip =
+            req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+            req.headers.get('x-real-ip') ??
+            null;
+          const userAgent = req.headers.get('user-agent') ?? null;
+
+          // Rate limit
           const rateLimitResult = await rateLimiter.check(
             validatedFields.email,
-            5, // max attempts
-            15 * 60 * 1000 // 15 minutes window in ms
+            5,
+            15 * 60 * 1000
           );
 
           if (!rateLimitResult.success) {
@@ -100,11 +126,9 @@ export const authConfig: AuthOptions = {
             );
           }
 
-          // Find user by email (only non-deleted users)
+          // Find user by email
           const user = await prisma.user.findUnique({
-            where: {
-              email: validatedFields.email,
-            },
+            where: { email: validatedFields.email },
             select: {
               id: true,
               email: true,
@@ -124,48 +148,40 @@ export const authConfig: AuthOptions = {
             throw new Error('Invalid email or password');
           }
 
-          // Check if account is active
           if (!user.isActive) {
             throw new Error('Account is disabled. Please contact support.');
           }
 
-          // Verify password
           const passwordValid = await compare(validatedFields.password, user.password);
-
           if (!passwordValid) {
             await rateLimiter.increment(validatedFields.email);
             throw new Error('Invalid email or password');
           }
 
-          // Check email verification
           if (!user.emailVerified) {
-            // Send verification email (non-blocking would be fine, but we await to ensure mail attempted)
             const token = await generateVerificationToken(user.email);
             await sendVerificationEmail(user.email, token);
             throw new Error('Email not verified. We have sent you a new verification link.');
           }
 
-          // Reset rate limiter on successful login
           await rateLimiter.reset(validatedFields.email);
 
-          // Update last login (use optional chaining for credentials fields)
           await prisma.user.update({
             where: { id: user.id },
             data: {
               lastLoginAt: new Date(),
-              lastLoginIp: credentials?.ip ?? null,
+              lastLoginIp: ip,
             },
           });
 
-          // Create audit log — make sure to safely read optional fields
           await prisma.auditLog.create({
             data: {
               userId: user.id,
               action: 'LOGIN',
               tableName: 'users',
               recordId: user.id,
-              ipAddress: credentials?.ip ?? null,
-              userAgent: credentials?.userAgent ?? null,
+              ipAddress: ip,
+              userAgent,
               metadata: {
                 provider: 'credentials',
                 rememberMe: Boolean(validatedFields.rememberMe),
@@ -183,9 +199,8 @@ export const authConfig: AuthOptions = {
             twoFactorEnabled: user.twoFactorEnabled,
             department: user.department,
             avatar: user.avatar,
-          };
+          } as unknown as NextAuthUser;
         } catch (error) {
-          // Log error for debugging, but return null to indicate authentication failure
           console.error('Authentication error:', error);
           return null;
         }
@@ -210,7 +225,7 @@ export const authConfig: AuthOptions = {
           email: profile.email,
           emailVerified: profile.email_verified ? new Date() : null,
           avatar: profile.picture,
-          role: 'VIEWER', // Default role for OAuth users
+          role: UserRole.VIEWER, // Default role for OAuth users
           twoFactorEnabled: false,
           department: null,
         };
@@ -221,10 +236,10 @@ export const authConfig: AuthOptions = {
   // Callbacks
   callbacks: {
     // Sign in callback
-    async signIn({ user, account }: { user: User; account: Account | null }) {
-      // If provider is not credentials, we handle OAuth flow
+    async signIn({ user, account }) {
+      // If provider is not credentials, handle OAuth flow
       if (account?.provider !== 'credentials') {
-        if (!user.email) return false;
+        if (!user?.email) return false;
 
         const existingUser = await prisma.user.findUnique({
           where: { email: user.email },
@@ -243,19 +258,16 @@ export const authConfig: AuthOptions = {
               action: 'LOGIN',
               tableName: 'users',
               recordId: existingUser.id,
-              metadata: {
-                provider: account?.provider,
-              },
+              metadata: { provider: account?.provider },
             },
           });
         }
 
-        // Allow OAuth sign-in (we already checked disabled state)
         return true;
       }
 
       // For credentials provider, ensure emailVerified
-      if (!user.email) return false;
+      if (!user?.email) return false;
 
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email },
@@ -270,38 +282,53 @@ export const authConfig: AuthOptions = {
 
     // JWT callback
     async jwt({ token, user, trigger, session }) {
+      const t = token as AppJWT;
+
       if (user) {
-        // Initial sign in -> augment token
-        token.id = user.id;
-        token.role = user.role;
-        token.emailVerified = user.emailVerified ?? null;
-        token.twoFactorEnabled = user.twoFactorEnabled ?? false;
-        token.department = user.department ?? null;
-        token.avatar = user.avatar ?? null;
+        const u = user as AppUser;
+        t.id = (u.id as string) ?? t.id;
+        t.role = u.role ?? t.role;
+        t.emailVerified = u.emailVerified ?? null;
+        t.twoFactorEnabled = u.twoFactorEnabled ?? false;
+        t.department = u.department ?? null;
+        t.avatar = u.avatar ?? null;
       }
 
       if (trigger === 'update' && session) {
-        token = { ...token, ...session };
+        // Avoid reassigning token, update in place
+        Object.assign(t, session as any);
       }
 
-      return token;
+      return t;
     },
 
     // Session callback
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.emailVerified = token.emailVerified ?? null;
-        session.user.twoFactorEnabled = token.twoFactorEnabled ?? false;
-        session.user.department = token.department ?? null;
+      const t = token as AppJWT;
+      const s = session as AppSession;
+
+      if (s.user) {
+        // Ensure a string id
+        s.user.id =
+          typeof t.id === 'string'
+            ? t.id
+            : typeof (token as DefaultJWT).sub === 'string'
+            ? (token as DefaultJWT).sub!
+            : s.user.id;
+
+        // Set required/custom fields
+        s.user.role = (t.role as UserRole | undefined) ?? s.user.role ?? UserRole.VIEWER;
+        s.user.emailVerified = t.emailVerified ?? null;
+        s.user.twoFactorEnabled = Boolean(t.twoFactorEnabled);
+        s.user.department = t.department ?? null;
+        s.user.avatar = t.avatar ?? null;
       }
 
-      return session;
+      return s;
     },
 
     // Redirect callback
-    async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
+    async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`;
 
@@ -309,7 +336,7 @@ export const authConfig: AuthOptions = {
       try {
         if (new URL(url).origin === baseUrl) return url;
       } catch {
-        // invalid URL — fallthrough to baseUrl
+        // invalid URL — fall through to baseUrl
       }
 
       return baseUrl;
@@ -318,31 +345,43 @@ export const authConfig: AuthOptions = {
 
   // Events
   events: {
-    async signIn({ user, account }: { user: User; account: Account | null }) {
-      console.log(`User ${user.email} signed in via ${account?.provider ?? 'unknown'}`);
+    async signIn({ user, account }) {
+      console.log(`User ${user?.email ?? user?.id} signed in via ${account?.provider ?? 'unknown'}`);
     },
-    async signOut({ session }: {session: any}) {
-      if (session?.user?.id) {
-        // Create audit log for logout
+    async signOut(message) {
+      // message is a union: { session } | { token }
+      let userId: string | undefined;
+
+      if ('session' in message) {
+        const s = message.session;
+        // AdapterSession doesn't have session.user, it has session.userId
+        if (s && typeof (s as any).userId === 'string') {
+          userId = (s as any).userId as string;
+        }
+      } else if ('token' in message && message.token) {
+        const t = message.token as AppJWT;
+        userId =
+          (typeof t.id === 'string' && t.id) ||
+          (typeof t.sub === 'string' ? t.sub : undefined);
+      }
+
+      if (userId) {
         await prisma.auditLog.create({
           data: {
-            userId: session.user.id,
+            userId,
             action: 'LOGOUT',
             tableName: 'users',
-            recordId: session.user.id,
+            recordId: userId,
           },
         });
       }
     },
-    async createUser({ user }: {user: User}) {
-      console.log(`New user created: ${user.email}`);
-
-      // Example: send welcome email (commented-out until implemented)
-      if (user.email) {
-        // await sendWelcomeEmail(user.email, user.name || 'User');
+    async createUser({ user }) {
+      if (user?.email) {
+        await sendWelcomeEmail(user.email, user.name || 'User');
       }
     },
-    async linkAccount({ user, account }: { user: User;  account: Account}) {
+    async linkAccount({ user, account }) {
       console.log(`Account ${account.provider} linked for user ${user.email}`);
     },
   },
@@ -352,13 +391,10 @@ export const authConfig: AuthOptions = {
 
   // Debug mode
   debug: process.env.NODE_ENV === 'development',
-};
+} satisfies NextAuthConfig;
 
 /**
  * Create and export NextAuth instance
- *
- * Note: NextAuth returns an object depending on the version; this line matches your
- * original pattern. If your project expects a different export (e.g. default), adjust accordingly.
  */
 export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
 
