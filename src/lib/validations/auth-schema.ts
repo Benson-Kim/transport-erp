@@ -24,9 +24,8 @@ const passwordSchema = z
  */
 export const loginSchema = z.object({
   email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
+  .email('Please enter a valid email address')
+    .min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().optional().default(false),
 });
@@ -39,9 +38,8 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 export const registerSchema = z
   .object({
     email: z
-      .string()
-      .min(1, 'Email is required')
       .email('Please enter a valid email address')
+      .min(1, 'Email is required')
       .toLowerCase()
       .trim(),
     name: z
@@ -70,9 +68,8 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
  */
 export const forgotPasswordSchema = z.object({
   email: z
-    .string()
+  .email('Please enter a valid email address')
     .min(1, 'Email is required')
-    .email('Please enter a valid email address'),
 });
 
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -120,7 +117,7 @@ export const profileSchema = z.object({
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must be less than 100 characters'),
-  email: z.string().email('Please enter a valid email address'),
+  email: z.email('Please enter a valid email address'),
   phone: z
     .string()
     .optional()
@@ -129,7 +126,7 @@ export const profileSchema = z.object({
       'Please enter a valid phone number'
     ),
   department: z.string().optional(),
-  avatar: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  avatar: z.url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;

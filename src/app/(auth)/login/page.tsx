@@ -7,9 +7,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
-import { LoginForm } from '@/components/features/auth/login-form';
-// import { OAuthButtons } from '@/components/features/auth/oauth-buttons';
-// import { Logo } from '@/components/ui/logo';
+import { Logo } from '@/components/ui/logo';
+import { LoginForm, OAuthButtons } from '@/components/features/auth';
 
 export const metadata: Metadata = {
   title: 'Sign In | Enterprise Dashboard',
@@ -28,7 +27,7 @@ export default async function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center">
-          {/* <Logo className="h-12 w-auto" /> */}
+          <Logo className="h-12 w-auto" />
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
             Welcome back
           </h1>
@@ -55,7 +54,7 @@ export default async function LoginPage() {
           </div>
 
           {/* OAuth Buttons */}
-          {/* <OAuthButtons /> */}
+          <OAuthButtons />
 
           {/* Links */}
           <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
