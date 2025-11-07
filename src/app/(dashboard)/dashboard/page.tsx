@@ -6,24 +6,24 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
-import { Info, Sparkles, RefreshCw, Plus, ArrowRight } from 'lucide-react';
+// import { Info, Sparkles, RefreshCw, Plus, ArrowRight } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
 import { 
   ErrorBoundary, 
-  PageHeader, 
+  // PageHeader, 
   Alert,
-  Button,
+  // Button,
   Card,
   CardBody,
-  EmptyState 
+  // EmptyState 
 } from '@/components/ui';
 import {
   DashboardDateRange,
   DashboardSkeleton,
   QuickActions,
-  RecentServicesAdvanced,
+  RecentServices,
   RevenueChart,
   ServicesChart,
   StatsCards,
@@ -35,7 +35,8 @@ import {
   NewUserWelcome,
   PerformanceTip,
 } from '@/components/features/dashboard';
-import { formatPercentage } from '@/lib/utils/formatting';
+// import { formatPercentage } from '@/lib/utils/formatting';
+// import { revalidatePath } from 'next/cache';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',
@@ -99,11 +100,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const userName = session.user.name?.split(' ')[0] || 'User';
 
   // Refresh action
-  async function refreshDashboard() {
-    'use server';
-    // Revalidate the dashboard data
-    // revalidatePath('/dashboard');
-  }
+  // async function refreshDashboard() {
+  //   'use server';
+  //   // Revalidate the dashboard data
+  //   revalidatePath('/dashboard', 'page');
+  // }
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
@@ -225,7 +226,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
           {/* Bottom Section */}
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* Recent Services (2 columns) */}
             <div className="lg:col-span-2">
               <ErrorBoundary 
                 fallback={
@@ -239,10 +239,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 }
               >
                 <Suspense fallback={<DashboardSkeleton.Table />}>
-                  <RecentServicesAdvanced
+                  <RecentServices
                     services={dashboardData.recentServices}
                     loading={false}
                     error={dataError}
+                    advanced={true}
                   />
                 </Suspense>
               </ErrorBoundary>

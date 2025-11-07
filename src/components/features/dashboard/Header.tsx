@@ -109,10 +109,10 @@ export function PerformanceTip({ averageMargin }: PerformanceTipProps) {
               variant="ghost"
               size="sm"
               className="h-auto p-0 text-xs"
+              icon={ <ArrowRight className="h-3 w-3 ml-1" /> }
               onClick={() => router.push('/reports/margins')}
             >
               View Margin Report
-              <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
         </div>
