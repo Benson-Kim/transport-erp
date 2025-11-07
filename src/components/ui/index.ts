@@ -2,6 +2,7 @@
 export * from './Select'
 export * from './PageHeader'
 export * from './DataTable'
+export * from './DateRangePicker'
 export * from './DropdownMenu'
 export * from './ErrorBoundary'
 export * from './ErrorState'

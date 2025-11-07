@@ -1,6 +1,6 @@
 /**
  * Checkbox Component
- * Accessible checkbox with label support
+ * Accessible checkbox with label support + controlled state
  */
 
 import { InputHTMLAttributes, forwardRef } from 'react';
@@ -12,7 +12,10 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
   description?: string;
   error?: string;
   indeterminate?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }
+
 
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   (
@@ -23,10 +26,16 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       indeterminate = false,
       disabled,
       className,
+      onCheckedChange,
       ...props
     },
     ref
   ) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      onCheckedChange?.(e.target.checked);
+      props.onChange?.(e);
+    };
+
     return (
       <div className="flex items-start gap-3">
         <div className="relative flex items-center">
@@ -34,6 +43,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             ref={ref}
             type="checkbox"
             disabled={disabled}
+            onChange={handleChange}
             className={cn(
               'peer h-4 w-4 rounded border-neutral-300 text-primary',
               'focus:ring-2 focus:ring-primary focus:ring-offset-2',
@@ -44,18 +54,25 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             )}
             aria-invalid={!!error}
             aria-describedby={
-              error ? `${props.id}-error` : description ? `${props.id}-description` : undefined
+              error
+                ? `${props.id}-error`
+                : description
+                ? `${props.id}-description`
+                : undefined
             }
             {...props}
           />
-          <div className={cn(
-            'h-4 w-4 rounded border-2 border-neutral-300',
-            'peer-checked:bg-primary peer-checked:border-primary',
-            'peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2',
-            'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
-            error && 'border-danger',
-            'flex items-center justify-center'
-          )}>
+
+          <div
+            className={cn(
+              'h-4 w-4 rounded border-2 border-neutral-300',
+              'peer-checked:bg-primary peer-checked:border-primary',
+              'peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2',
+              'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+              error && 'border-danger',
+              'flex items-center justify-center'
+            )}
+          >
             {indeterminate ? (
               <Minus size={10} className="text-white" />
             ) : (
@@ -63,11 +80,11 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             )}
           </div>
         </div>
-        
+
         {(label || description || error) && (
           <div className="flex-1">
             {label && (
-              <label 
+              <label
                 htmlFor={props.id}
                 className={cn(
                   'block text-sm font-medium text-neutral-700',

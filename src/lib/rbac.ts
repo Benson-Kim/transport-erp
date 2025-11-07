@@ -13,7 +13,8 @@ import {
   Permission,
   getRolePermissions,
 } from '@/lib/permissions';
-import prisma from '@/lib/prisma';
+import  prisma from '@/lib/prisma/prisma';
+
 
 /**
  * Check if current user has permission for an action

@@ -1,3 +1,5 @@
+export * from './use-debounce'
+
 export * from './use-escape-key'
 export * from './use-focus-trap'
 export * from './use-scroll-lock'

@@ -277,6 +277,7 @@ export function QuickActions({
                       variant={action.variant}
                       className="w-full justify-start group hover:shadow-md transition-all"
                       size="md"
+                      icon={<ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />}
                     >
                       <div className={cn(
                         "mr-3 p-1.5 rounded-lg bg-white/10",
@@ -290,7 +291,6 @@ export function QuickActions({
                           {action.badge}
                         </Badge>
                       )}
-                      <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                     </Button>
                   </Link>
                 </Tooltip>

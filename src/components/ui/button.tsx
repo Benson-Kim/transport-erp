@@ -4,7 +4,7 @@
  */
 
 import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize } from '@/types/ui';
 
@@ -62,7 +62,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const content = (
       <>
         {loading && (
-          <Loader2 
+          <RefreshCw 
             className="animate-spin" 
             size={size === 'sm' ? 14 : size === 'md' ? 16 : 18}
             aria-hidden="true"
