@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Form Component
  * React Hook Form wrapper with built-in validation
@@ -11,6 +13,7 @@ import {
   FieldValues,
   SubmitHandler,
   UseFormReturn,
+  useFormContext,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,10 +21,11 @@ import { z } from 'zod';
 interface FormProps<TFieldValues extends FieldValues = FieldValues> {
   children: ReactNode | ((methods: UseFormReturn<TFieldValues>) => ReactNode);
   onSubmit: SubmitHandler<TFieldValues>;
-  schema?: z.ZodObject<any>;
+  schema?: z.ZodSchema<TFieldValues>;
   options?: UseFormProps<TFieldValues>;
   className?: string;
   id?: string;
+  disabled?: boolean;
 }
 
 export function Form<TFieldValues extends FieldValues = FieldValues>({
@@ -31,10 +35,17 @@ export function Form<TFieldValues extends FieldValues = FieldValues>({
   options = {},
   className,
   id,
+  disabled = false,
 }: FormProps<TFieldValues>) {
   const methods = useForm<TFieldValues>({
     ...options,
     resolver: schema ? zodResolver(schema) : undefined,
+  });
+
+  const handleSubmit = methods.handleSubmit(async (data) => {
+    if (!disabled) {
+      await onSubmit(data);
+    }
   });
 
   return (
@@ -42,14 +53,17 @@ export function Form<TFieldValues extends FieldValues = FieldValues>({
       <form
         id={id}
         className={className}
-        onSubmit={methods.handleSubmit(onSubmit)}
+        onSubmit={handleSubmit}
         noValidate
       >
-        {typeof children === 'function' ? children(methods) : children}
+        <fieldset disabled={disabled} style={{ border: 'none', padding: 0, margin: 0 }}>
+          {typeof children === 'function' ? children(methods) : children}
+        </fieldset>
       </form>
     </FormProvider>
   );
 }
 
-// Export convenience hooks
-export { useFormContext } from 'react-hook-form';
+// Export convenience hooks and types
+export { useFormContext };
+export type { UseFormReturn, FieldValues, SubmitHandler };

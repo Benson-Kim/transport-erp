@@ -21,7 +21,7 @@ import {
 } from '@/lib/utils/dashboard-helpers';
 import prisma from '@/lib/prisma/prisma';
 
-interface DashboardDateRange {
+export interface DashboardDateRange {
   from?: string;
   to?: string;
   preset?: string;

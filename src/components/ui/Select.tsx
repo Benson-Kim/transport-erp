@@ -178,49 +178,42 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     // Custom dropdown implementation
     return (
       <div className="relative w-full" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          disabled={disabled}
-          className={cn(
-            'input flex items-center justify-between cursor-pointer',
-            sizeClasses[size],
-            error && 'input-error',
-            disabled && 'input-disabled cursor-not-allowed',
-            className
-          )}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          aria-invalid={!!error}
-          aria-describedby={error ? `${props.id}-error` : undefined}
-        >
-          <span className={cn(
-            'truncate',
-            !selectedOption && 'text-neutral-400'
-          )}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
-          
-          <div className="flex items-center gap-1">
-            {clearable && value && !disabled && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="p-1 hover:bg-neutral-100 rounded transition-colors"
-                aria-label="Clear selection"
-              >
-                <X size={16} className="text-neutral-500" />
-              </button>
-            )}
-            <ChevronDown 
-              size={16} 
-              className={cn(
-                'text-neutral-500 transition-transform',
-                isOpen && 'rotate-180'
-              )}
-            />
-          </div>
-        </button>
+        <div
+  onClick={() => !disabled && setIsOpen(!isOpen)}
+  role="button"
+  tabIndex={0}
+  aria-expanded={isOpen}
+  aria-haspopup="listbox"
+  className={cn(
+    'input flex items-center justify-between cursor-pointer',
+    sizeClasses[size],
+    error && 'input-error',
+    disabled && 'input-disabled cursor-not-allowed',
+    className
+  )}
+>
+  <span className={cn('truncate', !selectedOption && 'text-neutral-400')}>
+    {selectedOption ? selectedOption.label : placeholder}
+  </span>
+
+  <div className="flex items-center gap-1">
+    {clearable && value && !disabled && (
+      <button
+        type="button"
+        onClick={handleClear}
+        className="p-1 hover:bg-neutral-100 rounded transition-colors"
+        aria-label="Clear selection"
+      >
+        <X size={16} className="text-neutral-500" />
+      </button>
+    )}
+    <ChevronDown
+      size={16}
+      className={cn('text-neutral-500 transition-transform', isOpen && 'rotate-180')}
+    />
+  </div>
+</div>
+
 
         {error && (
           <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">

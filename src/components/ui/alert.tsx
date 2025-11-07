@@ -3,9 +3,10 @@
  * Inline alert messages with variants
  */
 
-import { ElementType, ReactNode } from 'react';
+import { ReactNode, isValidElement, createElement } from 'react';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import type { LucideIcon } from 'lucide-react';
 
 export interface AlertProps {
   variant?: 'success' | 'error' | 'warning' | 'info';
@@ -13,9 +14,9 @@ export interface AlertProps {
   children: ReactNode;
   dismissible?: boolean;
   onDismiss?: () => void;
- icon?: ReactNode | ElementType;
+  icon?: ReactNode | LucideIcon;
   action?: ReactNode;
-  className?: string | undefined;
+  className?: string;
 }
 
 const variants = {
@@ -60,12 +61,31 @@ export function Alert({
   className,
 }: AlertProps) {
   const styles = variants[variant];
- const DefaultIcon = styles.icon;
+  const DefaultIcon = styles.icon;
 
-  const RenderedIcon =
-    typeof icon === 'function' || typeof icon === 'object'
-      ? icon
-      : DefaultIcon;
+  // Handle icon rendering
+  let iconElement: ReactNode;
+  
+  if (icon) {
+    // If icon is already a React element, use it directly
+    if (isValidElement(icon)) {
+      iconElement = icon;
+    } 
+    // If icon is a component, create an element from it
+    else if (typeof icon === 'function') {
+      iconElement = createElement(icon, {
+        className: cn('h-5 w-5', styles.iconColor),
+        'aria-hidden': true,
+      });
+    } 
+    // Otherwise, treat it as a ReactNode
+    else {
+      iconElement = icon;
+    }
+  } else {
+    // Use default icon
+    iconElement = <DefaultIcon className={cn('h-5 w-5', styles.iconColor)} aria-hidden="true" />;
+  }
 
   return (
     <div
@@ -78,11 +98,7 @@ export function Alert({
     >
       <div className="flex">
         <div className="flex-shrink-0">
-          {typeof RenderedIcon === 'function' ? (
-            <RenderedIcon className={cn('h-5 w-5', styles.iconColor)} aria-hidden="true" />
-          ) : (
-            RenderedIcon
-          )}
+          {iconElement}
         </div>
         
         <div className="ml-3 flex-1">

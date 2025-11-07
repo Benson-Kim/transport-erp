@@ -6,16 +6,17 @@
 
 import { ReactNode, useState, useMemo, useCallback, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { 
-  Download, 
+import {
+  Download,
   Settings,
   Check,
   X,
-  Search} from 'lucide-react';
-  import { Table } from './Table';
-  import { Checkbox } from './Checkbox';
-  import { Button } from './Button';
-  import { Input } from './Input';
+  Search
+} from 'lucide-react';
+import { Table } from './Table';
+import { Checkbox } from './Checkbox';
+import { Button } from './Button';
+import { Input } from './Input';
 import { Skeleton } from './Skeleton';
 import { Pagination } from './Pagination';
 import { EmptyState } from './EmptyState';
@@ -30,7 +31,7 @@ export interface Column<T> {
   header: string | ReactNode;
   accessor: (row: T) => ReactNode;
   sortable?: boolean;
-  sortKey?: keyof T | string;
+  sortKey?: string;
   width?: string;
   minWidth?: string;
   align?: 'left' | 'center' | 'right';
@@ -44,22 +45,22 @@ export interface DataTableProps<T extends { id: string }> {
   columns: Column<T>[];
   loading?: boolean;
   error?: Error | null;
-  
+
   // Selection
   selectable?: boolean;
   selectedRows?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
-  
+
   // Sorting
   sortable?: boolean;
   defaultSort?: { key: string; direction: 'asc' | 'desc' };
   onSort?: (key: string, direction: 'asc' | 'desc') => void;
-  
+
   // Actions
   onRowClick?: (row: T) => void;
   rowActions?: (row: T) => ReactNode;
   bulkActions?: (selectedRows: T[]) => ReactNode;
-  
+
   // Pagination
   pagination?: {
     page: number;
@@ -68,7 +69,7 @@ export interface DataTableProps<T extends { id: string }> {
     onPageChange: (page: number) => void;
     onPageSizeChange?: (size: number) => void;
   };
-  
+
   // Features
   searchable?: boolean;
   searchPlaceholder?: string;
@@ -76,11 +77,11 @@ export interface DataTableProps<T extends { id: string }> {
   columnToggle?: boolean;
   virtualScroll?: boolean;
   stickyHeader?: boolean;
-  
+
   // States
   emptyState?: ReactNode;
   loadingRows?: number;
-  
+
   // Styling
   className?: string;
   rowClassName?: string | ((row: T) => string);
@@ -94,31 +95,31 @@ export function DataTable<T extends { id: string }>({
   columns: initialColumns,
   loading = false,
   error = null,
-  
+
   selectable = false,
   selectedRows = [],
   onSelectionChange,
-  
+
   // sortable = false,
   defaultSort,
   onSort,
-  
+
   onRowClick,
   rowActions,
   bulkActions,
-  
+
   pagination,
-  
+
   searchable = false,
   searchPlaceholder = 'Search...',
   exportable = false,
   columnToggle = false,
   virtualScroll = false,
   stickyHeader = true,
-  
+
   emptyState,
   loadingRows = 10,
-  
+
   className,
   rowClassName,
   compact = false,
@@ -164,7 +165,7 @@ export function DataTable<T extends { id: string }>({
   // Filter data based on search
   const filteredData = useMemo(() => {
     if (!searchQuery) return data;
-    
+
     return data.filter(row => {
       const searchableText = columns
         .map(col => {
@@ -173,7 +174,7 @@ export function DataTable<T extends { id: string }>({
         })
         .join(' ')
         .toLowerCase();
-      
+
       return searchableText.includes(searchQuery.toLowerCase());
     });
   }, [data, searchQuery, columns]);
@@ -195,7 +196,7 @@ export function DataTable<T extends { id: string }>({
       });
       return rowData;
     });
-    
+
     exportToExcel(exportData, 'data-export');
   }, [filteredData, columns]);
 
@@ -207,7 +208,7 @@ export function DataTable<T extends { id: string }>({
       });
       return rowData;
     });
-    
+
     exportToCsv(exportData, 'data-export');
   }, [filteredData, columns]);
 
@@ -235,7 +236,7 @@ export function DataTable<T extends { id: string }>({
     // Don't trigger if clicking on checkbox or actions
     const target = e.target as HTMLElement;
     if (target.closest('[data-no-row-click]')) return;
-    
+
     onRowClick?.(row);
   }, [onRowClick]);
 
@@ -291,7 +292,7 @@ export function DataTable<T extends { id: string }>({
               className="w-64"
             />
           )}
-          
+
           {bulkActions && selectedIds.size > 0 && (
             <div className="flex items-center gap-2 pl-4 border-l">
               <span className="text-sm text-neutral-600">
@@ -329,7 +330,7 @@ export function DataTable<T extends { id: string }>({
               }))}
             />
           )}
-          
+
           {exportable && (
             <DropdownMenu
               trigger={
@@ -355,7 +356,7 @@ export function DataTable<T extends { id: string }>({
       </div>
 
       {/* Table */}
-      <div 
+      <div
         ref={tableContainerRef}
         className={cn(
           'overflow-auto rounded-lg',
@@ -378,7 +379,7 @@ export function DataTable<T extends { id: string }>({
                     </div>
                   </Table.HeaderCell>
                 )}
-                
+
                 {columns.map(column => (
                   <Table.HeaderCell
                     key={column.key}
@@ -388,10 +389,10 @@ export function DataTable<T extends { id: string }>({
                         ? sortDirection
                         : false
                     }
-                    sticky={column.sticky}
-                    style={{ 
+                    sticky={column.sticky || false}
+                    style={{
                       width: column.width,
-                      minWidth: column.minWidth 
+                      minWidth: column.minWidth
                     }}
                     onClick={
                       column.sortable
@@ -406,7 +407,7 @@ export function DataTable<T extends { id: string }>({
                     {column.header}
                   </Table.HeaderCell>
                 ))}
-                
+
                 {rowActions && (
                   <Table.HeaderCell className="w-20" align="center">
                     Actions
@@ -418,28 +419,32 @@ export function DataTable<T extends { id: string }>({
             <Table.Body>
               {virtualScroll ? (
                 <>
-                  {rowVirtualizer.virtualItems.map(virtualRow => {
-                    const row = filteredData[virtualRow.index];
-                     if (!row) return null;
-                    return (
-                      <DataTableRow
-                        key={row.id}
-                        row={row}
-                        columns={columns}
-                        selectable={selectable}
-                        isSelected={selectedIds.has(row.id)}
-                        onToggle={() => toggle(row.id)}
-                        onClick={(e) => handleRowClick(row, e)}
-                        rowActions={rowActions}
-                        rowClassName={rowClassName}
-                        compact={compact}
-                        striped={striped && virtualRow.index % 2 === 1}
-                        style={{
-                          height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                      />
-                    );
+                  {rowVirtualizer.getVirtualItems().map((virtualRow: {
+                  index: number;
+                  size: number;
+                  start: number;
+                  }) => {
+                  const row = filteredData[virtualRow.index];
+                  if (!row) return null;
+                  return (
+                    <DataTableRow
+                    key={row.id}
+                    row={row}
+                    columns={columns}
+                    selectable={selectable}
+                    isSelected={selectedIds.has(row.id)}
+                    onToggle={() => toggle(row.id)}
+                    onClick={(e: React.MouseEvent) => handleRowClick(row, e)}
+                    {...(rowActions && { rowActions })}
+                    {...(rowClassName && { rowClassName })}
+                    compact={compact}
+                    striped={striped && virtualRow.index % 2 === 1}
+                    style={{
+                      height: `${virtualRow.size}px`,
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    />
+                  );
                   })}
                 </>
               ) : (
@@ -452,8 +457,8 @@ export function DataTable<T extends { id: string }>({
                     isSelected={selectedIds.has(row.id)}
                     onToggle={() => toggle(row.id)}
                     onClick={(e) => handleRowClick(row, e)}
-                    rowActions={rowActions}
-                    rowClassName={rowClassName}
+                    {...(rowActions && { rowActions })}
+                    {...(rowClassName && { rowClassName })}
                     compact={compact}
                     striped={striped && index % 2 === 1}
                   />
@@ -472,10 +477,11 @@ export function DataTable<T extends { id: string }>({
           onPageChange={pagination.onPageChange}
           showPageSize
           pageSize={pagination.pageSize}
-          onPageSizeChange={pagination.onPageSizeChange}
+          {...(pagination.onPageSizeChange && { onPageSizeChange: pagination.onPageSizeChange })}
           totalItems={pagination.total}
         />
       )}
+
     </div>
   );
 }
@@ -508,8 +514,8 @@ function DataTableRow<T extends { id: string }>({
   striped,
   style,
 }: DataTableRowProps<T>) {
-  const className = typeof rowClassName === 'function' 
-    ? rowClassName(row) 
+  const className = typeof rowClassName === 'function'
+    ? rowClassName(row)
     : rowClassName;
 
   return (
@@ -535,12 +541,12 @@ function DataTableRow<T extends { id: string }>({
           </div>
         </Table.Cell>
       )}
-      
+
       {columns.map(column => (
         <Table.Cell
           key={column.key}
-          sticky={column.sticky}
-          align={column.align}
+          sticky={column.sticky || false}
+          align={column.align ?? 'left'}
           className={
             typeof column.cellClassName === 'function'
               ? column.cellClassName(row)
@@ -550,7 +556,7 @@ function DataTableRow<T extends { id: string }>({
           {column.accessor(row)}
         </Table.Cell>
       ))}
-      
+
       {rowActions && (
         <Table.Cell align="center">
           <div data-no-row-click>
@@ -563,13 +569,13 @@ function DataTableRow<T extends { id: string }>({
 }
 
 // Loading Table Component
-function LoadingTable({ 
-  columns, 
-  rows, 
-  compact 
-}: { 
-  columns: Column<any>[]; 
-  rows: number; 
+function LoadingTable({
+  columns,
+  rows,
+  compact
+}: {
+  columns: Column<any>[];
+  rows: number;
   compact?: boolean;
 }) {
   return (
@@ -599,11 +605,11 @@ function LoadingTable({
 }
 
 // Error State Component
-function ErrorState({ 
-  error, 
-  onRetry 
-}: { 
-  error: Error; 
+function ErrorState({
+  error,
+  onRetry
+}: {
+  error: Error;
   onRetry?: () => void;
 }) {
   return (

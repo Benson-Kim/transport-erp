@@ -3,46 +3,53 @@
 import React from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCcw } from 'lucide-react';
 
 interface Props {
   children: React.ReactNode;
-  fallback?: string;
+  fallback?: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
+  error: Error | null;
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  override state: Readonly<State> = { hasError: false, error: null }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('Error caught by boundary:', error, errorInfo);
   }
 
-  render() {
+  reset = (): void => this.setState({ hasError: false, error: null });
+
+  override render(): React.ReactNode {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
+
+      // Default fallback
       return (
-        <Alert variant="error">
-          <AlertCircle className="h-4 w-4" />
-            {this.props.fallback || 'Something went wrong'}
+        <Alert
+          variant="error"
+          icon={<AlertCircle className="h-4 w-4" />}
+          action={
             <Button
               size="sm"
               variant="secondary"
               className="ml-2"
-              onClick={() => this.setState({ hasError: false })}
+          icon={<RefreshCcw className="h-4 w-4" />}
+              onClick={this.reset}
             >
               Retry
             </Button>
+          }
+        >
+          Something went wrong
         </Alert>
       );
     }

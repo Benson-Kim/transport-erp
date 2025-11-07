@@ -5,16 +5,21 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import {
+  Badge,
+  Button,
   Card,
   CardBody,
   CardHeader,
-} from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+  DataTable,
+  EmptyState,
+  ErrorState,
+  Column,
+  Tooltip,
+} from '@/components/ui';
 import {
   ArrowRight,
   Truck,
@@ -23,9 +28,18 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
+  Plus,
+  Eye,
+  FileText,
+  TrendingUp,
+  Download,
+  // Filter,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ServiceStatus } from '@prisma/client';
+import { useRouter } from 'next/navigation';
+import { formatCurrency } from '@/lib/utils/formatting';
 
 interface Service {
   id: string;
@@ -40,185 +54,640 @@ interface Service {
 }
 
 interface RecentServicesProps {
-  services: Service[];
-  isLoading?: boolean;
+  services?: Service[];
+  loading?: boolean;
+  error?: Error | null;
+  onRefresh?: () => Promise<void>;
+  showPagination?: boolean;
+  pageSize?: number;
+  onCreateNew?: () => void;
+  onImport?: () => void;
 }
 
-export function RecentServices({ services, isLoading = false }: RecentServicesProps) {
+export function RecentServices({
+  services = [],
+  loading = false,
+  error = null,
+  onRefresh,
+  showPagination = false,
+  pageSize = 10,
+  onCreateNew,
+  onImport,
+}: RecentServicesProps) {
+  const router = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
 
-  const getStatusIcon = (status: Service['status']) => {
-    switch (status) {
-      case ServiceStatus.DRAFT:
-        return <Clock className="h-3 w-3" />;
-      case ServiceStatus.CONFIRMED:
-        return <AlertCircle className="h-3 w-3" />;
-      case ServiceStatus.IN_PROGRESS:
-        return <Truck className="h-3 w-3" />;
-      case ServiceStatus.COMPLETED:
-        return <CheckCircle className="h-3 w-3" />;
-      case ServiceStatus.CANCELLED:
-        return <XCircle className="h-3 w-3" />;
-      case ServiceStatus.INVOICED:
-          return <XCircle className="h-3 w-3" />;
-      default:
-        return null;
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!services || services.length === 0) {
+      return {
+        total: 0,
+        active: 0,
+        completed: 0,
+        totalValue: 0,
+        avgValue: 0,
+      };
     }
+
+    const active = services.filter(s =>
+      ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)
+    ).length;
+    const completed = services.filter(s =>
+      s.status === ServiceStatus.COMPLETED
+    ).length;
+    const totalValue = services.reduce((sum, s) => sum + s.amount, 0);
+    const avgValue = totalValue / services.length;
+
+    return {
+      total: services.length,
+      active,
+      completed,
+      totalValue,
+      avgValue,
+    };
+  }, [services]);
+
+  const getStatusIcon = (status: ServiceStatus) => {
+    const icons = {
+      [ServiceStatus.DRAFT]: Clock,
+      [ServiceStatus.CONFIRMED]: AlertCircle,
+      [ServiceStatus.IN_PROGRESS]: Truck,
+      [ServiceStatus.COMPLETED]: CheckCircle,
+      [ServiceStatus.CANCELLED]: XCircle,
+      [ServiceStatus.INVOICED]: FileText,
+    };
+
+    const Icon = icons[status] || AlertCircle;
+    return <Icon className="h-3 w-3" />;
   };
 
-  const getStatusColor = (status: Service['status']) => {
-    switch (status) {
-      case ServiceStatus.DRAFT:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      case ServiceStatus.CONFIRMED:
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case ServiceStatus.IN_PROGRESS:
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case ServiceStatus.COMPLETED:
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case ServiceStatus.CANCELLED:
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      case ServiceStatus.INVOICED:
-          return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const getStatusVariant = (status: ServiceStatus): 'active' | 'completed' | 'cancelled' | 'billed' | 'default' => {
+    const variants = {
+      [ServiceStatus.DRAFT]: 'default' as const,
+      [ServiceStatus.CONFIRMED]: 'active' as const,
+      [ServiceStatus.IN_PROGRESS]: 'active' as const,
+      [ServiceStatus.COMPLETED]: 'completed' as const,
+      [ServiceStatus.CANCELLED]: 'cancelled' as const,
+      [ServiceStatus.INVOICED]: 'billed' as const,
+    };
+
+    return variants[status] || 'default';
   };
 
-  const handleRefresh = async () => {
+  const getStatusDescription = (status: ServiceStatus): string => {
+    const descriptions = {
+      [ServiceStatus.DRAFT]: 'Service is being prepared',
+      [ServiceStatus.CONFIRMED]: 'Service has been confirmed',
+      [ServiceStatus.IN_PROGRESS]: 'Service is currently in progress',
+      [ServiceStatus.COMPLETED]: 'Service has been completed',
+      [ServiceStatus.CANCELLED]: 'Service was cancelled',
+      [ServiceStatus.INVOICED]: 'Service has been invoiced',
+    };
+
+    return descriptions[status] || 'Unknown status';
+  };
+
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    // Trigger data refresh via client-side fetch
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsRefreshing(false);
-    // In real implementation, this would call a refresh function
-  };
+    try {
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        // Default refresh behavior
+        window.location.reload();
+      }
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [onRefresh]);
 
-  if (services.length === 0 && !isLoading) {
-    return (
-      <Card>
-        <CardHeader title='Recent Services' />
-        <CardBody>
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <Truck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">No services yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create your first service to get started
-            </p>
-            <Link href="/services/new">
-              <Button className="mt-4" size="sm">
-                Create Service
-              </Button>
-            </Link>
+  // Define columns for DataTable
+  const columns: Column<Service>[] = useMemo(() => [
+    {
+      key: 'serviceNumber',
+      header: 'Service #',
+      accessor: (row) => (
+        <Tooltip content="View service details" position="top">
+          <Link
+            href={`/services/${row.id}`}
+            className="font-medium text-sm hover:text-primary transition-colors inline-flex items-center gap-1 group"
+          >
+            {row.serviceNumber}
+            <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        </Tooltip>
+      ),
+      sortable: true,
+      width: '150px',
+    },
+    {
+      key: 'date',
+      header: (
+        <div className="flex items-center gap-1">
+          <Calendar className="h-3 w-3" />
+          <span>Date</span>
+        </div>
+      ),
+      accessor: (row) => (
+        <Tooltip
+          content={format(new Date(row.date), 'EEEE, MMMM d, yyyy')}
+          position="top"
+        >
+          <span className="text-sm text-muted-foreground cursor-help">
+            {format(new Date(row.date), 'MMM d, yyyy')}
+          </span>
+        </Tooltip>
+      ),
+      sortable: true,
+      width: '120px',
+    },
+    {
+      key: 'clientName',
+      header: 'Client',
+      accessor: (row) => (
+        <div className="text-sm font-medium">{row.clientName}</div>
+      ),
+      sortable: true,
+      minWidth: '150px',
+    },
+    {
+      key: 'route',
+      header: 'Route',
+      accessor: (row) => (
+        <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+          <span className="font-medium">{row.origin}</span>
+          <ArrowRight className="h-3 w-3 text-neutral-400" />
+          <span className="font-medium">{row.destination}</span>
+        </div>
+      ),
+      minWidth: '200px',
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      accessor: (row) => (
+        <Tooltip content={getStatusDescription(row.status)} position="top">
+          <div className="inline-block">
+            <Badge
+              variant={getStatusVariant(row.status)}
+              icon={getStatusIcon(row.status)}
+              size="sm"
+              pulse={row.status === ServiceStatus.IN_PROGRESS}
+            >
+              {row.status.replace('_', ' ')}
+            </Badge>
           </div>
+        </Tooltip>
+      ),
+      sortable: true,
+      width: '140px',
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      accessor: (row) => (
+        <Tooltip
+          content={`${row.currency} ${row.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          position="top"
+        >
+          <span className="text-sm font-semibold tabular-nums cursor-help">
+            {row.currency === 'EUR' ? '€' : row.currency}
+            {row.amount.toLocaleString()}
+          </span>
+        </Tooltip>
+      ),
+      sortable: true,
+      sortKey: 'amount',
+      align: 'right',
+      width: '120px',
+    },
+  ], []);
+
+  // Row actions
+  const rowActions = useCallback((row: Service) => (
+    <div className="flex items-center gap-1">
+      <Tooltip content="View details" position="left">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push(`/services/${row.id}`)}
+          className="h-7 w-7 p-0"
+        >
+          <Eye className="h-3.5 w-3.5" />
+        </Button>
+      </Tooltip>
+    </div>
+  ), [router]);
+
+  // Bulk actions
+  const bulkActions = useCallback((selectedRows: Service[]) => {
+    const totalValue = selectedRows.reduce((sum, row) => sum + row.amount, 0);
+
+    return (
+      <>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>{selectedRows.length} selected</span>
+          <span>•</span>
+          <span>€{totalValue.toLocaleString()} total</span>
+        </div>
+        <Tooltip
+          content="Download data as CSV file"
+          position="bottom"
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              console.log('Export selected:', selectedRows);
+            }}
+            icon={<Download className="h-3 w-3" />}
+          >
+            Export
+          </Button></Tooltip>
+      </>
+    );
+  }, []);
+
+  // Calculate pagination
+  const paginationConfig = showPagination ? {
+    page: currentPage,
+    pageSize: selectedPageSize,
+    total: services.length,
+    onPageChange: setCurrentPage,
+    onPageSizeChange: setSelectedPageSize,
+  } : undefined;
+
+  // Header action
+  const headerAction = (
+    <div className="flex items-center gap-3">
+      {/* Stats */}
+      {services.length > 0 && (
+        <>
+          <div className="flex items-center gap-3 text-sm">
+            <Tooltip content="Total services in the list" position="bottom">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-help">
+                <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <span className="font-semibold text-blue-900 dark:text-blue-200">
+                  {stats.total}
+                </span>
+              </div>
+            </Tooltip>
+
+            <Tooltip content="Services in progress or confirmed" position="bottom">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg cursor-help">
+                <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="font-semibold text-yellow-900 dark:text-yellow-200">
+                  {stats.active}
+                </span>
+              </div>
+            </Tooltip>
+
+            <Tooltip content={`Total value: ${formatCurrency(stats.totalValue)}`} position="bottom">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg cursor-help">
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <span className="font-semibold text-green-900 dark:text-green-200">
+                  €{Math.round(stats.avgValue).toLocaleString()}
+                  <span className="text-xs font-normal opacity-75 ml-1">avg</span>
+                </span>
+              </div>
+            </Tooltip>
+          </div>
+
+          <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
+        </>
+      )}
+
+      {/* Actions */}
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={handleRefresh}
+        disabled={isRefreshing}
+        loading={isRefreshing}
+        loadingText="Refreshing..."
+        icon={<RefreshCw className="h-3.5 w-3.5" />}
+      >
+        Refresh
+      </Button>
+
+      {onCreateNew && (
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={onCreateNew}
+          icon={<Plus className="h-3.5 w-3.5" />}
+        >
+          New Service
+        </Button>
+      )}
+
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => router.push('/services')}
+        icon={<ArrowRight className="h-3.5 w-3.5" />}
+        iconPosition="right"
+      >
+        View All
+      </Button>
+    </div>
+  );
+
+  // Handle error state
+  if (!loading && error) {
+    const errorStateProps: Parameters<typeof ErrorState>[0] = {
+      error,
+      title: "Failed to load services",
+      description: "We couldn't fetch your recent services. Please check your connection and try again.",
+      variant: "card" as const,
+    };
+
+    if (onRefresh) {
+      errorStateProps.onRetry = handleRefresh;
+    }
+
+    return (
+      <Card variant="elevated" padding="none">
+        <CardHeader
+          title="Recent Services"
+          subtitle="Your latest service activity"
+        />
+        <CardBody>
+          <ErrorState {...errorStateProps} />
         </CardBody>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader title='Recent Services' subtitle=' Your latest service activity' className="flex flex-row items-center justify-between">
-       
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="h-8"
-          >
-            <RefreshCw
-              className={cn(
-                'h-3 w-3 mr-1',
-                isRefreshing && 'animate-spin'
-              )}
-            />
-            Refresh
-          </Button>
-          <Link href="/services">
-            <Button size="sm" variant="secondary" className="h-8">
-              View All
-              <ArrowRight className="h-3 w-3 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
+    <Card variant="elevated" padding="none">
+      <CardHeader
+        title="Recent Services"
+        subtitle="Your latest service activity and status"
+        action={headerAction}
+      />
+
       <CardBody className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                  Service #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                  Client
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                  Route
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {services.map((service, index) => (
-                <tr
-                  key={service.id}
-                  className={cn(
-                    'border-b transition-colors hover:bg-muted/50',
-                    index === services.length - 1 && 'border-b-0'
-                  )}
-                >
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/services/${service.id}`}
-                      className="font-medium text-sm hover:text-primary transition-colors"
-                    >
-                      {service.serviceNumber}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {format(new Date(service.date), 'MMM d, yyyy')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-sm font-medium">{service.clientName}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-sm text-muted-foreground">
-                      <span>{service.origin}</span>
-                      <ArrowRight className="inline h-3 w-3 mx-1" />
-                      <span>{service.destination}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant="active"
-                      className={cn('gap-1', getStatusColor(service.status))}
-                    >
-                      {getStatusIcon(service.status)}
-                      {service.status.replace('_', ' ')}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className="text-sm font-medium">
-                      {service.currency === 'EUR' ? '€' : service.currency}
-                      {service.amount.toLocaleString()}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={services}
+          columns={columns}
+          loading={loading}
+          error={error}
+
+          // Selection
+          selectable={true}
+
+          // Sorting
+          sortable={true}
+          defaultSort={{ key: 'date', direction: 'desc' }}
+
+          // Actions
+          onRowClick={(row) => router.push(`/services/${row.id}`)}
+          rowActions={rowActions}
+          bulkActions={bulkActions}
+
+          // Pagination
+          {...(paginationConfig && { pagination: paginationConfig })}
+
+          // Features
+          searchable={true}
+          searchPlaceholder="Search by service number, client, or route..."
+          exportable={true}
+          columnToggle={true}
+          stickyHeader={true}
+
+          // Empty state
+          emptyState={
+            <EmptyState
+              variant="custom"
+              icon={<Truck size={48} />}
+              title="No services yet"
+              description="Start managing your transportation services"
+              action={
+                onCreateNew
+                  ? {
+                    label: 'Create Service',
+                    onClick: onCreateNew,
+                    icon: <Plus size={16} />,
+                  }
+                  : {
+                    label: 'Refresh',
+                    onClick: handleRefresh,
+                    icon: <RefreshCw size={16} />,
+                  }
+              }
+              secondaryAction={
+                onImport
+                  ? {
+                    label: 'Import Services',
+                    onClick: onImport,
+                  }
+                  : undefined
+              }
+            />
+          }
+
+          // Loading
+          loadingRows={5}
+
+          // Styling
+          compact={true}
+          bordered={false}
+          striped={true}
+        />
       </CardBody>
     </Card>
+  );
+}
+
+// Enhanced version with tabs and filters
+export function RecentServicesAdvanced({
+  services = [],
+  loading = false,
+  error = null,
+  onRefresh,
+  onCreateNew,
+  onImport,
+}: RecentServicesProps) {
+  const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'completed'>('all');
+  const [dateRange, setDateRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+
+  // Filter services based on selected tab
+  const filteredServices = useMemo(() => {
+    let filtered = services;
+
+    // Filter by status
+    switch (selectedTab) {
+      case 'active':
+        filtered = services.filter(s =>
+          ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)
+        );
+        break;
+      case 'completed':
+        filtered = services.filter(s =>
+          ([ServiceStatus.COMPLETED, ServiceStatus.INVOICED] as ServiceStatus[]).includes(s.status)
+        );
+        break;
+    }
+
+    // Filter by date range
+    const now = new Date();
+    const cutoffDate = new Date();
+
+    switch (dateRange) {
+      case 'week':
+        cutoffDate.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        cutoffDate.setMonth(now.getMonth() - 1);
+        break;
+      case 'quarter':
+        cutoffDate.setMonth(now.getMonth() - 3);
+        break;
+      case 'year':
+        cutoffDate.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+
+    return filtered.filter(s => new Date(s.date) >= cutoffDate);
+  }, [services, selectedTab, dateRange]);
+
+  // Stats calculation
+  const stats = useMemo(() => {
+    const total = filteredServices.length;
+    const active = filteredServices.filter(s =>
+      ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)
+    ).length;
+    const completed = filteredServices.filter(s =>
+      s.status === ServiceStatus.COMPLETED
+    ).length;
+    const totalAmount = filteredServices.reduce((sum, s) => sum + s.amount, 0);
+
+    return { total, active, completed, totalAmount };
+  }, [filteredServices]);
+
+  return (
+    <div className="space-y-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Services</p>
+                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This {dateRange}
+                </p>
+              </div>
+              <Truck className="h-8 w-8 text-primary/20" />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Active</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.active}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  In progress
+                </p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-500/20" />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Successfully
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500/20" />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Value</p>
+                <p className="text-2xl font-bold">€{stats.totalAmount.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Revenue
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-500/20" />
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center justify-between">
+        {/* Status Tabs */}
+        <div className="flex gap-2 border-b">
+          {(['all', 'active', 'completed'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setSelectedTab(tab)}
+              className={cn(
+                'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
+                selectedTab === tab
+                  ? 'text-primary border-primary'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
+              )}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              <span className="ml-2 text-xs opacity-60">
+                ({tab === 'all' ? services.length :
+                  tab === 'active' ? services.filter(s => ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)).length :
+                    services.filter(s => s.status === ServiceStatus.COMPLETED).length})
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="flex gap-1 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+          {(['week', 'month', 'quarter', 'year'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setDateRange(range)}
+              className={cn(
+                'px-3 py-1 text-xs font-medium rounded transition-colors',
+                dateRange === range
+                  ? 'bg-white dark:bg-neutral-900 shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {range.charAt(0).toUpperCase() + range.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main table */}
+      <RecentServicesAdvanced
+        services={filteredServices}
+        loading={loading}
+        error={error}
+        {...(onRefresh && { onRefresh })}
+        {...(onCreateNew && { onCreateNew })}
+        {...(onImport && { onImport })}
+        showPagination={true}
+        pageSize={10}
+      />
+    </div>
   );
 }

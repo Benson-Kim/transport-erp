@@ -4,23 +4,38 @@
  */
 
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
+import { Info, Sparkles, RefreshCw, Plus, ArrowRight } from 'lucide-react';
+
 import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
-import { format } from 'date-fns';
-
-import { Button } from '@/components/ui/Button';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Alert } from '@/components/ui/Alert';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { DataTable, type Column } from '@/components/ui/DataTable';
-import { formatCurrency } from '@/lib/utils/formatting';
-import { TrendingUp, TrendingDown, Truck, CheckCircle2, Euro, Percent, Info } from 'lucide-react';
-import { DashboardDateRange, DashboardSkeleton, QuickActions, RecentServices, RevenueChart, ServicesChart, StatsCards } from '@/components/features/dashboard';
-import { ErrorBoundary, PageHeader } from '@/components/ui';
+import { 
+  ErrorBoundary, 
+  PageHeader, 
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  EmptyState 
+} from '@/components/ui';
+import {
+  DashboardDateRange,
+  DashboardSkeleton,
+  QuickActions,
+  RecentServicesAdvanced,
+  RevenueChart,
+  ServicesChart,
+  StatsCards,
+  MiniStats,
+  QuickActionsWidget,
+  DashboardHeader,
+  DashboardRefreshButton,
+  DashboardErrorAlert,
+  NewUserWelcome,
+  PerformanceTip,
+} from '@/components/features/dashboard';
+import { formatPercentage } from '@/lib/utils/formatting';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',
@@ -28,95 +43,241 @@ export const metadata: Metadata = {
 };
 
 interface DashboardPageProps {
-  searchParams: {
+  searchParams: Promise<{
     from?: string;
     to?: string;
     range?: string;
-  };
+  }>;
 }
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+  const params = await searchParams;
+
   // Check authentication
   const session = await auth();
   if (!session?.user) redirect('/login');
 
   const dateRange = {
-    from: searchParams.from || undefined,
-    to: searchParams.to || undefined,
-    preset: searchParams.range || '30d',
+    ...(params.from !== undefined && { from: params.from }),
+    ...(params.to !== undefined && { to: params.to }),
+    preset: params.range || '30d',
   };
 
-  // Fetch dashboard data
-  const dashboardData = await getDashboardData({
-    userId: session.user.id,
-    dateRange,
-  });
+  // Fetch dashboard data with error handling
+  let dashboardData;
+  let dataError = null;
+  
+  try {
+    dashboardData = await getDashboardData({
+      userId: session.user.id,
+      dateRange,
+    });
+  } catch (error) {
+    dataError = error as Error;
+    // Provide fallback data structure
+    dashboardData = {
+      stats: {
+        activeServices: 0,
+        activeServicesChange: 0,
+        completedServices: 0,
+        completedServicesChange: 0,
+        totalRevenue: 0,
+        totalRevenueChange: 0,
+        averageMargin: 0,
+        averageMarginAmount: 0,
+        averageMarginChange: 0,
+        totalServices: 0,
+      },
+      revenueChart: [],
+      servicesChart: [],
+      recentServices: [],
+    };
+  }
 
   // Check if user is new (no data)
-  const isNewUser = dashboardData.stats.totalServices === 0;
+  const isNewUser = dashboardData.stats.totalServices === 0 && !dataError;
+  const userName = session.user.name?.split(' ')[0] || 'User';
+
+  // Refresh action
+  async function refreshDashboard() {
+    'use server';
+    // Revalidate the dashboard data
+    // revalidatePath('/dashboard');
+  }
 
   return (
-    <div className="flex-1 space-y-6 p-6">
-      {/* Page Header */}
+    <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
+      {/* Page Header with Actions */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <PageHeader
-          title={`Welcome back, ${session.user.name?.split(' ')[0] || 'User'}`}
-          description="Here's what's happening with your business today"
-        />
-        <DashboardDateRange />
+        <div className="flex-1">
+          {/* Create a client component wrapper for the title with icon */}
+          <DashboardHeader
+            userName={userName}
+            isNewUser={isNewUser}
+            description={
+              isNewUser 
+                ? "Let's get started with your first service"
+                : "Here's what's happening with your business today"
+            }
+          />
+          
+          {/* Mini Stats for quick overview */}
+          {!isNewUser && !dataError && (
+            <div className="mt-4 md:hidden">
+              <MiniStats stats={dashboardData.stats} />
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Quick Actions Widget - Desktop only */}
+          <div className="hidden lg:block">
+            <QuickActionsWidget userRole={session.user.role} />
+          </div>
+          
+          {/* Date Range Selector */}
+          <DashboardDateRange />
+          
+          {/* Refresh Button */}
+          {!isNewUser && (
+            <DashboardRefreshButton />
+          )}
+        </div>
       </div>
 
-      {/* New User Welcome */}
-      {isNewUser && (
-        <Alert>
-          <Info className="h-4 w-4" />
-            Welcome to Enterprise Dashboard! Start by creating your first service or importing existing data.
-        </Alert>
+      {/* Error Alert */}
+      {dataError && (
+        <DashboardErrorAlert errorMessage={dataError.message} />
       )}
 
-      {/* Stats Cards */}
-      <ErrorBoundary fallback="Failed to load statistics">
-        <Suspense fallback={<DashboardSkeleton.Stats />}>
-          <StatsCards stats={dashboardData.stats} />
-        </Suspense>
-      </ErrorBoundary>
+      {/* New User Welcome */}
+      {isNewUser && !dataError && (
+        <Card variant="elevated">
+          <CardBody>
+            <NewUserWelcome />
+          </CardBody>
+        </Card>
+      )}
 
-      {/* Charts Section */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ErrorBoundary fallback="Failed to load services chart">
-          <Suspense fallback={<DashboardSkeleton.Chart />}>
-            <ServicesChart data={dashboardData.servicesChart} />
-          </Suspense>
-        </ErrorBoundary>
-
-        <ErrorBoundary fallback="Failed to load revenue chart">
-          <Suspense fallback={<DashboardSkeleton.Chart />}>
-            <RevenueChart data={dashboardData.revenueChart} />
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-
-      {/* Bottom Section */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Recent Services (2 columns) */}
-        <div className="lg:col-span-2">
-          <ErrorBoundary fallback="Failed to load recent services">
-            <Suspense fallback={<DashboardSkeleton.Table />}>
-              <RecentServices 
-                services={dashboardData.recentServices}
-                isLoading={false}
+      {/* Main Dashboard Content */}
+      {!isNewUser && (
+        <>
+          {/* Stats Cards */}
+          <ErrorBoundary 
+            fallback={
+              <Alert variant="error">
+                Failed to load statistics. Please refresh the page.
+              </Alert>
+            }
+          >
+            <Suspense fallback={<DashboardSkeleton.Stats />}>
+              <StatsCards 
+                stats={dashboardData.stats}
+                loading={false}
+                error={dataError}
               />
             </Suspense>
           </ErrorBoundary>
-        </div>
 
-        {/* Quick Actions (1 column) */}
-        <div>
-          <ErrorBoundary fallback="Failed to load quick actions">
-            <QuickActions userRole={session.user.role} />
-          </ErrorBoundary>
-        </div>
-      </div>
+          {/* Charts Section */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ErrorBoundary 
+              fallback={
+                <Card>
+                  <CardBody>
+                    <Alert variant="error">
+                      Failed to load services chart
+                    </Alert>
+                  </CardBody>
+                </Card>
+              }
+            >
+              <Suspense fallback={<DashboardSkeleton.Chart />}>
+                <ServicesChart 
+                  data={dashboardData.servicesChart}
+                  loading={false}
+                  error={dataError}
+                />
+              </Suspense>
+            </ErrorBoundary>
+
+            <ErrorBoundary 
+              fallback={
+                <Card>
+                  <CardBody>
+                    <Alert variant="error">
+                      Failed to load revenue chart
+                    </Alert>
+                  </CardBody>
+                </Card>
+              }
+            >
+              <Suspense fallback={<DashboardSkeleton.Chart />}>
+                <RevenueChart 
+                  data={dashboardData.revenueChart}
+                  loading={false}
+                  error={dataError}
+                  showImportOption={isNewUser}
+                />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
+
+          {/* Bottom Section */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Recent Services (2 columns) */}
+            <div className="lg:col-span-2">
+              <ErrorBoundary 
+                fallback={
+                  <Card>
+                    <CardBody>
+                      <Alert variant="error">
+                        Failed to load recent services
+                      </Alert>
+                    </CardBody>
+                  </Card>
+                }
+              >
+                <Suspense fallback={<DashboardSkeleton.Table />}>
+                  <RecentServicesAdvanced
+                    services={dashboardData.recentServices}
+                    loading={false}
+                    error={dataError}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+
+            {/* Quick Actions (1 column) */}
+            <div className="space-y-6">
+              <ErrorBoundary 
+                fallback={
+                  <Card>
+                    <CardBody>
+                      <Alert variant="error">
+                        Failed to load quick actions
+                      </Alert>
+                    </CardBody>
+                  </Card>
+                }
+              >
+                <QuickActions 
+                  userRole={session.user.role}
+                  loading={false}
+                  error={dataError}
+                />
+              </ErrorBoundary>
+
+              {/* Performance Tips - Optional */}
+              {dashboardData.stats.totalServices > 10 && (
+                <PerformanceTip 
+                  averageMargin={dashboardData.stats.averageMargin}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
