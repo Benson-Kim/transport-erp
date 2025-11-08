@@ -8,9 +8,18 @@ import {
   Eye,
   CheckCircle2,
   RotateCcw,
+  Clock,
+  AlertCircle,
+  Truck,
+  CheckCircle,
+  XCircle,
+  FileText,
+  Plus,
+  Mail,
+  Archive,
 } from 'lucide-react';
 import { ServiceData } from '@/types/service';
-import { createElement } from 'react';
+import { createElement, JSX } from 'react';
 
 interface Handlers {
   onView: () => void;
@@ -23,13 +32,36 @@ interface Handlers {
 
 const icons = {
   view: createElement(Eye, { className: 'h-4 w-4' }),
-  edit: createElement(Edit2, { className: "h-4 w-4"}),
-  copy: createElement(Copy, { className: "h-4 w-4"}),
-  delete: createElement(Trash2, { className: "h-4 w-4"}),
-  complete: createElement(CheckCircle2, { className: "h-4 w-4"}),
-  reopen: createElement(RotateCcw, { className: "h-4 w-4"}),
+  edit: createElement(Edit2, { className: "h-4 w-4" }),
+  copy: createElement(Copy, { className: "h-4 w-4" }),
+  delete: createElement(Trash2, { className: "h-4 w-4" }),
+  complete: createElement(CheckCircle2, { className: "h-4 w-4" }),
+  reopen: createElement(RotateCcw, { className: "h-4 w-4" }),
 };
 
+const SERVICE_STATUS_META: Record<ServiceStatus, {
+  label: string;
+  color: string;
+  description: string;
+  variant: 'active' | 'completed' | 'cancelled' | 'billed' | 'default';
+  icon: React.ElementType;
+}> = {
+  [ServiceStatus.DRAFT]: { label: 'Draft', color: 'secondary', description: 'Service is being prepared', variant: 'default', icon: Clock },
+  [ServiceStatus.CONFIRMED]: { label: 'Confirmed', color: 'warning', description: 'Service has been confirmed', variant: 'active', icon: AlertCircle },
+  [ServiceStatus.IN_PROGRESS]: { label: 'In Progress', color: 'warning', description: 'Service is currently in progress', variant: 'active', icon: Truck },
+  [ServiceStatus.COMPLETED]: { label: 'Completed', color: 'success', description: 'Service has been completed', variant: 'completed', icon: CheckCircle },
+  [ServiceStatus.CANCELLED]: { label: 'Cancelled', color: 'danger', description: 'Service was cancelled', variant: 'cancelled', icon: XCircle },
+  [ServiceStatus.INVOICED]: { label: 'Invoiced', color: 'neutral', description: 'Service has been invoiced', variant: 'billed', icon: FileText },
+};
+
+export const getStatusColor = (s: ServiceStatus) => SERVICE_STATUS_META[s]?.color || 'secondary';
+export const getStatusLabel = (s: ServiceStatus) => SERVICE_STATUS_META[s]?.label || s;
+export const getStatusDescription = (s: ServiceStatus) => SERVICE_STATUS_META[s]?.description || 'Unknown status';
+export const getStatusVariant = (s: ServiceStatus) => SERVICE_STATUS_META[s]?.variant || 'default';
+export function getStatusIcon(s: ServiceStatus): JSX.Element {
+  const IconComponent = SERVICE_STATUS_META[s]?.icon || AlertCircle;
+  return createElement(IconComponent, { className: "h-3 w-3" });
+}
 
 /**
  * Dynamically builds a dropdown menu for a service row
@@ -43,12 +75,8 @@ export function buildServiceActionsMenu(
   const canEdit = hasPermission(userRole, 'services', 'edit');
   const canDelete = hasPermission(userRole, 'services', 'delete');
 
-  // Basic rule logic
-
   const isCompleted = service.status === ServiceStatus.COMPLETED;
-const isCancelled = service.status === ServiceStatus.CANCELLED;
-const isArchived = service.status === ServiceStatus.INVOICED;
-
+  const isCancelled = service.status === ServiceStatus.CANCELLED;
 
   const items: DropdownMenuItem[] = [
     {
@@ -62,7 +90,7 @@ const isArchived = service.status === ServiceStatus.INVOICED;
 
   // ---- Conditional editing options ----
   if (canEdit) {
-    const editDisabled = isCompleted || isCancelled || isArchived;
+    const editDisabled = isCompleted || isCancelled;
 
     items.push({
       id: 'edit-group',
@@ -85,14 +113,10 @@ const isArchived = service.status === ServiceStatus.INVOICED;
           label: 'Duplicate Service',
           icon: icons.copy,
           onClick: handlers.onDuplicate,
-          disabled: isArchived,
         },
       ],
     });
-  }
 
-  // ---- Optional workflow actions ----
-  if (canEdit && !isArchived) {
     if (!isCompleted && handlers.onMarkCompleted) {
       items.push({
         id: 'complete',
@@ -105,7 +129,7 @@ const isArchived = service.status === ServiceStatus.INVOICED;
       items.push({
         id: 'reopen',
         label: 'Reopen Service',
-        icon:icons.reopen,
+        icon: icons.reopen,
         onClick: handlers.onReopen,
         tooltip: 'Reopen this completed service for editing',
       });
@@ -114,17 +138,14 @@ const isArchived = service.status === ServiceStatus.INVOICED;
 
   // ---- Deletion options ----
   if (canDelete) {
-    items.push({ id: 'divider', divider: true, label:'' });
+    items.push({ id: 'divider', divider: true, });
     items.push({
       id: 'delete',
       label: 'Delete Service',
       icon: icons.delete,
       onClick: handlers.onDelete,
       danger: true,
-      tooltip: isArchived
-        ? 'Archived services cannot be deleted'
-        : 'Permanently delete this service',
-      disabled: isArchived,
+      tooltip: 'Permanently delete this service',
     });
   }
 

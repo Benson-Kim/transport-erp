@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { ServiceStatus } from '@prisma/client';
 
 export const serviceSchema = z.object({
-  date: z.string().transform(str => new Date(str)),
+  date: z.coerce.date(),
   clientId: z.string().min(1, 'Client is required'),
   supplierId: z.string().min(1, 'Supplier is required'),
   description: z.string().min(1, 'Description is required'),
@@ -18,14 +18,24 @@ export const serviceSchema = z.object({
   vehiclePlate: z.string().optional(),
   driverName: z.string().optional(),
   costAmount: z.number().min(0, 'Cost must be positive'),
-  costCurrency: z.string().default('EUR'),
   saleAmount: z.number().min(0, 'Sale amount must be positive'),
+  costCurrency: z.string().default('EUR'),
   saleCurrency: z.string().default('EUR'),
   costVatRate: z.number().default(21),
   saleVatRate: z.number().default(21),
   status: z.enum(ServiceStatus).default(ServiceStatus.DRAFT),
   notes: z.string().optional(),
   internalNotes: z.string().optional(),
+
+  kilometers: z.number().optional(),
+  pricePerKm: z.number().optional(),
+  extras: z.number().default(0),
+  totalCost: z.number().min(0.01, 'Total cost is required and must be greater than 0'),
+  sale: z.number().optional(),
+
+  //   // Status (edit mode)
+  completed: z.boolean().optional(),
+  cancelled: z.boolean().optional(),
 });
 
 export const serviceFilterSchema = z.object({
@@ -42,5 +52,36 @@ export const serviceFilterSchema = z.object({
   pageSize: z.number().int().positive().max(100).optional(),
 });
 
-export type ServiceFormData = z.infer<typeof serviceSchema>;
+// export const serviceFormSchema = z.object({
+//   date: z.string().transform(str => new Date(str)),
+//   clientId: z.string().min(1, 'Client is required'),
+//   supplierId: z.string().min(1, 'Supplier is required'),
+//   reference: z.string().optional(),
+//   driver: z.string().optional(),
+//   registration: z.string().optional(),
+  
+//   // Locations
+//   loadingArea: z.string().optional(),
+//   chargingTime: z.string().optional(),
+//   downloadSite: z.string().optional(),
+//   downloadTime: z.string().optional(),
+  
+//   // Pricing
+//   kilometers: z.number().optional(),
+//   pricePerKm: z.number().optional(),
+//   extras: z.number().default(0),
+//   totalCost: z.number().min(0.01, 'Total cost is required and must be greater than 0'),
+//   sale: z.number().optional(),
+  
+//   // Additional
+//   observations: z.string().max(200, 'Maximum 200 characters').optional(),
+  
+//   // Status (edit mode)
+//   completed: z.boolean().optional(),
+//   cancelled: z.boolean().optional(),
+// });
+
+// export type FormServiceData = z.infer<typeof serviceFormSchema>;
+export type ServiceFormData = z.input<typeof serviceSchema>; 
+export type ServiceSchemaOutput = z.infer<typeof serviceSchema>;
 export type ServiceFilters = z.infer<typeof serviceFilterSchema>;

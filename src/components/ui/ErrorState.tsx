@@ -14,7 +14,7 @@ export interface ErrorStateProps {
   description?: string;
   onRetry?: () => void;
   variant?: 'inline' | 'full' | 'card';
-  className?: string | undefined;
+  className?: string;
 }
 
 export function ErrorState({

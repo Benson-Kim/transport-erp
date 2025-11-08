@@ -11,16 +11,56 @@ import { z } from 'zod';
 import { requireAuth } from '@/lib/auth';
 import { requirePermission } from '@/lib/rbac';
 import { Prisma, ServiceStatus } from '@prisma/client';
-import { ServiceFilters, serviceSchema } from '@/lib/validations/service-schema';
-import  prisma from '@/lib/prisma/prisma';
+import { ServiceFilters, ServiceFormData, serviceSchema } from '@/lib/validations/service-schema';
+import prisma from '@/lib/prisma/prisma';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
+
+/**
+ * Get a single service by ID
+ */
+export async function getService(serviceId: string) {
+  await requirePermission('services', 'view');
+
+  const service = await prisma.service.findFirst({
+    where: { id: serviceId, deletedAt: null },
+    include: {
+      client: {
+        select: {
+          id: true,
+          name: true,
+          clientCode: true,
+        },
+      },
+      supplier: {
+        select: {
+          id: true,
+          name: true,
+          supplierCode: true,
+        },
+      },
+    },
+  });
+
+  if (!service) {
+    return null;
+  }
+
+  return {
+    ...service,
+    date: service.date.toISOString(),
+    costAmount: Number(service.costAmount),
+    saleAmount: Number(service.saleAmount || 0),
+    margin: Number(service.margin || 0),
+    marginPercentage: Number(service.marginPercentage || 0),
+  };
+}
 
 /**
  * Get services with filters
  */
 export async function getServices(filters: ServiceFilters) {
   await requirePermission('services', 'view');
-  
+
   const where: any = {
     deletedAt: null,
   };
@@ -157,7 +197,7 @@ export async function getServices(filters: ServiceFilters) {
  */
 export async function getClientsAndSuppliers() {
   await requirePermission('services', 'view');
-  
+
   const [clients, suppliers] = await Promise.all([
     prisma.client.findMany({
       where: { deletedAt: null, isActive: true },
@@ -185,30 +225,53 @@ export async function getClientsAndSuppliers() {
 /**
  * Create new service
  */
-export async function createService(data: z.infer<typeof serviceSchema>) {
+export async function createService(data: ServiceFormData) {
   const session = await requireAuth();
   await requirePermission('services', 'create');
-  
+
   const validatedData = serviceSchema.parse(data);
-  
+
   // Generate service number
   const count = await prisma.service.count();
   const serviceNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-  
-  // Calculate margins
-  const margin = validatedData.saleAmount - validatedData.costAmount;
-  const marginPercentage = (margin / validatedData.costAmount) * 100;
-  
+
+  const costVatRate = validatedData.costVatRate ?? 21;
+  const saleVatRate = validatedData.saleVatRate ?? 21;
+
+  const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
+  const marginPercentage = validatedData.costAmount > 0
+    ? Number(((margin / validatedData.costAmount) * 100).toFixed(2))
+    : 0;
+
+  const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
+  const costVatAmount = Number((validatedData.costAmount * (costVatRate / 100)).toFixed(2));
+
+  const {
+    completed,
+    cancelled,
+    totalCost,
+    sale,
+    kilometers,
+    pricePerKm,
+    extras,
+    ...saveData
+  } = validatedData;
+
   const service = await prisma.service.create({
     data: {
-      ...validatedData,
+      ...(Object.fromEntries(Object.entries(saveData).filter(([_, v]) => v !== undefined)) as any),
       serviceNumber,
       margin,
       marginPercentage,
+      costVatAmount,
+      saleVatAmount,
+      status: cancelled ? ServiceStatus.CANCELLED :
+        completed ? ServiceStatus.COMPLETED :
+          saveData.status || ServiceStatus.DRAFT,
       createdById: session.user.id,
     },
   });
-  
+
   // Create audit log
   await createAuditLog({
     userId: session.user.id,
@@ -217,55 +280,71 @@ export async function createService(data: z.infer<typeof serviceSchema>) {
     recordId: service.id,
     newValues: service,
   });
-  
+
   revalidatePath('/services');
-  
-  return { success: true, service };
+
+  return { success: true, service: { ...service, serviceNumber } };
 }
 
 /**
  * Update service
  */
-export async function updateService(
-  serviceId: string,
-  data: z.infer<typeof serviceSchema>
-) {
+export async function updateService(serviceId: string, data: ServiceFormData) {
   const session = await requireAuth();
   await requirePermission('services', 'edit');
-  
+
   const validatedData = serviceSchema.parse(data);
-  
-  // Get current service
-  const currentService = await prisma.service.findUnique({
-    where: { id: serviceId },
-  });
-  
-  if (!currentService) {
-    throw new Error('Service not found');
+
+  const currentService = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!currentService) throw new Error('Service not found');
+
+  if (currentService.status === ServiceStatus.COMPLETED) {
+    await requirePermission('services', 'edit_completed');
   }
-  
-  // Check if service is completed and user can't edit completed
-  if (
-    currentService.status === ServiceStatus.COMPLETED &&
-    !(await requirePermission('services', 'edit_completed'))
-  ) {
-    throw new Error('Cannot edit completed services');
+
+  const costVatRate = validatedData.costVatRate ?? 21;
+  const saleVatRate = validatedData.saleVatRate ?? 21;
+
+  let costAmount = validatedData.costAmount;
+  let saleAmount = validatedData.saleAmount;
+  let margin = saleAmount - costAmount;
+  let marginPercentage = costAmount > 0 ? (margin / costAmount) * 100 : 0;
+  let saleVatAmount = saleAmount * (saleVatRate / 100);
+  let costVatAmount = costAmount * (costVatRate / 100);
+
+  if (validatedData.cancelled) {
+    costVatAmount = saleVatAmount = costAmount = saleAmount = margin = marginPercentage = 0;
   }
-  
-  // Recalculate margins
-  const margin = validatedData.saleAmount - validatedData.costAmount;
-  const marginPercentage = (margin / validatedData.costAmount) * 100;
-  
+
+  const {
+    completed,
+    cancelled,
+    totalCost,
+    sale,
+    kilometers,
+    pricePerKm,
+    extras,
+    ...dataToStore
+  } = validatedData;
+
+  const updateData = {
+    ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
+    costAmount,
+    saleAmount,
+    margin: Number(margin.toFixed(2)),
+    marginPercentage: Number(marginPercentage.toFixed(2)),
+    costVatAmount: Number(costVatAmount.toFixed(2)),
+    saleVatAmount: Number(saleVatAmount.toFixed(2)),
+    status: cancelled ? ServiceStatus.CANCELLED :
+      completed ? ServiceStatus.COMPLETED :
+        dataToStore.status || currentService.status,
+  };
+
   const service = await prisma.service.update({
     where: { id: serviceId },
-    data: {
-      ...validatedData,
-      margin,
-      marginPercentage,
-    },
+    data: updateData,
   });
-  
-  // Create audit log
+
   await createAuditLog({
     userId: session.user.id,
     action: 'UPDATE',
@@ -274,12 +353,13 @@ export async function updateService(
     oldValues: currentService,
     newValues: service,
   });
-  
+
   revalidatePath('/services');
   revalidatePath(`/services/${serviceId}`);
-  
+
   return { success: true, service };
 }
+
 
 /**
  * Delete service (soft delete)
@@ -287,12 +367,12 @@ export async function updateService(
 export async function deleteService(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
-  
+
   await prisma.service.update({
     where: { id: serviceId },
     data: { deletedAt: new Date() },
   });
-  
+
   // Create audit log
   await createAuditLog({
     userId: session.user.id,
@@ -300,9 +380,307 @@ export async function deleteService(serviceId: string) {
     tableName: 'services',
     recordId: serviceId,
   });
-  
+
   revalidatePath('/services');
-  
+
+  return { success: true };
+}
+
+/**
+ * Duplicate service
+ */
+export async function duplicateService(sourceServiceId: string) {
+  await requirePermission('services', 'create');
+
+  const sourceService = await getService(sourceServiceId);
+
+  if (!sourceService) {
+    throw new Error('Source service not found');
+  }
+
+  // Return the service data without date and status
+  // The form will handle creating the new service
+  return {
+    ...sourceService,
+    id: undefined,
+    serviceNumber: undefined,
+    date: undefined, // Will be required in form
+    status: ServiceStatus.DRAFT,
+    createdAt: undefined,
+    updatedAt: undefined,
+  };
+}
+
+// actions/service-actions.ts (additions)
+
+/**
+ * Get service with all details
+ */
+export async function getServiceWithDetails(serviceId: string) {
+  const service = await prisma.service.findFirst({
+    where: {
+      id: serviceId,
+      deletedAt: null,
+    },
+    include: {
+      client: true,
+      supplier: true,
+      createdBy: true,
+      invoiceItems: {
+        include: {
+          invoice: {
+            select: {
+              id: true,
+              invoiceNumber: true,
+              status: true,
+            },
+          },
+        },
+      },
+      documents: {
+        where: { deletedAt: null },
+        orderBy: { uploadedAt: 'desc' },
+      },
+      statusHistory: {
+        orderBy: { changedAt: 'desc' },
+        take: 10,
+      },
+    },
+  });
+
+  if (!service) return null;
+
+  const invoice = service.invoiceItems?.[0]?.invoice || null;
+
+  // Calculate edit count from audit logs
+  const editCount = await prisma.auditLog.count({
+    where: {
+      tableName: 'services',
+      recordId: serviceId,
+      action: 'UPDATE',
+    },
+  });
+
+  return {
+    ...service,
+    invoice,
+    invoiceId: invoice?.id,
+    editCount,
+  };
+}
+
+/**
+ * Get service activity timeline
+ */
+export async function getServiceActivity(
+  serviceId: string,
+  options: { page?: number; limit?: number } = {}
+) {
+  const { page = 1, limit = 10 } = options;
+  const offset = (page - 1) * limit;
+
+  const activities = await prisma.auditLog.findMany({
+    where: {
+      tableName: 'services',
+      recordId: serviceId,
+    },
+    orderBy: { createdAt: 'desc' },
+    skip: offset,
+    take: limit + 1, // Get one extra to check if there's more
+    include: {
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  const hasMore = activities.length > limit;
+  const items = activities.slice(0, limit);
+
+  // Transform activities into timeline items
+  const timelineItems = items.map(activity => {
+    let description = '';
+    let metadata = {};
+
+    switch (activity.action) {
+      case 'CREATE':
+        description = 'Service created';
+        break;
+      case 'UPDATE':
+        description = 'Service updated';
+        // Parse changes from old/new values
+        if (activity.oldValues && activity.newValues) {
+          const changes = [];
+          const oldVals = activity.oldValues as any;
+          const newVals = activity.newValues as any;
+
+          // Check common fields for changes
+          const fieldsToCheck = ['costAmount', 'saleAmount', 'status', 'origin', 'destination'];
+          for (const field of fieldsToCheck) {
+            if (oldVals[field] !== newVals[field]) {
+              changes.push({
+                field: field.replace(/([A-Z])/g, ' $1').toLowerCase(),
+                oldValue: oldVals[field],
+                newValue: newVals[field],
+              });
+            }
+          }
+
+          metadata = { changes };
+        }
+        break;
+      case 'DELETE':
+        description = 'Service deleted';
+        break;
+      case 'COMPLETE':
+        description = 'Service marked as completed';
+        break;
+      case 'CANCEL':
+        description = 'Service cancelled';
+        break;
+      default:
+        description = activity.action.replace(/_/g, ' ').toLowerCase();
+    }
+
+    return {
+      id: activity.id,
+      action: activity.action,
+      description,
+      user: activity.user,
+      createdAt: activity.createdAt,
+      metadata,
+    };
+  });
+
+  return {
+    activities: timelineItems,
+    hasMore,
+  };
+}
+
+/**
+ * Mark service as complete
+ */
+export async function markServiceComplete(serviceId: string) {
+  const session = await requireAuth();
+  await requirePermission('services', 'complete');
+
+  const service = await prisma.service.update({
+    where: { id: serviceId },
+    data: {
+      status: ServiceStatus.COMPLETED,
+      completedAt: new Date(),
+      completedById: session.user.id,
+    },
+  });
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'COMPLETE',
+    tableName: 'services',
+    recordId: serviceId,
+    newValues: { status: ServiceStatus.COMPLETED },
+  });
+
+  revalidatePath(`/services/${serviceId}`);
+
+  return service;
+}
+
+/**
+ * Archive service
+ */
+export async function archiveService(serviceId: string) {
+  const session = await requireAuth();
+  await requirePermission('services', 'archive');
+
+  const service = await prisma.service.update({
+    where: { id: serviceId },
+    data: {
+      archived: true,
+      archivedAt: new Date(),
+      archivedById: session.user.id,
+    },
+  });
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'ARCHIVE',
+    tableName: 'services',
+    recordId: serviceId,
+  });
+
+  revalidatePath(`/services/${serviceId}`);
+
+  return service;
+}
+
+/**
+ * Generate loading order PDF
+ */
+export async function generateLoadingOrder(serviceId: string) {
+  const session = await requireAuth();
+  await requirePermission('documents', 'generate');
+
+  // Get service details
+  const service = await getServiceWithDetails(serviceId);
+  if (!service) throw new Error('Service not found');
+
+  // Generate PDF (you'll need to implement PDF generation)
+  const pdfUrl = await generateServicePDF(service, 'loading-order');
+
+  // Save document reference
+  const document = await prisma.document.create({
+    data: {
+      type: 'LOADING_ORDER',
+      serviceId,
+      url: pdfUrl,
+      createdById: session.user.id,
+    },
+  });
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'GENERATE_DOCUMENT',
+    tableName: 'services',
+    recordId: serviceId,
+    metadata: { documentType: 'LOADING_ORDER' },
+  });
+
+  revalidatePath(`/services/${serviceId}`);
+
+  return { url: pdfUrl, document };
+}
+
+/**
+ * Send service details by email
+ */
+export async function sendServiceEmail(serviceId: string) {
+  const session = await requireAuth();
+  await requirePermission('services', 'send_email');
+
+  const service = await getServiceWithDetails(serviceId);
+  if (!service) throw new Error('Service not found');
+
+  // Send email (implement your email sending logic)
+  // await sendEmail({
+  //   to: service.client.email,
+  //   subject: `Service Details - ${service.serviceNumber}`,
+  //   template: 'service-details',
+  //   data: service,
+  // });
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'SEND_EMAIL',
+    tableName: 'services',
+    recordId: serviceId,
+    metadata: { recipient: service.client.email },
+  });
+
   return { success: true };
 }
 
@@ -315,7 +693,7 @@ export async function bulkUpdateServices(
 ) {
   const session = await requireAuth();
   await requirePermission('services', 'edit');
-  
+
   await prisma.service.updateMany({
     where: {
       id: { in: serviceIds },
@@ -323,7 +701,7 @@ export async function bulkUpdateServices(
     },
     data: updates,
   });
-  
+
   // Create audit log
   await createAuditLog({
     userId: session.user.id,
@@ -332,9 +710,9 @@ export async function bulkUpdateServices(
     recordId: serviceIds.join(','),
     metadata: { bulk: true, updates },
   });
-  
+
   revalidatePath('/services');
-  
+
   return { success: true };
 }
 
@@ -344,14 +722,14 @@ export async function bulkUpdateServices(
 export async function bulkDeleteServices(serviceIds: string[]) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
-  
+
   await prisma.service.updateMany({
     where: {
       id: { in: serviceIds },
     },
     data: { deletedAt: new Date() },
   });
-  
+
   // Create audit log
   await createAuditLog({
     userId: session.user.id,
@@ -360,9 +738,9 @@ export async function bulkDeleteServices(serviceIds: string[]) {
     recordId: serviceIds.join(','),
     metadata: { bulk: true },
   });
-  
+
   revalidatePath('/services');
-  
+
   return { success: true };
 }
 
@@ -372,9 +750,9 @@ export async function bulkDeleteServices(serviceIds: string[]) {
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
   const session = await requireAuth();
   await requirePermission('loading_orders', 'create');
-  
+
   // Implementation for generating loading orders
   // This would group services and create loading order documents
-  
+
   return { success: true, count: 1 };
 }

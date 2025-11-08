@@ -3,6 +3,8 @@
  * Accessible date picker with calendar dropdown
  */
 
+'use client'
+
 import { forwardRef, useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { format, parse, isValid, isBefore, isAfter } from 'date-fns';
@@ -48,12 +50,19 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       className,
       id,
     },
+    ref
   ) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [selectedDate, setSelectedDate] = useState<Date | null>(value || null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      if (!ref) return;
+      if (typeof ref === 'function') ref(inputRef.current);
+      else (ref as React.RefObject<HTMLInputElement | null>).current = inputRef.current;
+    }, [ref]);
 
     // Sync input value with selected date
     useEffect(() => {

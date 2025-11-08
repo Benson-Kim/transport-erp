@@ -92,7 +92,7 @@ export function aggregateServicesByMonth(
     const monthKey = format(startOfMonth(service.date), 'MMM yyyy');
     if (monthlyData[monthKey]) {
       monthlyData[monthKey].total++;
-      
+
       switch (service.status) {
         case ServiceStatus.COMPLETED:
         case ServiceStatus.INVOICED:
@@ -189,4 +189,15 @@ export function formatPercentage(value: number): string {
  */
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value);
+}
+
+/**
+ * Format distance in kilometers
+ */
+export function formatDistance(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'unit',
+    unit: 'kilometer',
+    unitDisplay: 'short', // outputs like "12 km"
+  }).format(value);
 }

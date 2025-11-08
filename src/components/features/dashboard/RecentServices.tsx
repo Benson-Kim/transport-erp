@@ -25,8 +25,6 @@ import {
   Truck,
   Clock,
   CheckCircle,
-  XCircle,
-  AlertCircle,
   RefreshCw,
   Plus,
   Eye,
@@ -40,6 +38,7 @@ import { cn } from '@/lib/utils/cn';
 import { ServiceStatus } from '@prisma/client';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils/formatting';
+import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';
 
 interface Service {
   id: string;
@@ -172,45 +171,7 @@ export function RecentServices({
     };
   }, [services]);
 
-  const getStatusIcon = (status: ServiceStatus) => {
-    const icons = {
-      [ServiceStatus.DRAFT]: Clock,
-      [ServiceStatus.CONFIRMED]: AlertCircle,
-      [ServiceStatus.IN_PROGRESS]: Truck,
-      [ServiceStatus.COMPLETED]: CheckCircle,
-      [ServiceStatus.CANCELLED]: XCircle,
-      [ServiceStatus.INVOICED]: FileText,
-    };
-
-    const Icon = icons[status] || AlertCircle;
-    return <Icon className="h-3 w-3" />;
-  };
-
-  const getStatusVariant = (status: ServiceStatus): 'active' | 'completed' | 'cancelled' | 'billed' | 'default' => {
-    const variants = {
-      [ServiceStatus.DRAFT]: 'default' as const,
-      [ServiceStatus.CONFIRMED]: 'active' as const,
-      [ServiceStatus.IN_PROGRESS]: 'active' as const,
-      [ServiceStatus.COMPLETED]: 'completed' as const,
-      [ServiceStatus.CANCELLED]: 'cancelled' as const,
-      [ServiceStatus.INVOICED]: 'billed' as const,
-    };
-
-    return variants[status] || 'default';
-  };
-
-  const getStatusDescription = (status: ServiceStatus): string => {
-    const descriptions = {
-      [ServiceStatus.DRAFT]: 'Service is being prepared',
-      [ServiceStatus.CONFIRMED]: 'Service has been confirmed',
-      [ServiceStatus.IN_PROGRESS]: 'Service is currently in progress',
-      [ServiceStatus.COMPLETED]: 'Service has been completed',
-      [ServiceStatus.CANCELLED]: 'Service was cancelled',
-      [ServiceStatus.INVOICED]: 'Service has been invoiced',
-    };
-
-    return descriptions[status] || 'Unknown status';
-  };
+  
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);

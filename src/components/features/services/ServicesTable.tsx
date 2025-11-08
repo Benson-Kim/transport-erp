@@ -30,7 +30,6 @@ import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
 import { BulkActions } from './BulkActions';
 import { ServiceRow } from './ServiceRow';
 // import { hasPermission } from '@/lib/permissions';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface ServicesTableProps {
   services: ServiceData[];
@@ -83,17 +82,6 @@ export function ServicesTable({
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // Virtual scrolling for large datasets
-  const rowVirtualizer = useVirtualizer({
-    count: services.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 48, // row height
-    overscan: 5,
-  });
-
-  // Permissions
 
   // Calculate stats
   const stats = useMemo(() => {

@@ -33,6 +33,7 @@ export const ACTIONS = {
   CREATE: 'create',
   EDIT: 'edit',
   DELETE: 'delete',
+  CANCEL: 'cancel',
   EXPORT: 'export',
   IMPORT: 'import',
   APPROVE: 'approve',
@@ -40,6 +41,7 @@ export const ACTIONS = {
   MARK_COMPLETED: 'mark_completed',
   MARK_BILLED: 'mark_billed',
   EDIT_COMPLETED: 'edit_completed',
+  DELETE_COMPLETED: 'delete_completed',
   MANAGE: 'manage',
 } as const;
 
@@ -98,9 +100,11 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
+    [ACTIONS.CANCEL]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.MARK_COMPLETED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.MARK_BILLED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EDIT_COMPLETED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+    [ACTIONS.DELETE_COMPLETED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   },
   
