@@ -30,7 +30,7 @@ export function OAuthButtons() {
       {/* Google Sign In */}
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         className="w-full"
         onClick={() => handleOAuthSignIn('google')}
         disabled={loading !== null}
@@ -63,7 +63,7 @@ export function OAuthButtons() {
       {/* Microsoft Sign In */}
       <Button
         type="button"
-        variant="outline"
+        variant="secondary"
         className="w-full"
         onClick={() => handleOAuthSignIn('microsoft-entra-id')}
         disabled={loading !== null}

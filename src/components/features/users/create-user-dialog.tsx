@@ -15,7 +15,7 @@ export function CreateUserDialog() {
   return (
     <Button
       onClick={() => setOpen(true)}
-      leftIcon={<UserPlus className="h-4 w-4" />}
+      icon={<UserPlus className="h-4 w-4" />}
     >
       Add User
     </Button>

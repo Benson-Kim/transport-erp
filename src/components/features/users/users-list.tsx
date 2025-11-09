@@ -133,15 +133,21 @@ export function UsersList({ users }: UsersListProps) {
               <td className="p-4">
                 <div className="flex items-center gap-2">
                   {user.isActive ? (
-                    <Badge variant="success">Active</Badge>
+                    <Badge variant="completed">Active</Badge>
                   ) : (
-                    <Badge variant="destructive">Inactive</Badge>
+                    <Badge variant="cancelled">Inactive</Badge>
                   )}
                   {user.emailVerified && (
-                    <Shield className="h-4 w-4 text-success-600" title="Email Verified" />
+                    <span className="flex items-center gap-1 text-sm text-success-600">
+                      <Shield className="h-4 w-4 text-success-600" />
+                      Email Verified
+                    </span>
                   )}
                   {user.twoFactorEnabled && (
-                    <Key className="h-4 w-4 text-primary-600" title="2FA Enabled" />
+                    <span className="flex items-center gap-1 text-sm text-success-600">
+                      <Key className="h-4 w-4 text-primary-600" />
+                     2FA Enabled
+                    </span>
                   )}
                 </div>
               </td>
@@ -156,9 +162,8 @@ export function UsersList({ users }: UsersListProps) {
                 )}
               </td>
               <td className="p-4">
-                <Button size="icon-sm" variant="ghost">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                <Button size="sm" variant="ghost" icon={<MoreVertical className="h-4 w-4" />} aria-label="Actions" />
+                  
               </td>
             </tr>
           ))}
