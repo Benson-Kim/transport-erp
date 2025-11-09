@@ -3,12 +3,11 @@
  * Ensures a single database connection throughout the application lifecycle
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@/app/generated/prisma";
 import { withAccelerate } from '@prisma/extension-accelerate'
 
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient
 }
 
 /**
@@ -28,10 +27,10 @@ const prismaClientSingleton = () => {
  * Global prisma instance
  * Prevents multiple instances during development hot-reload
  */
-const prisma = globalThis.prisma ?? prismaClientSingleton();
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
+  globalForPrisma.prisma = prisma;
 }
 
 export default prisma;

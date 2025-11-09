@@ -15,5 +15,5 @@ export * from './ServiceHeader';
 export * from './ServiceDetail';
 export * from './ServiceSidebar';
 export * from './ServiceTimeline';
-// export * from './RelatedDocuments';
+export * from './RelatedDocuments';
 export * from './ServiceActions';

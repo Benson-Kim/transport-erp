@@ -3,7 +3,7 @@
  * Common utilities for database operations
  */
 
-import { Prisma, PrismaClient} from '@prisma/client';
+import { Prisma, PrismaClient } from "@/app/generated/prisma";
 import prisma from './prisma';
 
 /**
@@ -105,20 +105,20 @@ export async function createAuditLog({
   userAgent?: string;
 }) {
   return prisma.auditLog.create({
-  data: {
-    userId: userId ?? null,
-    action,
-    tableName,
-    recordId,
-    oldValues: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,
-    newValues: newValues ? JSON.parse(JSON.stringify(newValues)) : null,
-    ipAddress: ipAddress ?? null,
-    userAgent: userAgent ?? null,
-    metadata: {
-      timestamp: new Date().toISOString(),
+    data: {
+      userId: userId ?? null,
+      action,
+      tableName,
+      recordId,
+      oldValues: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,
+      newValues: newValues ? JSON.parse(JSON.stringify(newValues)) : null,
+      ipAddress: ipAddress ?? null,
+      userAgent: userAgent ?? null,
+      metadata: {
+        timestamp: new Date().toISOString(),
+      },
     },
-  },
-});
+  });
 
 }
 
@@ -163,7 +163,7 @@ export async function withTransaction<T>(
     {
       maxWait: 5000,
       timeout: 10000,
-      isolationLevel:"Serializable" as IsolationLevel,
+      isolationLevel: "Serializable" as IsolationLevel,
     },
   );
 }
@@ -306,7 +306,7 @@ export async function generateUniqueIdentifier(
   field: string,
 ): Promise<string> {
   const year = new Date().getFullYear();
-  
+
   // Get the last number for this prefix and year
   const lastRecord = await (prisma as any)[model].findFirst({
     where: {

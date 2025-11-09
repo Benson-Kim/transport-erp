@@ -3,7 +3,7 @@
  * Populates the database with sample data for development and testing
  */
 
-import { PrismaClient, UserRole, ServiceStatus, InvoiceStatus, PaymentStatus } from '@prisma/client';
+import { PrismaClient, UserRole, ServiceStatus, InvoiceStatus, PaymentStatus } from '@/app/generated/prisma';
 import { hash } from 'bcryptjs';
 import { addDays, subDays } from 'date-fns';
 
@@ -381,14 +381,14 @@ async function main() {
       supplierId: supplier.id,
       createdById: operatorUser.id,
       assignedToId: Math.random() > 0.5 ? managerUser.id : operatorUser.id,
-      description: `Transport service from warehouse to ${['Store A','Store B','Distribution Center','Customer Location'][Math.floor(Math.random() * 4)]}`,
+      description: `Transport service from warehouse to ${['Store A', 'Store B', 'Distribution Center', 'Customer Location'][Math.floor(Math.random() * 4)]}`,
       reference: Math.random() > 0.5 ? `PO-2024-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}` : null,
-      origin: ['Madrid','Barcelona','Valencia','Sevilla'][Math.floor(Math.random()*4)],
-      destination: ['Bilbao','Zaragoza','Málaga','Lisboa'][Math.floor(Math.random()*4)],
+      origin: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla'][Math.floor(Math.random() * 4)],
+      destination: ['Bilbao', 'Zaragoza', 'Málaga', 'Lisboa'][Math.floor(Math.random() * 4)],
       distance: Math.floor(Math.random() * 500) + 50,
-      vehicleType: ['Truck','Van','Trailer','Container'][Math.floor(Math.random()*4)],
-      vehiclePlate: `${String(Math.floor(Math.random() * 9999)).padStart(4,'0')} ${['ABC','DEF','GHI','JKL'][Math.floor(Math.random()*4)]}`,
-      driverName: ['Juan Pérez','María García','Carlos López','Ana Martínez'][Math.floor(Math.random()*4)],
+      vehicleType: ['Truck', 'Van', 'Trailer', 'Container'][Math.floor(Math.random() * 4)],
+      vehiclePlate: `${String(Math.floor(Math.random() * 9999)).padStart(4, '0')} ${['ABC', 'DEF', 'GHI', 'JKL'][Math.floor(Math.random() * 4)]}`,
+      driverName: ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez'][Math.floor(Math.random() * 4)],
       costAmount,
       saleAmount,
       margin: Math.round((saleAmount - costAmount) * 100) / 100,
@@ -446,7 +446,7 @@ async function main() {
     }
 
     return created;
-  });
+  }, { timeout: 60000 });
 
   console.log(`Created ${createdServices.length} services.`);
 
@@ -580,7 +580,7 @@ async function main() {
 
   console.log(`Created ${invoiceResults.length} invoices (and payments where applicable).`);
 
-    /* ---------- Notifications ---------- */
+  /* ---------- Notifications ---------- */
   console.log('Creating notifications...');
   await prisma.$transaction([
     prisma.notification.create({
@@ -632,7 +632,7 @@ async function main() {
     }),
   ]);
 
-    /* ---------- System Settings ---------- */
+  /* ---------- System Settings ---------- */
   console.log('Creating system settings...');
   await prisma.$transaction([
     prisma.systemSetting.create({
@@ -692,7 +692,7 @@ async function main() {
   ]);
 
 
-    /* ---------- Audit Logs ---------- */
+  /* ---------- Audit Logs ---------- */
   console.log('Creating some audit logs...');
   // Reference a couple of existing records safely
   const auditActions = [
@@ -719,7 +719,7 @@ async function main() {
 
 
   console.log('Database seed completed successfully!');
-  
+
   /* ---------- Summary ---------- */
   console.log('Database seed completed successfully!');
 

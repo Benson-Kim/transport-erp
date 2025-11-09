@@ -4,7 +4,7 @@
  */
 
 import { ReactNode, CSSProperties } from 'react';
-import { FieldError, FieldValues, UseFormRegisterReturn } from 'react-hook-form';
+import { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 
 // Component size variants
 export type ComponentSize = 'sm' | 'md' | 'lg';
