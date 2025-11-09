@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate'
 
 declare global {
   // eslint-disable-next-line no-var
@@ -20,7 +21,7 @@ const prismaClientSingleton = () => {
         ? ['query', 'error', 'warn']
         : ['error'],
     errorFormat: process.env.NODE_ENV === 'development' ? 'pretty' : 'minimal',
-  });
+  }).$extends(withAccelerate());
 };
 
 /**

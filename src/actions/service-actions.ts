@@ -6,7 +6,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 
 import { requireAuth } from '@/lib/auth';
 import { requirePermission } from '@/lib/rbac';

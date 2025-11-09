@@ -8,11 +8,11 @@
 import { revalidatePath } from 'next/cache';
 import { UserRole } from '@prisma/client';
 import { z } from 'zod';
-import prisma from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
 import { withPermission } from '@/lib/rbac';
-import { hashPassword } from '@/lib/auth-helpers';
-import { createAuditLog } from '@/lib/db-helpers';
+import prisma from '@/lib/prisma/prisma';
+import { hashPassword } from '@/lib/auth/auth-helpers';
+import { createAuditLog } from '@/lib/prisma/db-helpers';
 
 /**
  * User creation schema
@@ -21,7 +21,7 @@ const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(2).max(100),
   password: z.string().min(8),
-  role: z.nativeEnum(UserRole),
+  role: z.enum(UserRole),
   department: z.string().optional(),
   phone: z.string().optional(),
   sendWelcomeEmail: z.boolean().default(true),
@@ -32,7 +32,7 @@ const createUserSchema = z.object({
  */
 const updateUserSchema = z.object({
   name: z.string().min(2).max(100).optional(),
-  role: z.nativeEnum(UserRole).optional(),
+  role: z.enum(UserRole).optional(),
   department: z.string().optional(),
   phone: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -43,7 +43,7 @@ const updateUserSchema = z.object({
  */
 export const getUsers = withPermission('users', 'view', async () => {
   const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-  
+
   const [users, total, active, admins, recentlyActive] = await Promise.all([
     prisma.user.findMany({
       where: { deletedAt: null },
@@ -76,7 +76,7 @@ export const getUsers = withPermission('users', 'view', async () => {
       },
     }),
   ]);
-  
+
   return {
     data: users,
     total,
@@ -91,7 +91,7 @@ export const getUsers = withPermission('users', 'view', async () => {
  */
 export const getUser = withPermission('users', 'view', async (userId: string) => {
   await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-  
+
   const user = await prisma.user.findUnique({
     where: { id: userId, deletedAt: null },
     include: {
@@ -104,11 +104,11 @@ export const getUser = withPermission('users', 'view', async (userId: string) =>
       },
     },
   });
-  
+
   if (!user) {
     throw new Error('User not found');
   }
-  
+
   return user;
 });
 
@@ -120,21 +120,21 @@ export const createUser = withPermission(
   'create',
   async (data: z.infer<typeof createUserSchema>) => {
     const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-    
+
     const validatedData = createUserSchema.parse(data);
-    
+
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
     });
-    
+
     if (existingUser) {
       throw new Error('A user with this email already exists');
     }
-    
+
     // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
-    
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -147,7 +147,7 @@ export const createUser = withPermission(
         emailVerified: new Date(), // Auto-verify for admin-created users
       },
     });
-    
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -160,14 +160,14 @@ export const createUser = withPermission(
         role: user.role,
       },
     });
-    
+
     // Send welcome email if requested
     if (validatedData.sendWelcomeEmail) {
       // await sendWelcomeEmail(user.email, user.name, validatedData.password);
     }
-    
+
     revalidatePath('/settings/users');
-    
+
     return { success: true, user };
   }
 );
@@ -180,18 +180,18 @@ export const updateUser = withPermission(
   'edit',
   async (userId: string, data: z.infer<typeof updateUserSchema>) => {
     const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-    
+
     const validatedData = updateUserSchema.parse(data);
-    
+
     // Get current user data for audit
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
     });
-    
+
     if (!currentUser) {
       throw new Error('User not found');
     }
-    
+
     // Prevent demoting super admin unless you are super admin
     if (
       currentUser.role === UserRole.SUPER_ADMIN &&
@@ -199,18 +199,18 @@ export const updateUser = withPermission(
     ) {
       throw new Error('Only super administrators can modify super admin accounts');
     }
-    
+
     // Prevent self role change
     if (userId === session.user.id && validatedData.role) {
       throw new Error('You cannot change your own role');
     }
-    
+
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: validatedData,
     });
-    
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -220,7 +220,7 @@ export const updateUser = withPermission(
       oldValues: currentUser,
       newValues: updatedUser,
     });
-    
+
     // Invalidate user sessions if role changed or deactivated
     if (
       validatedData.role !== undefined ||
@@ -230,9 +230,9 @@ export const updateUser = withPermission(
         where: { userId },
       });
     }
-    
+
     revalidatePath('/settings/users');
-    
+
     return { success: true, user: updatedUser };
   }
 );
@@ -245,26 +245,26 @@ export const deleteUser = withPermission(
   'delete',
   async (userId: string) => {
     const session = await requireRole([UserRole.SUPER_ADMIN]);
-    
+
     // Prevent self-deletion
     if (userId === session.user.id) {
       throw new Error('You cannot delete your own account');
     }
-    
+
     // Check if user exists
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
-    
+
     if (!user) {
       throw new Error('User not found');
     }
-    
+
     // Prevent deleting super admin
     if (user.role === UserRole.SUPER_ADMIN) {
       throw new Error('Cannot delete super administrator accounts');
     }
-    
+
     // Soft delete user
     await prisma.user.update({
       where: { id: userId },
@@ -273,12 +273,12 @@ export const deleteUser = withPermission(
         isActive: false,
       },
     });
-    
+
     // Invalidate all user sessions
     await prisma.session.deleteMany({
       where: { userId },
     });
-    
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -288,9 +288,9 @@ export const deleteUser = withPermission(
       oldValues: { deletedAt: null },
       newValues: { deletedAt: new Date() },
     });
-    
+
     revalidatePath('/settings/users');
-    
+
     return { success: true };
   }
 );
@@ -303,15 +303,15 @@ export const resetUserPassword = withPermission(
   'edit',
   async (userId: string, newPassword: string) => {
     const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-    
+
     // Validate password
     if (newPassword.length < 8) {
       throw new Error('Password must be at least 8 characters');
     }
-    
+
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-    
+
     // Update password
     await prisma.user.update({
       where: { id: userId },
@@ -320,12 +320,12 @@ export const resetUserPassword = withPermission(
         passwordChangedAt: new Date(),
       },
     });
-    
+
     // Invalidate all user sessions
     await prisma.session.deleteMany({
       where: { userId },
     });
-    
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -334,7 +334,7 @@ export const resetUserPassword = withPermission(
       recordId: userId,
       metadata: { action: 'password_reset_by_admin' },
     });
-    
+
     return { success: true };
   }
 );
@@ -347,30 +347,30 @@ export const toggleUserStatus = withPermission(
   'edit',
   async (userId: string) => {
     const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-    
+
     // Get current status
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { isActive: true },
     });
-    
+
     if (!user) {
       throw new Error('User not found');
     }
-    
+
     // Toggle status
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { isActive: !user.isActive },
     });
-    
+
     // Invalidate sessions if deactivated
     if (!updatedUser.isActive) {
       await prisma.session.deleteMany({
         where: { userId },
       });
     }
-    
+
     // Create audit log
     await createAuditLog({
       userId: session.user.id,
@@ -380,9 +380,9 @@ export const toggleUserStatus = withPermission(
       oldValues: { isActive: user.isActive },
       newValues: { isActive: updatedUser.isActive },
     });
-    
+
     revalidatePath('/settings/users');
-    
+
     return { success: true, isActive: updatedUser.isActive };
   }
 );
