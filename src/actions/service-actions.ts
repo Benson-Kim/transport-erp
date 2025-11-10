@@ -6,10 +6,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-
 import { requireAuth } from '@/lib/auth';
 import { requirePermission } from '@/lib/rbac';
-import { Prisma, ServiceStatus } from '@prisma/client';
+import { ServiceStatus, DocumentType, Prisma } from '@/app/generated/prisma';
+
 import { ServiceFilters, ServiceFormData, serviceSchema } from '@/lib/validations/service-schema';
 import prisma from '@/lib/prisma/prisma';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
@@ -238,8 +238,8 @@ export async function createService(data: ServiceFormData) {
   const saleVatRate = validatedData.saleVatRate ?? 21;
 
   const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
-  const marginPercentage = validatedData.costAmount > 0
-    ? Number(((margin / validatedData.costAmount) * 100).toFixed(2))
+  const marginPercentage = validatedData.saleAmount > 0
+    ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
     : 0;
 
   const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
@@ -307,7 +307,7 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
   let costAmount = validatedData.costAmount;
   let saleAmount = validatedData.saleAmount;
   let margin = saleAmount - costAmount;
-  let marginPercentage = costAmount > 0 ? (margin / costAmount) * 100 : 0;
+  let marginPercentage = saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
   let saleVatAmount = saleAmount * (saleVatRate / 100);
   let costVatAmount = costAmount * (costVatRate / 100);
 
@@ -337,6 +337,8 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     status: cancelled ? ServiceStatus.CANCELLED :
       completed ? ServiceStatus.COMPLETED :
         dataToStore.status || currentService.status,
+    ...(completed ? { completedAt: new Date() } : {}),
+    ...(cancelled ? { cancelledAt: new Date() } : {}),
   };
 
   const service = await prisma.service.update({
@@ -358,7 +360,6 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   return { success: true, service };
 }
-
 
 /**
  * Delete service (soft delete)
@@ -410,8 +411,6 @@ export async function duplicateService(sourceServiceId: string) {
   };
 }
 
-// actions/service-actions.ts (additions)
-
 /**
  * Get service with all details
  */
@@ -425,6 +424,7 @@ export async function getServiceWithDetails(serviceId: string) {
       client: true,
       supplier: true,
       createdBy: true,
+      assignedTo: true,
       invoiceItems: {
         include: {
           invoice: {
@@ -540,6 +540,9 @@ export async function getServiceActivity(
       case 'CANCEL':
         description = 'Service cancelled';
         break;
+      case 'ARCHIVE':
+        description = 'Service archived';
+        break;
       default:
         description = activity.action.replace(/_/g, ' ').toLowerCase();
     }
@@ -549,7 +552,7 @@ export async function getServiceActivity(
       action: activity.action,
       description,
       user: activity.user,
-      createdAt: activity.createdAt,
+      createdAt: activity.createdAt.toISOString(),
       metadata,
     };
   });
@@ -565,14 +568,13 @@ export async function getServiceActivity(
  */
 export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'complete');
+  await requirePermission('services', 'mark_completed');
 
   const service = await prisma.service.update({
     where: { id: serviceId },
     data: {
       status: ServiceStatus.COMPLETED,
       completedAt: new Date(),
-      completedById: session.user.id,
     },
   });
 
@@ -599,9 +601,8 @@ export async function archiveService(serviceId: string) {
   const service = await prisma.service.update({
     where: { id: serviceId },
     data: {
-      archived: true,
+      status: ServiceStatus.ARCHIVED,
       archivedAt: new Date(),
-      archivedById: session.user.id,
     },
   });
 
@@ -622,22 +623,32 @@ export async function archiveService(serviceId: string) {
  */
 export async function generateLoadingOrder(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('documents', 'generate');
+  await requirePermission('documents', 'create');
 
   // Get service details
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
 
-  // Generate PDF (you'll need to implement PDF generation)
-  const pdfUrl = await generateServicePDF(service, 'loading-order');
+  // TODO: Implement PDF generation
+  // const pdfBuffer = await generateServicePDF(service, 'loading-order');
+  // const pdfPath = await saveFile(pdfBuffer);
+
+  // For now, use a placeholder
+  const pdfPath = `/documents/loading-orders/${serviceId}.pdf`;
+  const fileName = `LoadingOrder_${service.serviceNumber}.pdf`;
 
   // Save document reference
   const document = await prisma.document.create({
     data: {
-      type: 'LOADING_ORDER',
+      documentType: DocumentType.LOADING_ORDER,
+      documentNumber: `LO-${service.serviceNumber}`,
       serviceId,
-      url: pdfUrl,
-      createdById: session.user.id,
+      fileName,
+      filePath: pdfPath,
+      fileSize: 0, // TODO: Get actual file size
+      mimeType: 'application/pdf',
+      description: `Loading order for service ${service.serviceNumber}`,
+      uploadedBy: session.user.id,
     },
   });
 
@@ -651,7 +662,7 @@ export async function generateLoadingOrder(serviceId: string) {
 
   revalidatePath(`/services/${serviceId}`);
 
-  return { url: pdfUrl, document };
+  return { url: pdfPath, document };
 }
 
 /**
@@ -659,14 +670,14 @@ export async function generateLoadingOrder(serviceId: string) {
  */
 export async function sendServiceEmail(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'send_email');
+  await requirePermission('services', 'edit');
 
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
 
-  // Send email (implement your email sending logic)
+  // TODO: Implement email sending
   // await sendEmail({
-  //   to: service.client.email,
+  //   to: service.client.billingEmail,
   //   subject: `Service Details - ${service.serviceNumber}`,
   //   template: 'service-details',
   //   data: service,
@@ -677,7 +688,7 @@ export async function sendServiceEmail(serviceId: string) {
     action: 'SEND_EMAIL',
     tableName: 'services',
     recordId: serviceId,
-    metadata: { recipient: service.client.email },
+    metadata: { recipient: service.client.billingEmail },
   });
 
   return { success: true };
@@ -747,11 +758,11 @@ export async function bulkDeleteServices(serviceIds: string[]) {
  * Generate bulk loading orders
  */
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
-  const session = await requireAuth();
-  await requirePermission('loading_orders', 'create');
+  // const session = await requireAuth();
+  await requirePermission('documents', 'create');
 
-  // Implementation for generating loading orders
+  // TODO: Implementation for generating loading orders
   // This would group services and create loading order documents
 
-  return { success: true, count: 1 };
+  return { success: true, count: serviceIds.length };
 }

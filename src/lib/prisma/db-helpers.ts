@@ -3,7 +3,7 @@
  * Common utilities for database operations
  */
 
-import { Prisma, PrismaClient } from "@/app/generated/prisma";
+import { AuditAction, Prisma, PrismaClient } from "@/app/generated/prisma";
 import prisma from './prisma';
 
 /**
@@ -94,15 +94,17 @@ export async function createAuditLog({
   newValues,
   ipAddress,
   userAgent,
+  metadata,
 }: {
   userId?: string;
-  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE';
+  action: AuditAction;
   tableName: string;
   recordId: string;
   oldValues?: any;
   newValues?: any;
   ipAddress?: string;
   userAgent?: string;
+  metadata?: Record<string, any>;
 }) {
   return prisma.auditLog.create({
     data: {

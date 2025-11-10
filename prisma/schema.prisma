@@ -6,7 +6,7 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearchPostgres", "views"]
   binaryTargets   = ["native"]
-  output   = "../src/app/generated/prisma"
+  output          = "../src/app/generated/prisma"
 }
 
 datasource db {
@@ -34,6 +34,7 @@ enum ServiceStatus {
   COMPLETED
   CANCELLED
   INVOICED
+  ARCHIVED
 }
 
 enum InvoiceStatus {
@@ -62,6 +63,11 @@ enum AuditAction {
   LOGOUT
   EXPORT
   IMPORT
+  COMPLETE
+  CANCEL
+  SEND_EMAIL
+  GENERATE_DOCUMENT
+  ARCHIVE
 }
 
 enum DocumentType {
@@ -403,6 +409,7 @@ model Service {
   completedAt        DateTime?
   cancelledAt        DateTime?
   cancellationReason String?
+  archivedAt         DateTime?
 
   // Metadata
   notes         String?  @db.Text

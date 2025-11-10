@@ -313,6 +313,7 @@ exports.Prisma.ServiceScalarFieldEnum = {
   completedAt: 'completedAt',
   cancelledAt: 'cancelledAt',
   cancellationReason: 'cancellationReason',
+  archivedAt: 'archivedAt',
   notes: 'notes',
   internalNotes: 'internalNotes',
   attachments: 'attachments',
@@ -758,7 +759,8 @@ exports.ServiceStatus = exports.$Enums.ServiceStatus = {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
-  INVOICED: 'INVOICED'
+  INVOICED: 'INVOICED',
+  ARCHIVED: 'ARCHIVED'
 };
 
 exports.InvoiceStatus = exports.$Enums.InvoiceStatus = {
@@ -795,7 +797,12 @@ exports.AuditAction = exports.$Enums.AuditAction = {
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',
   EXPORT: 'EXPORT',
-  IMPORT: 'IMPORT'
+  IMPORT: 'IMPORT',
+  COMPLETE: 'COMPLETE',
+  CANCEL: 'CANCEL',
+  SEND_EMAIL: 'SEND_EMAIL',
+  GENERATE_DOCUMENT: 'GENERATE_DOCUMENT',
+  ARCHIVE: 'ARCHIVE'
 };
 
 exports.Prisma.ModelName = {

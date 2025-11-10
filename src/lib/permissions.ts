@@ -36,6 +36,7 @@ export const ACTIONS = {
   CANCEL: 'cancel',
   EXPORT: 'export',
   IMPORT: 'import',
+  ARCHIVE: 'archive',
   APPROVE: 'approve',
   SEND: 'send',
   MARK_COMPLETED: 'mark_completed',
@@ -60,7 +61,7 @@ export const PERMISSION_MATRIX: Record<
   [RESOURCES.DASHBOARD]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
   },
-  
+
   [RESOURCES.USERS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -68,7 +69,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN],
     [ACTIONS.MANAGE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.COMPANIES]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -76,7 +77,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN],
     [ACTIONS.MANAGE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.CLIENTS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
@@ -85,7 +86,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.IMPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.SUPPLIERS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
@@ -94,7 +95,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.IMPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.SERVICES]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
@@ -106,8 +107,10 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.EDIT_COMPLETED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.DELETE_COMPLETED]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
+    [ACTIONS.APPROVE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
+    [ACTIONS.ARCHIVE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   },
-  
+
   [RESOURCES.LOADING_ORDERS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
@@ -116,7 +119,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.SEND]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   },
-  
+
   [RESOURCES.INVOICES]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
@@ -126,31 +129,31 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.SEND]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
   },
-  
+
   [RESOURCES.REPORTS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
   },
-  
+
   [RESOURCES.SETTINGS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.MANAGE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.AUDIT_LOGS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   },
-  
+
   [RESOURCES.DOCUMENTS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.SEND]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   },
-  
+
   [RESOURCES.PAYMENTS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.ACCOUNTANT],
@@ -158,7 +161,7 @@ export const PERMISSION_MATRIX: Record<
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     [ACTIONS.APPROVE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   },
-  
+
   [RESOURCES.NOTIFICATIONS]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.OPERATOR, UserRole.VIEWER],
     [ACTIONS.MANAGE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.OPERATOR, UserRole.VIEWER],
@@ -186,7 +189,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
  */
 export function getRolePermissions(role: UserRole): Permission[] {
   const permissions: Permission[] = [];
-  
+
   Object.entries(PERMISSION_MATRIX).forEach(([resource, actions]) => {
     Object.entries(actions).forEach(([action, allowedRoles]) => {
       if (allowedRoles.includes(role)) {
@@ -194,7 +197,7 @@ export function getRolePermissions(role: UserRole): Permission[] {
       }
     });
   });
-  
+
   return permissions;
 }
 
@@ -207,16 +210,16 @@ export function hasPermission(
   action: Action
 ): boolean {
   if (!userRole) return false;
-  
+
   // Super admin has all permissions
   if (userRole === UserRole.SUPER_ADMIN) return true;
-  
+
   const resourcePermissions = PERMISSION_MATRIX[resource];
   if (!resourcePermissions) return false;
-  
+
   const allowedRoles = resourcePermissions[action];
   if (!allowedRoles) return false;
-  
+
   return allowedRoles.includes(userRole);
 }
 
@@ -228,17 +231,17 @@ export function canAccessRoute(
   path: string
 ): boolean {
   if (!userRole) return false;
-  
+
   // Super admin can access all routes
   if (userRole === UserRole.SUPER_ADMIN) return true;
-  
+
   // Find the matching route pattern
   const matchingRoute = Object.entries(ROUTE_PERMISSIONS).find(
     ([route]) => path.startsWith(route)
   );
-  
+
   if (!matchingRoute) return false;
-  
+
   const [, allowedRoles] = matchingRoute;
   return allowedRoles.includes(userRole);
 }
@@ -255,7 +258,7 @@ export function getRoleDisplayName(role: UserRole): string {
     [UserRole.OPERATOR]: 'Operator',
     [UserRole.VIEWER]: 'Viewer',
   };
-  
+
   return displayNames[role] || role;
 }
 
@@ -271,7 +274,7 @@ export function getRoleBadgeColor(role: UserRole): string {
     [UserRole.OPERATOR]: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     [UserRole.VIEWER]: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
   };
-  
+
   return colors[role] || 'bg-gray-100 text-gray-800';
 }
 

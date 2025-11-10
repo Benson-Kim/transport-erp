@@ -131,7 +131,8 @@ export const ServiceStatus: {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
   CANCELLED: 'CANCELLED',
-  INVOICED: 'INVOICED'
+  INVOICED: 'INVOICED',
+  ARCHIVED: 'ARCHIVED'
 };
 
 export type ServiceStatus = (typeof ServiceStatus)[keyof typeof ServiceStatus]
@@ -168,7 +169,12 @@ export const AuditAction: {
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',
   EXPORT: 'EXPORT',
-  IMPORT: 'IMPORT'
+  IMPORT: 'IMPORT',
+  COMPLETE: 'COMPLETE',
+  CANCEL: 'CANCEL',
+  SEND_EMAIL: 'SEND_EMAIL',
+  GENERATE_DOCUMENT: 'GENERATE_DOCUMENT',
+  ARCHIVE: 'ARCHIVE'
 };
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]
@@ -13263,6 +13269,7 @@ export namespace Prisma {
     completedAt: Date | null
     cancelledAt: Date | null
     cancellationReason: string | null
+    archivedAt: Date | null
     notes: string | null
     internalNotes: string | null
     createdAt: Date | null
@@ -13300,6 +13307,7 @@ export namespace Prisma {
     completedAt: Date | null
     cancelledAt: Date | null
     cancellationReason: string | null
+    archivedAt: Date | null
     notes: string | null
     internalNotes: string | null
     createdAt: Date | null
@@ -13337,6 +13345,7 @@ export namespace Prisma {
     completedAt: number
     cancelledAt: number
     cancellationReason: number
+    archivedAt: number
     notes: number
     internalNotes: number
     attachments: number
@@ -13402,6 +13411,7 @@ export namespace Prisma {
     completedAt?: true
     cancelledAt?: true
     cancellationReason?: true
+    archivedAt?: true
     notes?: true
     internalNotes?: true
     createdAt?: true
@@ -13439,6 +13449,7 @@ export namespace Prisma {
     completedAt?: true
     cancelledAt?: true
     cancellationReason?: true
+    archivedAt?: true
     notes?: true
     internalNotes?: true
     createdAt?: true
@@ -13476,6 +13487,7 @@ export namespace Prisma {
     completedAt?: true
     cancelledAt?: true
     cancellationReason?: true
+    archivedAt?: true
     notes?: true
     internalNotes?: true
     attachments?: true
@@ -13602,6 +13614,7 @@ export namespace Prisma {
     completedAt: Date | null
     cancelledAt: Date | null
     cancellationReason: string | null
+    archivedAt: Date | null
     notes: string | null
     internalNotes: string | null
     attachments: string[]
@@ -13660,6 +13673,7 @@ export namespace Prisma {
     completedAt?: boolean
     cancelledAt?: boolean
     cancellationReason?: boolean
+    archivedAt?: boolean
     notes?: boolean
     internalNotes?: boolean
     attachments?: boolean
@@ -13708,6 +13722,7 @@ export namespace Prisma {
     completedAt?: boolean
     cancelledAt?: boolean
     cancellationReason?: boolean
+    archivedAt?: boolean
     notes?: boolean
     internalNotes?: boolean
     attachments?: boolean
@@ -13751,6 +13766,7 @@ export namespace Prisma {
     completedAt?: boolean
     cancelledAt?: boolean
     cancellationReason?: boolean
+    archivedAt?: boolean
     notes?: boolean
     internalNotes?: boolean
     attachments?: boolean
@@ -13794,6 +13810,7 @@ export namespace Prisma {
     completedAt?: boolean
     cancelledAt?: boolean
     cancellationReason?: boolean
+    archivedAt?: boolean
     notes?: boolean
     internalNotes?: boolean
     attachments?: boolean
@@ -13803,7 +13820,7 @@ export namespace Prisma {
     deletedAt?: boolean
   }
 
-  export type ServiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "serviceNumber" | "date" | "clientId" | "supplierId" | "createdById" | "assignedToId" | "description" | "reference" | "origin" | "destination" | "distance" | "vehicleType" | "vehiclePlate" | "driverName" | "costAmount" | "costCurrency" | "saleAmount" | "saleCurrency" | "margin" | "marginPercentage" | "costVatRate" | "costVatAmount" | "saleVatRate" | "saleVatAmount" | "status" | "completedAt" | "cancelledAt" | "cancellationReason" | "notes" | "internalNotes" | "attachments" | "customFields" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["service"]>
+  export type ServiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "serviceNumber" | "date" | "clientId" | "supplierId" | "createdById" | "assignedToId" | "description" | "reference" | "origin" | "destination" | "distance" | "vehicleType" | "vehiclePlate" | "driverName" | "costAmount" | "costCurrency" | "saleAmount" | "saleCurrency" | "margin" | "marginPercentage" | "costVatRate" | "costVatAmount" | "saleVatRate" | "saleVatAmount" | "status" | "completedAt" | "cancelledAt" | "cancellationReason" | "archivedAt" | "notes" | "internalNotes" | "attachments" | "customFields" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["service"]>
   export type ServiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     client?: boolean | ClientDefaultArgs<ExtArgs>
     supplier?: boolean | SupplierDefaultArgs<ExtArgs>
@@ -13870,6 +13887,7 @@ export namespace Prisma {
       completedAt: Date | null
       cancelledAt: Date | null
       cancellationReason: string | null
+      archivedAt: Date | null
       notes: string | null
       internalNotes: string | null
       attachments: string[]
@@ -14337,6 +14355,7 @@ export namespace Prisma {
     readonly completedAt: FieldRef<"Service", 'DateTime'>
     readonly cancelledAt: FieldRef<"Service", 'DateTime'>
     readonly cancellationReason: FieldRef<"Service", 'String'>
+    readonly archivedAt: FieldRef<"Service", 'DateTime'>
     readonly notes: FieldRef<"Service", 'String'>
     readonly internalNotes: FieldRef<"Service", 'String'>
     readonly attachments: FieldRef<"Service", 'String[]'>
@@ -27001,6 +27020,7 @@ export namespace Prisma {
     completedAt: 'completedAt',
     cancelledAt: 'cancelledAt',
     cancellationReason: 'cancellationReason',
+    archivedAt: 'archivedAt',
     notes: 'notes',
     internalNotes: 'internalNotes',
     attachments: 'attachments',
@@ -28746,6 +28766,7 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancellationReason?: StringNullableFilter<"Service"> | string | null
+    archivedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     notes?: StringNullableFilter<"Service"> | string | null
     internalNotes?: StringNullableFilter<"Service"> | string | null
     attachments?: StringNullableListFilter<"Service">
@@ -28793,6 +28814,7 @@ export namespace Prisma {
     completedAt?: SortOrderInput | SortOrder
     cancelledAt?: SortOrderInput | SortOrder
     cancellationReason?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
     internalNotes?: SortOrderInput | SortOrder
     attachments?: SortOrder
@@ -28844,6 +28866,7 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancellationReason?: StringNullableFilter<"Service"> | string | null
+    archivedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     notes?: StringNullableFilter<"Service"> | string | null
     internalNotes?: StringNullableFilter<"Service"> | string | null
     attachments?: StringNullableListFilter<"Service">
@@ -28891,6 +28914,7 @@ export namespace Prisma {
     completedAt?: SortOrderInput | SortOrder
     cancelledAt?: SortOrderInput | SortOrder
     cancellationReason?: SortOrderInput | SortOrder
+    archivedAt?: SortOrderInput | SortOrder
     notes?: SortOrderInput | SortOrder
     internalNotes?: SortOrderInput | SortOrder
     attachments?: SortOrder
@@ -28938,6 +28962,7 @@ export namespace Prisma {
     completedAt?: DateTimeNullableWithAggregatesFilter<"Service"> | Date | string | null
     cancelledAt?: DateTimeNullableWithAggregatesFilter<"Service"> | Date | string | null
     cancellationReason?: StringNullableWithAggregatesFilter<"Service"> | string | null
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"Service"> | Date | string | null
     notes?: StringNullableWithAggregatesFilter<"Service"> | string | null
     internalNotes?: StringNullableWithAggregatesFilter<"Service"> | string | null
     attachments?: StringNullableListFilter<"Service">
@@ -31132,6 +31157,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -31179,6 +31205,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -31218,6 +31245,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -31265,6 +31293,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -31308,6 +31337,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -31343,6 +31373,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -31382,6 +31413,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -33602,6 +33634,7 @@ export namespace Prisma {
     completedAt?: SortOrder
     cancelledAt?: SortOrder
     cancellationReason?: SortOrder
+    archivedAt?: SortOrder
     notes?: SortOrder
     internalNotes?: SortOrder
     attachments?: SortOrder
@@ -33653,6 +33686,7 @@ export namespace Prisma {
     completedAt?: SortOrder
     cancelledAt?: SortOrder
     cancellationReason?: SortOrder
+    archivedAt?: SortOrder
     notes?: SortOrder
     internalNotes?: SortOrder
     createdAt?: SortOrder
@@ -33690,6 +33724,7 @@ export namespace Prisma {
     completedAt?: SortOrder
     cancelledAt?: SortOrder
     cancellationReason?: SortOrder
+    archivedAt?: SortOrder
     notes?: SortOrder
     internalNotes?: SortOrder
     createdAt?: SortOrder
@@ -36604,6 +36639,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -36649,6 +36685,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -36698,6 +36735,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -36743,6 +36781,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -37071,6 +37110,7 @@ export namespace Prisma {
     completedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancelledAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     cancellationReason?: StringNullableFilter<"Service"> | string | null
+    archivedAt?: DateTimeNullableFilter<"Service"> | Date | string | null
     notes?: StringNullableFilter<"Service"> | string | null
     internalNotes?: StringNullableFilter<"Service"> | string | null
     attachments?: StringNullableListFilter<"Service">
@@ -37620,6 +37660,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -37665,6 +37706,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -38176,6 +38218,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -38221,6 +38264,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -39329,6 +39373,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -39375,6 +39420,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -39429,6 +39475,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -39475,6 +39522,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -39679,6 +39727,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -39725,6 +39774,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -39816,6 +39866,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -39862,6 +39913,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -40445,6 +40497,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -40491,6 +40544,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -40626,6 +40680,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -40672,6 +40727,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41020,6 +41076,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -41066,6 +41123,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -41286,6 +41344,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41332,6 +41391,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41649,6 +41709,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -41687,6 +41748,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -41857,6 +41919,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41902,6 +41965,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41944,6 +42008,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -41979,6 +42044,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42024,6 +42090,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42066,6 +42133,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42611,6 +42679,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -42676,6 +42745,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42721,6 +42791,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42763,6 +42834,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -42891,6 +42963,7 @@ export namespace Prisma {
     completedAt?: Date | string | null
     cancelledAt?: Date | string | null
     cancellationReason?: string | null
+    archivedAt?: Date | string | null
     notes?: string | null
     internalNotes?: string | null
     attachments?: ServiceCreateattachmentsInput | string[]
@@ -42977,6 +43050,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -43022,6 +43096,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]
@@ -43064,6 +43139,7 @@ export namespace Prisma {
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     cancellationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     notes?: NullableStringFieldUpdateOperationsInput | string | null
     internalNotes?: NullableStringFieldUpdateOperationsInput | string | null
     attachments?: ServiceUpdateattachmentsInput | string[]

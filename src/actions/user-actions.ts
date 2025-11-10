@@ -5,9 +5,9 @@
 
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { UserRole } from '@prisma/client';
 import { z } from 'zod';
+import { revalidatePath } from 'next/cache';
+import { UserRole } from '@/app/generated/prisma';
 import { requireRole } from '@/lib/auth';
 import { withPermission } from '@/lib/rbac';
 import prisma from '@/lib/prisma/prisma';
@@ -18,14 +18,15 @@ import { createAuditLog } from '@/lib/prisma/db-helpers';
  * User creation schema
  */
 const createUserSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string().min(2).max(100),
   password: z.string().min(8),
   role: z.enum(UserRole),
-  department: z.string().optional(),
-  phone: z.string().optional(),
+  department: z.string().nullable(),
+  phone: z.string().nullable(),
   sendWelcomeEmail: z.boolean().default(true),
 });
+
 
 /**
  * User update schema
@@ -42,7 +43,7 @@ const updateUserSchema = z.object({
  * Get all users with statistics
  */
 export const getUsers = withPermission('users', 'view', async () => {
-  const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+  // const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
 
   const [users, total, active, admins, recentlyActive] = await Promise.all([
     prisma.user.findMany({
@@ -208,7 +209,8 @@ export const updateUser = withPermission(
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: validatedData,
+      data: (Object.fromEntries(Object.entries(validatedData).filter(([_, v]) => v !== undefined)) as any),
+      // data: validatedData,
     });
 
     // Create audit log

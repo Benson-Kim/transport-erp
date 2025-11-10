@@ -6,7 +6,7 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 import {
   startOfMonth,
   endOfMonth,
@@ -258,10 +258,10 @@ export const getDashboardData = unstable_cache(
  */
 export async function refreshDashboardData() {
   'use server';
-  
+
   // Revalidate the dashboard cache
   const { revalidateTag } = await import('next/cache');
   revalidateTag('dashboard', 'default');
-  
+
   return { success: true };
 }

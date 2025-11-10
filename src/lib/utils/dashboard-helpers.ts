@@ -1,10 +1,12 @@
+// dashboard-helpers.ts
 /**
  * Dashboard Helper Functions
  * Utility functions for dashboard calculations and data processing
  */
 
 import { format, startOfMonth, parseISO, subDays } from 'date-fns';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
+
 
 /**
  * Calculate percentage change between two values
@@ -63,6 +65,9 @@ export function aggregateServicesByMonth(
   services: Array<{
     date: Date;
     status: ServiceStatus;
+    saleAmount?: any;  // Add optional fields
+    costAmount?: any;
+    margin?: any;
   }>
 ) {
   const monthlyData: Record<
@@ -149,7 +154,9 @@ export function aggregateRevenueByMonth(
 
   // Aggregate revenue
   services.forEach((service) => {
-    if (service.status === ServiceStatus.COMPLETED || service.status === ServiceStatus.INVOICED) {
+    if (service.status === ServiceStatus.COMPLETED ||
+      service.status === ServiceStatus.INVOICED ||
+      service.status === ServiceStatus.ARCHIVED) {
       const monthKey = format(startOfMonth(service.date), 'MMM yyyy');
       if (monthlyData[monthKey]) {
         monthlyData[monthKey].revenue += Number(service.saleAmount || 0);
