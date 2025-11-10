@@ -13,7 +13,7 @@ import {
   Upload
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Button } from './Button';
+import { Button } from '@/components/ui';
 
 export interface EmptyStateProps {
   variant?: 'no-data' | 'no-results' | 'no-access' | 'error' | 'custom';

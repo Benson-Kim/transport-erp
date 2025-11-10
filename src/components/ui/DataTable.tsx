@@ -30,7 +30,6 @@ import {
   Table,
 } from '@/components/ui';
 
-
 export interface Column<T> {
   key: string;
   header: string | ReactNode;

@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
-import { Alert } from './Alert';
-import { Button } from './Button';
+import { Alert, Button } from '@/components/ui';
 
 interface Props {
   children: React.ReactNode;

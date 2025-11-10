@@ -1,10 +1,8 @@
 'use client'
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils/cn';
-import { Tooltip } from '@/components/ui/Tooltip';
+import { Tooltip } from '@/components/ui';
 import { useEscapeKey } from '@/hooks';
-
-
 
 export type DropdownMenuItem =
   | {
