@@ -8,10 +8,10 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { UserRole } from '@/app/generated/prisma';
-import { 
-  Button, 
-  Card, 
-  CardBody, 
+import {
+  Button,
+  Card,
+  CardBody,
   CardHeader,
   Tooltip,
   EmptyState,
@@ -49,11 +49,11 @@ interface QuickActionsProps {
   onRefresh?: () => void;
 }
 
-export function QuickActions({ 
-  userRole, 
+export function QuickActions({
+  userRole,
   loading = false,
   error = null,
-  onRefresh 
+  onRefresh
 }: QuickActionsProps) {
   const permissions = usePermissions();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -227,10 +227,10 @@ export function QuickActions({
             action={
               onRefresh
                 ? {
-                    label: 'Refresh Permissions',
-                    onClick: onRefresh,
-                    icon: <ArrowRight size={16} />,
-                  }
+                  label: 'Refresh Permissions',
+                  onClick: onRefresh,
+                  icon: <ArrowRight size={16} />,
+                }
                 : undefined
             }
           />
@@ -244,8 +244,8 @@ export function QuickActions({
       {/* Primary Actions */}
       {visibleActions.length > 0 && (
         <Card variant="elevated" padding="none">
-          <CardHeader 
-            title="Quick Actions" 
+          <CardHeader
+            title="Quick Actions"
             subtitle="Frequently used actions"
             action={
               <Tooltip content="Press Alt + letter for keyboard shortcuts" position="left">
@@ -271,7 +271,7 @@ export function QuickActions({
                       )}
                     </div>
                   }
-                  position="right"
+                  position="top"
                 >
                   <Link href={action.href} className="block">
                     <Button
@@ -281,17 +281,17 @@ export function QuickActions({
                       icon={<ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />}
                     >
                       <div className={cn(
-                        "mr-3 p-1.5 rounded-lg bg-white/10",
+                        "flex items-center mr-3 p-1.5 rounded-lg bg-white/10",
                         "group-hover:bg-white/20 transition-colors"
                       )}>
-                        <action.icon className="h-4 w-4" />
+                        <action.icon className="h-4 w-4 mr-3" />
+                        <span className="flex-1 text-left">{action.label}</span>
+                        {action.badge && (
+                          <Badge variant="default" size="sm" className="ml-2">
+                            {action.badge}
+                          </Badge>
+                        )}
                       </div>
-                      <span className="flex-1 text-left">{action.label}</span>
-                      {action.badge && (
-                        <Badge variant="default" size="sm" className="ml-2">
-                          {action.badge}
-                        </Badge>
-                      )}
                     </Button>
                   </Link>
                 </Tooltip>
@@ -304,15 +304,15 @@ export function QuickActions({
       {/* Shortcuts Grid */}
       {visibleShortcuts.length > 0 && (
         <Card variant="elevated" padding="none">
-          <CardHeader 
-            title="Shortcuts" 
+          <CardHeader
+            title="Shortcuts"
             subtitle="Quick access to common tasks"
           />
           <CardBody>
             <div className="grid grid-cols-2 gap-3">
               {visibleShortcuts.map((shortcut) => {
                 const isLoading = loadingAction === shortcut.id;
-                
+
                 return (
                   <Tooltip
                     key={shortcut.id}
@@ -378,8 +378,8 @@ export function QuickActions({
 
       {/* Help & Support */}
       <Card variant="elevated" padding="none">
-        <CardHeader 
-          title="Need Help?" 
+        <CardHeader
+          title="Need Help?"
           subtitle="Resources and support options"
           action={
             <Tooltip content="Get help anytime" position="left">
@@ -392,7 +392,7 @@ export function QuickActions({
             <p className="text-sm text-muted-foreground">
               Access guides, tutorials, and direct support to help you get the most out of the platform.
             </p>
-            
+
             <div className="grid gap-2">
               {helpResources.map((resource) => (
                 <Link

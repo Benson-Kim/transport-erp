@@ -14,7 +14,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
   loadingText?: string;
   icon?: ReactNode;
-  iconPosition?: 'left' | 'right';
+  iconPosition?: 'left' | 'right' | 'center';
   fullWidth?: boolean;
   asChild?: boolean;
 }
@@ -62,8 +62,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const content = (
       <>
         {loading && (
-          <RefreshCw 
-            className="animate-spin" 
+          <RefreshCw
+            className="animate-spin"
             size={size === 'sm' ? 14 : size === 'md' ? 16 : 18}
             aria-hidden="true"
           />

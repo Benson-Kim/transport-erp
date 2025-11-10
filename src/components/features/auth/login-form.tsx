@@ -13,7 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
 
 import { signInWithCredentials } from '@/actions/auth-actions';
-import {  LoginFormData, loginSchema } from '@/lib/validations/auth-schema';
+import { LoginFormData, loginSchema } from '@/lib/validations/auth-schema';
 import { Button, Checkbox, FormField, Input } from '@/components/ui';
 import { toast } from '@/lib/toast';
 
@@ -30,35 +30,35 @@ export function LoginForm() {
     setError,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-     defaultValues: {
+    defaultValues: {
       email: '',
       password: '',
       // rememberMe can be undefined here initially
     },
   });
 
-    const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    
+
     try {
       const result = await signInWithCredentials(data);
-      
+
       if (!result.success) {
-        setError('root',  {message: result.error || 'Authentication failed'});
+        setError('root', { message: result.error || 'Authentication failed' });
         return;
       }
-      
+
       toast.success('Signed in successfully');
       router.push('/dashboard');
       router.refresh();
     } catch (error) {
       console.error('Login error:', error);
-      setError('root',  {message: 'An unexpected error occurred. Please try again.'});
+      setError('root', { message: 'An unexpected error occurred. Please try again.' });
     }
   };
 
   return (
-      <form onSubmit={handleSubmit(onSubmit) as any} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit(onSubmit) as any} className="space-y-5" noValidate>
 
       {/* Email Field */}
       <FormField
@@ -75,7 +75,7 @@ export function LoginForm() {
       </FormField>
 
       {/* Password Field */}
-       <FormField
+      <FormField
         label="Password"
         required
         error={errors.password?.message ?? ""}
@@ -90,6 +90,7 @@ export function LoginForm() {
           />
           <Button
             type="button"
+            variant='secondary'
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             icon={showPassword ? (
@@ -97,8 +98,7 @@ export function LoginForm() {
             ) : (
               <Eye className="h-5 w-5" />
             )}
-
-          /> 
+          />
         </div>
       </FormField>
 
@@ -125,7 +125,7 @@ export function LoginForm() {
         loading={isLoading}
         loadingText={'Signing in...'}
       >
-          Sign in
+        Sign in
       </Button>
     </form>
   );

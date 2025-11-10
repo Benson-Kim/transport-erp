@@ -61,7 +61,7 @@ interface RecentServicesProps {
   pageSize?: number;
   onCreateNew?: () => void;
   onImport?: () => void;
-   advanced?: boolean;
+  advanced?: boolean;
 }
 
 export function RecentServices({
@@ -124,21 +124,7 @@ export function RecentServices({
     return filtered.filter(s => new Date(s.date) >= cutoffDate);
   }, [services, selectedTab, dateRange]);
 
-    services = advanced ? filteredServices : services;
-
-  // Stats calculation
-  // const stats = useMemo(() => {
-  //   const total = filteredServices.length;
-  //   const active = filteredServices.filter(s =>
-  //     ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)
-  //   ).length;
-  //   const completed = filteredServices.filter(s =>
-  //     s.status === ServiceStatus.COMPLETED
-  //   ).length;
-  //   const totalAmount = filteredServices.reduce((sum, s) => sum + s.amount, 0);
-
-  //   return { total, active, completed, totalAmount };
-  // }, [filteredServices]);
+  services = advanced ? filteredServices : services;
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -154,7 +140,7 @@ export function RecentServices({
 
     const active = services.filter(s =>
       ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[])
-      .includes(s.status)
+        .includes(s.status)
     ).length;
     const completed = services.filter(s =>
       s.status === ServiceStatus.COMPLETED
@@ -171,7 +157,7 @@ export function RecentServices({
     };
   }, [services]);
 
-  
+
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -298,9 +284,9 @@ export function RecentServices({
           size="sm"
           onClick={() => router.push(`/services/${row.id}`)}
           className="h-7 w-7 p-0"
-        >
-          <Eye className="h-3.5 w-3.5" />
-        </Button>
+          iconPosition="center"
+          icon={<Eye className="h-3.5 w-3.5" />}
+        />
       </Tooltip>
     </div>
   ), [router]);
@@ -446,195 +432,195 @@ export function RecentServices({
   }
 
   return (
-<div className="space-y-4">
-   {
-    advanced && (
-      <>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Total Services</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  This {dateRange}
-                </p>
-              </div>
-              <Truck className="h-8 w-8 text-primary/20" />
+    <div className="space-y-4">
+      {
+        advanced && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardBody className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Services</p>
+                      <p className="text-2xl font-bold">{stats.total}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        This {dateRange}
+                      </p>
+                    </div>
+                    <Truck className="h-8 w-8 text-primary/20" />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Active</p>
+                      <p className="text-2xl font-bold text-yellow-600">{stats.active}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        In progress
+                      </p>
+                    </div>
+                    <Clock className="h-8 w-8 text-yellow-500/20" />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Completed</p>
+                      <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Successfully
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-500/20" />
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Value</p>
+                      <p className="text-2xl font-bold"> {formatCurrency(stats.totalValue)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Revenue
+                      </p>
+                    </div>
+                    <FileText className="h-8 w-8 text-blue-500/20" />
+                  </div>
+                </CardBody>
+              </Card>
             </div>
-          </CardBody>
-        </Card>
 
-        <Card>
-          <CardBody className="p-4">
+            {/* Filters */}
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Active</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.active}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  In progress
-                </p>
+              {/* Status Tabs */}
+              <div className="flex gap-2 border-b">
+                {(['all', 'active', 'completed'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setSelectedTab(tab)}
+                    className={cn(
+                      'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
+                      selectedTab === tab
+                        ? 'text-primary border-primary'
+                        : 'text-muted-foreground border-transparent hover:text-foreground'
+                    )}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    <span className="ml-2 text-xs opacity-60">
+                      ({tab === 'all' ? services.length :
+                        tab === 'active' ? services.filter(s => ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)).length :
+                          services.filter(s => s.status === ServiceStatus.COMPLETED).length})
+                    </span>
+                  </button>
+                ))}
               </div>
-              <Clock className="h-8 w-8 text-yellow-500/20" />
-            </div>
-          </CardBody>
-        </Card>
 
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Successfully
-                </p>
+              {/* Date Range Filter */}
+              <div className="flex gap-1 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
+                {(['week', 'month', 'quarter', 'year'] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setDateRange(range)}
+                    className={cn(
+                      'px-3 py-1 text-xs font-medium rounded transition-colors',
+                      dateRange === range
+                        ? 'bg-white dark:bg-neutral-900 shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {range.charAt(0).toUpperCase() + range.slice(1)}
+                  </button>
+                ))}
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500/20" />
             </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold"> {formatCurrency(stats.totalValue)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Revenue
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-blue-500/20" />
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center justify-between">
-        {/* Status Tabs */}
-        <div className="flex gap-2 border-b">
-          {(['all', 'active', 'completed'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTab(tab)}
-              className={cn(
-                'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
-                selectedTab === tab
-                  ? 'text-primary border-primary'
-                  : 'text-muted-foreground border-transparent hover:text-foreground'
-              )}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              <span className="ml-2 text-xs opacity-60">
-                ({tab === 'all' ? services.length :
-                  tab === 'active' ? services.filter(s => ([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS] as ServiceStatus[]).includes(s.status)).length :
-                    services.filter(s => s.status === ServiceStatus.COMPLETED).length})
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Date Range Filter */}
-        <div className="flex gap-1 p-1 bg-neutral-100 dark:bg-neutral-800 rounded-lg">
-          {(['week', 'month', 'quarter', 'year'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setDateRange(range)}
-              className={cn(
-                'px-3 py-1 text-xs font-medium rounded transition-colors',
-                dateRange === range
-                  ? 'bg-white dark:bg-neutral-900 shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {range.charAt(0).toUpperCase() + range.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-      </>
-    )
-   }
-    <Card variant="elevated" padding="none">
-      <CardHeader
-        title="Recent Services"
-        subtitle="Your latest service activity and status"
-        action={headerAction}
-      />
-
-      <CardBody className="p-0">
-        <DataTable
-          data={services}
-          columns={columns}
-          loading={loading}
-          error={error}
-
-          // Selection
-          selectable={true}
-
-          // Sorting
-          sortable={true}
-          defaultSort={{ key: 'date', direction: 'desc' }}
-
-          // Actions
-          onRowClick={(row) => router.push(`/services/${row.id}`)}
-          rowActions={rowActions}
-          bulkActions={bulkActions}
-
-          // Pagination
-          {...(paginationConfig && { pagination: paginationConfig })}
-
-          // Features
-          searchable={true}
-          searchPlaceholder="Search by service number, client, or route..."
-          exportable={true}
-          columnToggle={true}
-          stickyHeader={true}
-
-          // Empty state
-          emptyState={
-            <EmptyState
-              variant="custom"
-              icon={<Truck size={48} />}
-              title="No services yet"
-              description="Start managing your transportation services"
-              action={
-                onCreateNew
-                  ? {
-                    label: 'Create Service',
-                    onClick: onCreateNew,
-                    icon: <Plus size={16} />,
-                  }
-                  : {
-                    label: 'Refresh',
-                    onClick: handleRefresh,
-                    icon: <RefreshCw size={16} />,
-                  }
-              }
-              secondaryAction={
-                onImport
-                  ? {
-                    label: 'Import Services',
-                    onClick: onImport,
-                  }
-                  : undefined
-              }
-            />
-          }
-
-          // Loading
-          loadingRows={5}
-
-          // Styling
-          compact={true}
-          bordered={false}
-          striped={true}
+          </>
+        )
+      }
+      <Card variant="elevated" padding="none">
+        <CardHeader
+          title="Recent Services"
+          subtitle="Your latest service activity and status"
+          action={headerAction}
         />
-      </CardBody>
-    </Card>
-  </div>);
+
+        <CardBody className="p-0">
+          <DataTable
+            data={services}
+            columns={columns}
+            loading={loading}
+            error={error}
+
+            // Selection
+            selectable={true}
+
+            // Sorting
+            sortable={true}
+            defaultSort={{ key: 'date', direction: 'desc' }}
+
+            // Actions
+            onRowClick={(row) => router.push(`/services/${row.id}`)}
+            rowActions={rowActions}
+            bulkActions={bulkActions}
+
+            // Pagination
+            {...(paginationConfig && { pagination: paginationConfig })}
+
+            // Features
+            searchable={true}
+            searchPlaceholder="Search by service number, client, or route..."
+            exportable={true}
+            columnToggle={true}
+            stickyHeader={true}
+
+            // Empty state
+            emptyState={
+              <EmptyState
+                variant="custom"
+                icon={<Truck size={48} />}
+                title="No services yet"
+                description="Start managing your transportation services"
+                action={
+                  onCreateNew
+                    ? {
+                      label: 'Create Service',
+                      onClick: onCreateNew,
+                      icon: <Plus size={16} />,
+                    }
+                    : {
+                      label: 'Refresh',
+                      onClick: handleRefresh,
+                      icon: <RefreshCw size={16} />,
+                    }
+                }
+                secondaryAction={
+                  onImport
+                    ? {
+                      label: 'Import Services',
+                      onClick: onImport,
+                    }
+                    : undefined
+                }
+              />
+            }
+
+            // Loading
+            loadingRows={5}
+
+            // Styling
+            compact={true}
+            bordered={false}
+            striped={true}
+          />
+        </CardBody>
+      </Card>
+    </div>);
 }
