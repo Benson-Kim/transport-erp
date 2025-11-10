@@ -8,18 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ServiceStatus, UserRole } from '@/app/generated/prisma';
 
-import {
-  FormField,
-  Card,
-  CardBody,
-  Button,
-  Input,
-  DatePicker,
-  Checkbox,
-  Alert,
-  Badge,
-  Textarea, // Make sure this is imported correctly
-} from '@/components/ui';
 import { ServiceFormSection } from './ServiceFormSection';
 import { PricingCalculator } from './PricingCalculator';
 import { ClientSelector } from './ClientSelector';
@@ -31,6 +19,7 @@ import { hasPermission } from '@/lib/permissions';
 import { toast } from '@/lib/toast';
 import { Save, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { Alert, Badge, Button, Card, CardBody, Checkbox, DatePicker, FormField, Input, Textarea } from '@/components/ui';
 
 interface ServiceFormProps {
   mode: 'create' | 'edit' | 'duplicate';
