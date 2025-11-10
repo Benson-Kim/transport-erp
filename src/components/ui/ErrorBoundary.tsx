@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Alert } from '@/components/ui/Alert';
-import { Button } from '@/components/ui/Button';
 import { AlertCircle, RefreshCcw } from 'lucide-react';
+import { Alert } from './Alert';
+import { Button } from './Button';
 
 interface Props {
   children: React.ReactNode;
@@ -42,7 +42,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               size="sm"
               variant="secondary"
               className="ml-2"
-          icon={<RefreshCcw className="h-4 w-4" />}
+              icon={<RefreshCcw className="h-4 w-4" />}
               onClick={this.reset}
             >
               Retry

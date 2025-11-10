@@ -14,7 +14,6 @@ import {
   Search
 } from 'lucide-react';
 import { Table } from './Table';
-import { Checkbox } from './Checkbox';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Skeleton } from './Skeleton';
@@ -25,6 +24,7 @@ import { DropdownMenu } from './DropdownMenu';
 import { cn } from '@/lib/utils/cn';
 import { exportToExcel, exportToCsv } from '@/lib/utils/export';
 import { useTableSelection, useTableSort } from '@/hooks';
+import { Checkbox } from './Checkbox';
 
 export interface Column<T> {
   key: string;

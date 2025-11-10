@@ -15,10 +15,9 @@ import {
   Activity,
 } from 'lucide-react';
 import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/permissions';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/lib/utils/cn';
 import { UserRole } from '@prisma/client';
+import { Badge, Button } from '@/components/ui';
 
 interface User {
   id: string;
