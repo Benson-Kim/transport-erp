@@ -5,7 +5,7 @@
 
 'use client';
 
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 import { 
   Clock, 
   CheckCircle, 

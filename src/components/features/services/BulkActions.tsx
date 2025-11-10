@@ -6,7 +6,7 @@
 'use client';
 
 import { useState } from 'react';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { 
   Trash2, 
   CheckCircle, 

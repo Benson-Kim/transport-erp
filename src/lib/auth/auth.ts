@@ -4,7 +4,8 @@
 
 import { compare } from 'bcryptjs';
 import prisma from '../prisma/prisma';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
+
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
 import NextAuth, {
@@ -58,20 +59,14 @@ type AppSession = NextAuthSession & {
 export const authConfig = {
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
+  // adapter: PrismaAdapter(prisma),
 
-  // Session configuration
   session: {
     strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
 
-  // JWT configuration
-  jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-
-  // Page routes
   pages: {
     signIn: '/login',
     signOut: '/logout',
@@ -84,7 +79,7 @@ export const authConfig = {
   providers: [
     // Credentials provider for email/password
     Credentials({
-      id: 'credentials',
+      // id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
@@ -313,8 +308,8 @@ export const authConfig = {
           typeof t.id === 'string'
             ? t.id
             : typeof (token as DefaultJWT).sub === 'string'
-            ? (token as DefaultJWT).sub!
-            : s.user.id;
+              ? (token as DefaultJWT).sub!
+              : s.user.id;
 
         // Set required/custom fields
         s.user.role = (t.role as UserRole | undefined) ?? s.user.role ?? UserRole.VIEWER;
@@ -396,7 +391,7 @@ export const authConfig = {
 /**
  * Create and export NextAuth instance
  */
-export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
+export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth(authConfig);
 
 /**
  * Auth wrapper for server components

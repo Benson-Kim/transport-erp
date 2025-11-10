@@ -15,7 +15,7 @@ import {
   Action,
   Permission,
 } from '@/lib/permissions';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 
 /**
  * Hook for checking permissions
@@ -23,7 +23,7 @@ import { UserRole } from '@prisma/client';
 export function usePermissions() {
   const { data: session, status } = useSession();
   const userRole = session?.user?.role as UserRole | undefined;
-  
+
   /**
    * Check if user has a specific permission
    */
@@ -34,7 +34,7 @@ export function usePermissions() {
     },
     [userRole]
   );
-  
+
   /**
    * Check if user cannot perform an action
    */
@@ -44,7 +44,7 @@ export function usePermissions() {
     },
     [can]
   );
-  
+
   /**
    * Check if user can access a route
    */
@@ -55,7 +55,7 @@ export function usePermissions() {
     },
     [userRole]
   );
-  
+
   /**
    * Check multiple permissions at once
    */
@@ -65,7 +65,7 @@ export function usePermissions() {
     },
     [can]
   );
-  
+
   /**
    * Check if user has all permissions
    */
@@ -75,7 +75,7 @@ export function usePermissions() {
     },
     [can]
   );
-  
+
   /**
    * Get all permissions for current user
    */
@@ -83,12 +83,12 @@ export function usePermissions() {
     if (!userRole) return [];
     return getRolePermissions(userRole);
   }, [userRole]);
-  
+
   /**
    * Check if user is authenticated
    */
   const isAuthenticated = status === 'authenticated';
-  
+
   /**
    * Check if user has a specific role
    */
@@ -98,7 +98,7 @@ export function usePermissions() {
     },
     [userRole]
   );
-  
+
   /**
    * Check if user has any of the specified roles
    */
@@ -109,14 +109,14 @@ export function usePermissions() {
     },
     [userRole]
   );
-  
+
   /**
    * Check if user is admin (SUPER_ADMIN or ADMIN)
    */
   const isAdmin = useMemo(() => {
     return hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
   }, [hasAnyRole]);
-  
+
   /**
    * Check if user is manager or above
    */
@@ -127,7 +127,7 @@ export function usePermissions() {
       UserRole.MANAGER,
     ]);
   }, [hasAnyRole]);
-  
+
   return {
     // Permission checks
     can,
@@ -135,19 +135,19 @@ export function usePermissions() {
     canAccess,
     canAny,
     canAll,
-    
+
     // Role checks
     hasRole,
     hasAnyRole,
     isAdmin,
     isManager,
-    
+
     // User info
     userRole,
     permissions,
     isAuthenticated,
     isLoading: status === 'loading',
-    
+
     // Specific common checks (convenience methods)
     canViewUsers: can('users', 'view'),
     canEditUsers: can('users', 'edit'),

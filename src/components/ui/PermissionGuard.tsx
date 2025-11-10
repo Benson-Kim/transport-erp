@@ -8,7 +8,7 @@
 import { ReactNode } from 'react';
 import { usePermissions } from '@/hooks/use-permissions';
 import { Resource, Action } from '@/lib/permissions';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 
 interface PermissionGuardProps {
   children: ReactNode;

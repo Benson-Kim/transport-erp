@@ -1,5 +1,5 @@
 import { DropdownMenuItem } from '@/components/ui/DropdownMenu';
-import { ServiceStatus, UserRole } from '@prisma/client';
+import { UserRole, ServiceStatus } from '@/app/generated/prisma';
 import { hasPermission } from '@/lib/permissions';
 import {
   Edit2,
@@ -14,8 +14,6 @@ import {
   CheckCircle,
   XCircle,
   FileText,
-  Plus,
-  Mail,
   Archive,
 } from 'lucide-react';
 import { ServiceData } from '@/types/service';
@@ -52,6 +50,7 @@ const SERVICE_STATUS_META: Record<ServiceStatus, {
   [ServiceStatus.COMPLETED]: { label: 'Completed', color: 'success', description: 'Service has been completed', variant: 'completed', icon: CheckCircle },
   [ServiceStatus.CANCELLED]: { label: 'Cancelled', color: 'danger', description: 'Service was cancelled', variant: 'cancelled', icon: XCircle },
   [ServiceStatus.INVOICED]: { label: 'Invoiced', color: 'neutral', description: 'Service has been invoiced', variant: 'billed', icon: FileText },
+  [ServiceStatus.ARCHIVED]: { label: 'Archived', color: 'neutral', description: 'Service has been archived', variant: 'billed', icon: Archive },
 };
 
 export const getStatusColor = (s: ServiceStatus) => SERVICE_STATUS_META[s]?.color || 'secondary';

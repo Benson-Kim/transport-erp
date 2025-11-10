@@ -7,7 +7,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { 
   Button, 
   Card, 

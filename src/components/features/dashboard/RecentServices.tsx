@@ -35,7 +35,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';

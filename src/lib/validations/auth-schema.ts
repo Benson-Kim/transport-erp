@@ -36,13 +36,11 @@ const rememberMeField = z
 
 export const loginSchema = z.object({
   email: z
-  .email('Please enter a valid email address')
+    .email('Please enter a valid email address')
     .min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: rememberMeField,
 });
-
-export type LoginFormData = z.infer<typeof loginSchema>;
 
 /**
  * Registration form schema
@@ -73,18 +71,16 @@ export const registerSchema = z
     path: ['confirmPassword'],
   });
 
-export type RegisterFormData = z.infer<typeof registerSchema>;
 
 /**
  * Forgot password schema
  */
 export const forgotPasswordSchema = z.object({
   email: z
-  .email('Please enter a valid email address')
+    .email('Please enter a valid email address')
     .min(1, 'Email is required')
 });
 
-export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 /**
  * Reset password schema
@@ -98,8 +94,6 @@ export const resetPasswordSchema = z
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   });
-
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 /**
  * Change password schema
@@ -119,7 +113,6 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   });
 
-export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 /**
  * Profile update schema
@@ -141,7 +134,6 @@ export const profileSchema = z.object({
   avatar: z.url('Please enter a valid URL').optional().or(z.literal('')),
 });
 
-export type ProfileFormData = z.infer<typeof profileSchema>;
 
 /**
  * Two-factor authentication schema
@@ -153,7 +145,7 @@ export const twoFactorSchema = z.object({
     .regex(/^\d+$/, 'Code must contain only numbers'),
 });
 
-export type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
+
 
 /**
  * Validate email format
@@ -173,3 +165,13 @@ export function sanitizeInput(input: string): string {
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/on\w+=/gi, ''); // Remove event handlers
 }
+
+
+export type LoginFormData = z.input<typeof loginSchema>;
+export type LoginOutputData = z.infer<typeof loginSchema>;
+export type RegisterFormData = z.infer<typeof registerSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+export type ProfileFormData = z.infer<typeof profileSchema>;
+export type TwoFactorFormData = z.infer<typeof twoFactorSchema>;

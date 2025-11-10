@@ -47,7 +47,7 @@ import {
   DropdownMenu,
   Checkbox,
 } from '@/components/ui';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 import {
   format, subDays, startOfWeek, startOfMonth,
   //  startOfQuarter, startOfYear

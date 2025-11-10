@@ -10,7 +10,8 @@ import { getServices, getClientsAndSuppliers } from '@/actions/service-actions';
 import { ServicesFilters } from '@/components/features/services/ServicesFilters';
 import { Alert, Card, CardBody, ErrorBoundary } from '@/components/ui';
 import { ServiceSkeleton, ServicesTable, ServicesHeader, ServicesMobileView } from '@/components/features/services';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
+
 
 export const metadata: Metadata = {
   title: 'Services | Enterprise Dashboard',

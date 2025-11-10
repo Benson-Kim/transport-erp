@@ -3,7 +3,7 @@
  * Helper functions for permission checking and enforcement
  */
 
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import {
   hasPermission,
@@ -13,7 +13,7 @@ import {
   Permission,
   getRolePermissions,
 } from '@/lib/permissions';
-import  prisma from '@/lib/prisma/prisma';
+import prisma from '@/lib/prisma/prisma';
 
 
 /**
@@ -24,11 +24,11 @@ export async function checkPermission(
   action: Action
 ): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   return hasPermission(session.user.role, resource, action);
 }
 
@@ -40,7 +40,7 @@ export async function requirePermission(
   action: Action
 ): Promise<void> {
   const hasAccess = await checkPermission(resource, action);
-  
+
   if (!hasAccess) {
     throw new Error(
       `Insufficient permissions: ${resource}:${action} required`
@@ -53,11 +53,11 @@ export async function requirePermission(
  */
 export async function checkRouteAccess(path: string): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   return canAccessRoute(session.user.role, path);
 }
 
@@ -66,11 +66,11 @@ export async function checkRouteAccess(path: string): Promise<boolean> {
  */
 export async function getCurrentUserPermissions(): Promise<Permission[]> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return [];
   }
-  
+
   return getRolePermissions(session.user.role);
 }
 
@@ -83,13 +83,13 @@ export async function checkResourceOwnership(
   userId?: string
 ): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   const targetUserId = userId || session.user.id;
-  
+
   // Check based on resource type
   switch (resource) {
     case 'services': {
@@ -97,31 +97,31 @@ export async function checkResourceOwnership(
         where: { id: resourceId },
         select: { createdById: true, assignedToId: true },
       });
-      
+
       return (
         service?.createdById === targetUserId ||
         service?.assignedToId === targetUserId
       );
     }
-    
+
     case 'invoices': {
       const invoice = await prisma.invoice.findUnique({
         where: { id: resourceId },
         select: { createdById: true },
       });
-      
+
       return invoice?.createdById === targetUserId;
     }
-    
+
     case 'loading_orders': {
       const loadingOrder = await prisma.loadingOrder.findUnique({
         where: { id: resourceId },
         select: { generatedById: true },
       });
-      
+
       return loadingOrder?.generatedById === targetUserId;
     }
-    
+
     default:
       return false;
   }
@@ -136,22 +136,22 @@ export async function checkResourcePermission(
   resourceId?: string
 ): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   // First check general permission
   const hasGeneralPermission = hasPermission(
     session.user.role,
     resource,
     action
   );
-  
+
   if (!hasGeneralPermission) {
     return false;
   }
-  
+
   // For certain actions, check ownership or special conditions
   if (resourceId && action === 'edit') {
     // Special case: Operators can only edit non-completed services
@@ -163,14 +163,14 @@ export async function checkResourcePermission(
         where: { id: resourceId },
         select: { status: true },
       });
-      
+
       return (
         service?.status !== 'COMPLETED' &&
         service?.status !== 'INVOICED'
       );
     }
   }
-  
+
   return true;
 }
 
@@ -184,11 +184,11 @@ export async function auditPermissionCheck(
   details?: Record<string, any>
 ): Promise<void> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return;
   }
-  
+
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
@@ -212,12 +212,12 @@ export async function auditPermissionCheck(
 export function getAccessibleResources(role: UserRole): Resource[] {
   const permissions = getRolePermissions(role);
   const resources = new Set<Resource>();
-  
+
   permissions.forEach((permission) => {
     const [resource] = permission.split(':') as [Resource];
     resources.add(resource);
   });
-  
+
   return Array.from(resources);
 }
 
@@ -228,7 +228,7 @@ export async function checkMultiplePermissions(
   checks: Array<{ resource: Resource; action: Action }>
 ): Promise<Record<string, boolean>> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return checks.reduce(
       (acc, check) => ({
@@ -238,9 +238,9 @@ export async function checkMultiplePermissions(
       {}
     );
   }
-  
+
   const results: Record<string, boolean> = {};
-  
+
   for (const check of checks) {
     const key = `${check.resource}:${check.action}`;
     results[key] = hasPermission(
@@ -249,7 +249,7 @@ export async function checkMultiplePermissions(
       check.action
     );
   }
-  
+
   return results;
 }
 
@@ -274,11 +274,11 @@ export async function hasAnyPermission(
   permissions: Array<{ resource: Resource; action: Action }>
 ): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   return permissions.some(({ resource, action }) =>
     hasPermission(session.user.role, resource, action)
   );
@@ -291,11 +291,11 @@ export async function hasAllPermissions(
   permissions: Array<{ resource: Resource; action: Action }>
 ): Promise<boolean> {
   const session = await getServerAuth();
-  
+
   if (!session?.user) {
     return false;
   }
-  
+
   return permissions.every(({ resource, action }) =>
     hasPermission(session.user.role, resource, action)
   );

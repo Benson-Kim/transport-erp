@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useTransition, useMemo, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import {
   ChevronUp,
   ChevronDown,

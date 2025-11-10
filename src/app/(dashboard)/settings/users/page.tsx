@@ -5,7 +5,7 @@
 
 import { Metadata } from 'next';
 import { requireRole } from '@/lib/auth';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { getUsers } from '@/actions/user-actions';
 import { UsersList } from '@/components/features/users/users-list';
 import { CreateUserDialog } from '@/components/features/users/create-user-dialog';

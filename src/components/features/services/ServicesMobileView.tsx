@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { ServiceData } from '@/types/service';
 import { 
   Card, 

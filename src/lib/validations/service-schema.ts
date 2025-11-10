@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 
 export const serviceSchema = z.object({
   date: z.coerce.date(),
@@ -52,36 +52,6 @@ export const serviceFilterSchema = z.object({
   pageSize: z.number().int().positive().max(100).optional(),
 });
 
-// export const serviceFormSchema = z.object({
-//   date: z.string().transform(str => new Date(str)),
-//   clientId: z.string().min(1, 'Client is required'),
-//   supplierId: z.string().min(1, 'Supplier is required'),
-//   reference: z.string().optional(),
-//   driver: z.string().optional(),
-//   registration: z.string().optional(),
-  
-//   // Locations
-//   loadingArea: z.string().optional(),
-//   chargingTime: z.string().optional(),
-//   downloadSite: z.string().optional(),
-//   downloadTime: z.string().optional(),
-  
-//   // Pricing
-//   kilometers: z.number().optional(),
-//   pricePerKm: z.number().optional(),
-//   extras: z.number().default(0),
-//   totalCost: z.number().min(0.01, 'Total cost is required and must be greater than 0'),
-//   sale: z.number().optional(),
-  
-//   // Additional
-//   observations: z.string().max(200, 'Maximum 200 characters').optional(),
-  
-//   // Status (edit mode)
-//   completed: z.boolean().optional(),
-//   cancelled: z.boolean().optional(),
-// });
-
-// export type FormServiceData = z.infer<typeof serviceFormSchema>;
-export type ServiceFormData = z.input<typeof serviceSchema>; 
+export type ServiceFormData = z.input<typeof serviceSchema>;
 export type ServiceSchemaOutput = z.infer<typeof serviceSchema>;
 export type ServiceFilters = z.infer<typeof serviceFilterSchema>;

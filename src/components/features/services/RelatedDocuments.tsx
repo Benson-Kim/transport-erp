@@ -16,7 +16,8 @@ import {
   ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { DocumentType } from '@prisma/client';
+import { DocumentType } from '@/app/generated/prisma';
+
 
 interface Document {
   id: string;
@@ -37,6 +38,7 @@ interface RelatedDocumentsProps {
 }
 
 export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocumentsProps) {
+
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const handleDownload = async (doc: Document) => {
@@ -44,6 +46,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
     try {
       // In production, you might want to use a signed URL or API endpoint
       // For now, open the file path in a new tab
+      console.log('Downloading document for service:', serviceId, doc.filePath);
       window.open(doc.filePath, '_blank');
     } catch (error) {
       console.error('Failed to download document:', error);

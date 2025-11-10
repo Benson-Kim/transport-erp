@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth';
 import { getService, getClientsAndSuppliers } from '@/actions/service-actions';
 import { ServiceForm } from '@/components/features/services/ServiceForm';
 import { PageHeader, Alert, Badge } from '@/components/ui';
-import { ServiceStatus } from '@prisma/client';
+import { ServiceStatus } from '@/app/generated/prisma';
 import { AlertCircle } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
 

@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 
 import { hash, compare } from 'bcryptjs';
 import { addHours } from 'date-fns';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import prisma from '../prisma/prisma';
 
 
@@ -60,12 +60,12 @@ export async function generateVerificationToken(
 ): Promise<string> {
   const token = generateToken();
   const expires = addHours(new Date(), TOKEN_EXPIRY.VERIFICATION);
-  
+
   // Delete any existing tokens for this email
   await prisma.verificationToken.deleteMany({
     where: { identifier: email },
   });
-  
+
   // Create new token
   await prisma.verificationToken.create({
     data: {
@@ -74,7 +74,7 @@ export async function generateVerificationToken(
       expires,
     },
   });
-  
+
   return token;
 }
 
@@ -88,11 +88,11 @@ export async function verifyEmailToken(
     const verificationToken = await prisma.verificationToken.findUnique({
       where: { token },
     });
-    
+
     if (!verificationToken) {
       return { success: false, error: 'Invalid token' };
     }
-    
+
     if (verificationToken.expires < new Date()) {
       // Delete expired token
       await prisma.verificationToken.delete({
@@ -100,9 +100,9 @@ export async function verifyEmailToken(
       });
       return { success: false, error: 'Token expired' };
     }
-    
+
     const email = verificationToken.identifier;
-    
+
     // Update user's email verification status
     await prisma.user.update({
       where: { email },
@@ -110,18 +110,18 @@ export async function verifyEmailToken(
         emailVerified: new Date(),
       },
     });
-    
+
     // Delete used token
     await prisma.verificationToken.delete({
       where: { token },
     });
-    
+
     // Create audit log
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true },
     });
-    
+
     if (user) {
       await prisma.auditLog.create({
         data: {
@@ -134,7 +134,7 @@ export async function verifyEmailToken(
         },
       });
     }
-    
+
     return { success: true, email };
   } catch (error) {
     console.error('Error verifying email token:', error);
@@ -152,22 +152,22 @@ export async function generatePasswordResetToken(
     const user = await prisma.user.findUnique({
       where: { email },
     });
-    
+
     if (!user) {
       // Don't reveal if user exists
       return null;
     }
-    
+
     const token = generateToken();
     const expires = addHours(new Date(), TOKEN_EXPIRY.PASSWORD_RESET);
-    
+
     // Delete any existing tokens for this email
     await prisma.verificationToken.deleteMany({
       where: {
         identifier: `password-reset:${email}`,
       },
     });
-    
+
     // Create new token
     await prisma.verificationToken.create({
       data: {
@@ -176,7 +176,7 @@ export async function generatePasswordResetToken(
         expires,
       },
     });
-    
+
     return token;
   } catch (error) {
     console.error('Error generating password reset token:', error);
@@ -195,11 +195,11 @@ export async function resetPasswordWithToken(
     const resetToken = await prisma.verificationToken.findUnique({
       where: { token },
     });
-    
+
     if (!resetToken || !resetToken.identifier.startsWith('password-reset:')) {
       return { success: false, error: 'Invalid token' };
     }
-    
+
     if (resetToken.expires < new Date()) {
       // Delete expired token
       await prisma.verificationToken.delete({
@@ -207,10 +207,10 @@ export async function resetPasswordWithToken(
       });
       return { success: false, error: 'Token expired' };
     }
-    
+
     const email = resetToken.identifier.replace('password-reset:', '');
     const hashedPassword = await hashPassword(newPassword);
-    
+
     // Update user password
     const user = await prisma.user.update({
       where: { email },
@@ -219,12 +219,12 @@ export async function resetPasswordWithToken(
         passwordChangedAt: new Date(),
       },
     });
-    
+
     // Delete used token
     await prisma.verificationToken.delete({
       where: { token },
     });
-    
+
     // Create audit log
     await prisma.auditLog.create({
       data: {
@@ -235,19 +235,19 @@ export async function resetPasswordWithToken(
         metadata: { action: 'password_reset' },
       },
     });
-    
+
     // Invalidate all sessions for this user
     await prisma.session.deleteMany({
       where: { userId: user.id },
     });
 
     if (user.id) {
-  await prisma.session.deleteMany({
-    where: { userId: user.id },
-  });
-}
+      await prisma.session.deleteMany({
+        where: { userId: user.id },
+      });
+    }
 
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error resetting password:', error);
@@ -305,10 +305,10 @@ export function hasPermission(
       'reports:read',
     ],
   };
-  
+
   const userPermissions = permissions[userRole] || [];
   const permission = `${resource}:${action}`;
-  
+
   return (
     userPermissions.includes('*') ||
     userPermissions.includes(`${resource}:*`) ||
@@ -332,29 +332,29 @@ export function checkPasswordStrength(password: string): {
 } {
   const feedback: string[] = [];
   let score = 0;
-  
+
   // Length check
   if (password.length >= 8) score++;
   else feedback.push('Password must be at least 8 characters');
-  
+
   if (password.length >= 12) score++;
-  
+
   // Uppercase check
   if (/[A-Z]/.test(password)) score++;
   else feedback.push('Include at least one uppercase letter');
-  
+
   // Lowercase check
   if (/[a-z]/.test(password)) score++;
   else feedback.push('Include at least one lowercase letter');
-  
+
   // Number check
   if (/\d/.test(password)) score++;
   else feedback.push('Include at least one number');
-  
+
   // Special character check
   if (/[^A-Za-z0-9]/.test(password)) score++;
   else feedback.push('Include at least one special character');
-  
+
   return { score: Math.min(score, 5), feedback };
 }
 
@@ -368,7 +368,7 @@ export async function createUser(data: {
   role?: UserRole;
 }) {
   const hashedPassword = await hashPassword(data.password);
-  
+
   const user = await prisma.user.create({
     data: {
       email: data.email,
@@ -377,10 +377,10 @@ export async function createUser(data: {
       role: data.role || UserRole.VIEWER,
     },
   });
-  
+
   // Generate verification token
   const verificationToken = await generateVerificationToken(user.email);
-  
+
   // Create audit log
   await prisma.auditLog.create({
     data: {
@@ -394,7 +394,7 @@ export async function createUser(data: {
       },
     },
   });
-  
+
   return { user, verificationToken };
 }
 
@@ -411,20 +411,20 @@ export async function updatePassword(
       where: { id: userId },
       select: { password: true },
     });
-    
+
     if (!user || !user.password) {
       return { success: false, error: 'User not found' };
     }
-    
+
     // Verify current password
     const validPassword = await verifyPassword(currentPassword, user.password);
     if (!validPassword) {
       return { success: false, error: 'Current password is incorrect' };
     }
-    
+
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
-    
+
     // Update password
     await prisma.user.update({
       where: { id: userId },
@@ -433,7 +433,7 @@ export async function updatePassword(
         passwordChangedAt: new Date(),
       },
     });
-    
+
     // Create audit log
     await prisma.auditLog.create({
       data: {
@@ -444,7 +444,7 @@ export async function updatePassword(
         metadata: { action: 'password_change' },
       },
     });
-    
+
     return { success: true };
   } catch (error) {
     console.error('Error updating password:', error);

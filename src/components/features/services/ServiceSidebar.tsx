@@ -2,7 +2,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 // import { RelatedDocuments } from './RelatedDocuments';
 import {

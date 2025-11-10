@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, formatDistanceToNow } from 'date-fns';
-import { ServiceStatus, UserRole } from '@prisma/client';
+import { ServiceStatus, UserRole } from '@/app/generated/prisma';
+
 import {
   FormField,
   Card,

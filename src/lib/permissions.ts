@@ -3,7 +3,7 @@
  * Defines all permissions and role mappings for the application
  */
 
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@/app/generated/prisma';
 
 /**
  * Resource types in the system

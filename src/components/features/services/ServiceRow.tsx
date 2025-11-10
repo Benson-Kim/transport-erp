@@ -3,7 +3,8 @@
 
 import { memo } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserRole, ServiceStatus } from '@prisma/client';
+import { UserRole, ServiceStatus } from '@/app/generated/prisma';
+
 import {
     Eye,
     Edit,
