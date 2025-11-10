@@ -19,14 +19,17 @@ import { cn } from '@/lib/utils/cn';
 import { exportToExcel, exportToCsv } from '@/lib/utils/export';
 import { useTableSelection, useTableSort } from '@/hooks';
 
-import { Table } from './Table';
-import { Pagination } from './Pagination';
-import { EmptyState } from './EmptyState';
-import { DropdownMenu } from './DropdownMenu';
-import { Checkbox } from './Checkbox';
-import { Input } from './Input';
-import { Button } from './Button';
-import { Skeleton } from './Skeleton';
+import {
+  Button,
+  Checkbox,
+  DropdownMenu,
+  EmptyState,
+  Input,
+  Skeleton,
+  Pagination,
+  Table,
+} from '@/components/ui';
+
 
 export interface Column<T> {
   key: string;
@@ -422,31 +425,31 @@ export function DataTable<T extends { id: string }>({
               {virtualScroll ? (
                 <>
                   {rowVirtualizer.getVirtualItems().map((virtualRow: {
-                  index: number;
-                  size: number;
-                  start: number;
+                    index: number;
+                    size: number;
+                    start: number;
                   }) => {
-                  const row = filteredData[virtualRow.index];
-                  if (!row) return null;
-                  return (
-                    <DataTableRow
-                    key={row.id}
-                    row={row}
-                    columns={columns}
-                    selectable={selectable}
-                    isSelected={selectedIds.has(row.id)}
-                    onToggle={() => toggle(row.id)}
-                    onClick={(e: React.MouseEvent) => handleRowClick(row, e)}
-                    {...(rowActions && { rowActions })}
-                    {...(rowClassName && { rowClassName })}
-                    compact={compact}
-                    striped={striped && virtualRow.index % 2 === 1}
-                    style={{
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                    />
-                  );
+                    const row = filteredData[virtualRow.index];
+                    if (!row) return null;
+                    return (
+                      <DataTableRow
+                        key={row.id}
+                        row={row}
+                        columns={columns}
+                        selectable={selectable}
+                        isSelected={selectedIds.has(row.id)}
+                        onToggle={() => toggle(row.id)}
+                        onClick={(e: React.MouseEvent) => handleRowClick(row, e)}
+                        {...(rowActions && { rowActions })}
+                        {...(rowClassName && { rowClassName })}
+                        compact={compact}
+                        striped={striped && virtualRow.index % 2 === 1}
+                        style={{
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      />
+                    );
                   })}
                 </>
               ) : (
