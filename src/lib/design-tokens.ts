@@ -350,32 +350,35 @@ export const designTokens: DesignTokens = {
   },
 } as const;
 
-/* ---------------------------------- */
-/* Typed token access helpers         */
-/* ---------------------------------- */
+type Primitive = string | number | boolean | null | undefined | symbol | bigint;
 
-type Primitive = string | number | boolean | null | undefined;
+/** Maximum depth for path generation */
+type MaxDepth = 5;
 
-/** Dot-notation path for nested object */
-type DotPrefix<S extends string> = S extends '' ? '' : `.${S}`;
+/** Produce dot paths with controlled recursion */
+export type TokenPath<T, D extends number[] = []> = D['length'] extends MaxDepth
+  ? never
+  : T extends Primitive
+  ? never
+  : keyof T extends string
+  ? {
+    [K in keyof T]: T[K] extends Primitive
+    ? K
+    : K extends string
+    ? `${K}` | `${K}.${TokenPath<T[K], [...D, 1]>}`
+    : never;
+  }[keyof T]
+  : never;
 
-/** Produce all possible dot paths for object T */
-export type TokenPath<T> = T extends Primitive
-  ? ''
-  : {
-      [K in Extract<keyof T, string>]: `${K}${DotPrefix<TokenPath<T[K]>>}`;
-    }[Extract<keyof T, string>];
-
-/** Resolve the value at dot path P within object T */
+/** Resolve value at path */
 export type PathValue<T, P extends string> =
   P extends `${infer K}.${infer Rest}`
-    ? K extends keyof T
-      ? PathValue<T[K], Rest>
-      : never
-    : P extends keyof T
-      ? T[P]
-      : never;
-
+  ? K extends keyof T
+  ? PathValue<T[K], Rest>
+  : never
+  : P extends keyof T
+  ? T[P]
+  : never;
 /**
  * Deeply get a value by a dot-path with runtime checks.
  * Throws an Error if the path is invalid at runtime.

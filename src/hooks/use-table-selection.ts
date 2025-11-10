@@ -78,11 +78,17 @@ export function useTableSelection<T extends { id: string }>({
   const selectRange = useCallback((start: number, end: number) => {
     const newSelection = new Set(selectedIds);
     const [min, max] = start < end ? [start, end] : [end, start];
-    
     for (let i = min; i <= max && i < data.length; i++) {
-      newSelection.add(getRowId(data[i]));
+      const row = data[i];
+      if (row) {
+        const id = getRowId(row);
+        if (id != null) {
+          newSelection.add(id);
+        }
+      }
     }
-    
+
+
     updateSelection(newSelection);
   }, [data, selectedIds, getRowId, updateSelection]);
 

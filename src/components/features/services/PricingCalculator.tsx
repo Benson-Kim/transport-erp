@@ -53,7 +53,7 @@ export function PricingCalculator({
   margin, 
   marginPercent 
 }: PricingCalculatorProps) {
-  const { control, watch, setValue, formState: { errors } } = form;
+  const { control, watch, setValue, formState: {errors: _errors } } = form;
   
   // Watch all relevant fields
   const costAmount = watch('costAmount') || 0;

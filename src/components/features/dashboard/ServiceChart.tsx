@@ -58,7 +58,7 @@ export function ServicesChart({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [isExporting, setIsExporting] = useState(false);
-  const [hoveredBar, setHoveredBar] = useState<string | null>(null);
+  const [_hoveredBar, setHoveredBar] = useState<string | null>(null);
 
   const colors = useMemo(
     () => ({

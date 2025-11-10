@@ -10,7 +10,7 @@ import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui';
 
 export function CreateUserDialog() {
-  const [open, setOpen] = useState(false);
+  const [_open, setOpen] = useState(false);
 
   return (
     <Button

@@ -26,7 +26,6 @@ import {
     DropdownMenu,
     Tooltip,
     Checkbox,
-    Badge,
 } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { ServiceData } from '@/types/service';

@@ -37,7 +37,7 @@ export function ErrorState({
         variant="error"
         title={title}
         dismissible={false}
-        className={className}
+        className={className ?? ""}
       >
         <p>{errorMessage}</p>
         {onRetry && (

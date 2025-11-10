@@ -11,24 +11,16 @@ import {
   Search,
   X,
   Download,
-  RefreshCw,
   Filter,
   Calendar,
   Users,
   Building2,
-  // TrendingUp,
-  // Save,
   Clock,
   CheckCircle,
-  AlertCircle,
-  FileText,
   ChevronDown,
   ChevronUp,
   Sparkles,
-  // Info,
   Truck,
-  Receipt,
-  XCircle,
   Zap,
   Edit,
   Trash2,
@@ -43,14 +35,12 @@ import {
   Card,
   CardBody,
   Tooltip,
-  // EmptyState,
   DropdownMenu,
   Checkbox,
 } from '@/components/ui';
 import { ServiceStatus } from '@/app/generated/prisma';
 import {
   format, subDays, startOfWeek, startOfMonth,
-  //  startOfQuarter, startOfYear
 } from 'date-fns';
 import { useDebounce } from '@/hooks';
 import { toast } from '@/lib/toast';
@@ -62,52 +52,9 @@ import {
   bulkDeleteServices,
   generateBulkLoadingOrders
 } from '@/actions/service-actions';
+import {  getStatusLabel, SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
 
-// Extract status config for reuse
-export const SERVICE_STATUS_CONFIG = {
-  [ServiceStatus.DRAFT]: {
-    label: 'Draft',
-    icon: FileText,
-    color: 'text-gray-600 dark:text-gray-400',
-    bgColor: 'bg-gray-100 dark:bg-gray-900/20',
-    borderColor: 'border-gray-300 dark:border-gray-700',
-  },
-  [ServiceStatus.CONFIRMED]: {
-    label: 'Confirmed',
-    icon: AlertCircle,
-    color: 'text-blue-600 dark:text-blue-400',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-    borderColor: 'border-blue-300 dark:border-blue-700',
-  },
-  [ServiceStatus.IN_PROGRESS]: {
-    label: 'In Progress',
-    icon: Truck,
-    color: 'text-yellow-600 dark:text-yellow-400',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
-    borderColor: 'border-yellow-300 dark:border-yellow-700',
-  },
-  [ServiceStatus.COMPLETED]: {
-    label: 'Completed',
-    icon: CheckCircle,
-    color: 'text-green-600 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/20',
-    borderColor: 'border-green-300 dark:border-green-700',
-  },
-  [ServiceStatus.INVOICED]: {
-    label: 'Invoiced',
-    icon: Receipt,
-    color: 'text-purple-600 dark:text-purple-400',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-    borderColor: 'border-purple-300 dark:border-purple-700',
-  },
-  [ServiceStatus.CANCELLED]: {
-    label: 'Cancelled',
-    icon: XCircle,
-    color: 'text-red-600 dark:text-red-400',
-    bgColor: 'bg-red-100 dark:bg-red-900/20',
-    borderColor: 'border-red-300 dark:border-red-700',
-  },
-};
+
 
 interface ClientData {
   id: string;
@@ -447,15 +394,12 @@ export function ServicesFilters({
       });
     }
     if (currentFilters.status) {
-      const config = SERVICE_STATUS_CONFIG[currentFilters.status as ServiceStatus];
-      if (config) {
-        const Icon = config.icon;
-        filters.push({
-          key: 'status',
-          label: `Status: ${config.label}`,
-          icon: <Icon className="h-3 w-3" />
-        });
-      }
+      filters.push({
+        key: 'status',
+        label: getStatusLabel(currentFilters.status as ServiceStatus),
+        icon: <ServiceStatusBadge status={currentFilters.status as ServiceStatus} size="sm" />,
+      });
+
     }
     if (currentFilters.clientId) {
       const client = clients.find(c => c.id === currentFilters.clientId);
@@ -549,16 +493,14 @@ export function ServicesFilters({
                   label: <div className="text-xs font-medium text-muted-foreground">Update Status</div>,
                   disabled: true,
                 },
-                ...Object.entries(SERVICE_STATUS_CONFIG).map(([status, config]) => ({
+                ...Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => ({
                   id: `status-${status}`,
                   label: (
-                    <div className="flex items-center gap-2">
-                      <config.icon className="h-3 w-3" />
-                      {config.label}
-                    </div>
+                    <ServiceStatusBadge status={status as ServiceStatus} size="sm" showIcon />
                   ),
                   onClick: () => handleBulkAction('updateStatus', { status }),
                 })),
+
                 { id: 'divider-1', divider: true },
                 {
                   id: 'loadingOrder',

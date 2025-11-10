@@ -57,6 +57,7 @@ export function QuickActions({
 }: QuickActionsProps) {
   const permissions = usePermissions();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  console.log('User Role in QuickActions:', userRole);
 
   const actions = useMemo(() => [
     {
@@ -453,9 +454,9 @@ export function QuickActions({
 }
 
 // Role-based Quick Actions Widget (Compact Version)
-export function QuickActionsWidget({ userRole }: { userRole: UserRole }) {
+export function QuickActionsWidget({ userRole: _userRole }: { userRole: UserRole }) {
   const permissions = usePermissions();
-  
+
   const topActions = [
     {
       id: 'new-service',

@@ -118,6 +118,7 @@ export async function createAuditLog({
       userAgent: userAgent ?? null,
       metadata: {
         timestamp: new Date().toISOString(),
+        ...metadata,
       },
     },
   });

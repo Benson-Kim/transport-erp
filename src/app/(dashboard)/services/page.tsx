@@ -96,7 +96,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
           </Card>
         }
       >
-        <Suspense fallback={<ServiceSkeleton.Table columns={12} rows={10} />}>
+        <Suspense fallback={<ServiceSkeleton.Table />}>
           {/* Services Table - Desktop */}
           <div className="hidden lg:block">
             <ServicesTable

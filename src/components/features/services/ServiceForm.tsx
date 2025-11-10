@@ -43,11 +43,11 @@ interface ServiceFormProps {
 }
 
 // Separate component for auto-save to prevent re-renders
-function AutoSaveManager({ 
-  control, 
-  mode, 
-  duplicateFrom, 
-  onSave 
+function AutoSaveManager({
+  control,
+  mode,
+  duplicateFrom,
+  onSave
 }: {
   control: any;
   mode: string;
@@ -69,11 +69,11 @@ function AutoSaveManager({
   return null;
 }
 
-export function ServiceForm({ 
-  mode, 
-  service, 
+export function ServiceForm({
+  mode,
+  service,
   sourceService,
-  clients, 
+  clients,
   suppliers,
   duplicateFrom,
   userRole,
@@ -107,7 +107,7 @@ export function ServiceForm({
       status: ServiceStatus.DRAFT,
       notes: '',
       internalNotes: '',
-    //   pricePerKm: 0,
+      //   pricePerKm: 0,
       extras: 0,
       totalCost: 0,
       sale: 0,
@@ -151,13 +151,13 @@ export function ServiceForm({
     defaultValues: getSmartDefaults(),
   });
 
-  const { 
-    control, 
-    handleSubmit, 
-    watch, 
-    setValue, 
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
     reset,
-    formState: { errors, isDirty } 
+    formState: { errors, isDirty }
   } = form;
 
   // Restore draft on mount
@@ -201,7 +201,7 @@ export function ServiceForm({
   // Handle form submission
   const onSubmit = async (data: ServiceFormData) => {
     setIsSaving(true);
-    
+
     try {
       // Save last used client and supplier
       localStorage.setItem('last-used-client', data.clientId);
@@ -210,12 +210,12 @@ export function ServiceForm({
       if (mode === 'create' || mode === 'duplicate') {
         const result = await createService(data);
         toast.success(`Service ${result.service.serviceNumber} created successfully`);
-        
+
         // Clear draft after successful save
         if (mode === 'create') {
           localStorage.removeItem('service-form-draft');
         }
-        
+
         if (saveAndNew) {
           reset(getSmartDefaults());
           setSaveAndNew(false);
@@ -238,7 +238,7 @@ export function ServiceForm({
   // Handle delete
   const handleDelete = async () => {
     if (!service?.id) return;
-    
+
     if (!confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
       return;
     }
@@ -270,17 +270,17 @@ export function ServiceForm({
   }, [handleSubmit]);
 
   return (
-    <form 
-      onSubmit={handleSubmit(onSubmit)} 
+    <form
+      onSubmit={handleSubmit(onSubmit)}
       className="space-y-6 max-w-5xl mx-auto"
       noValidate
     >
       {/* Auto-save component */}
-      <AutoSaveManager 
-        control={control} 
-        mode={mode} 
-        {...duplicateFrom && {duplicateFrom}}
-        onSave={() => setLastSavedAt(new Date())} 
+      <AutoSaveManager
+        control={control}
+        mode={mode}
+        {...duplicateFrom && { duplicateFrom }}
+        onSave={() => setLastSavedAt(new Date())}
       />
 
       {/* Duplicate Banner */}
@@ -315,8 +315,8 @@ export function ServiceForm({
         {/* Main Form (2 columns on desktop) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Service Details Section */}
-          <ServiceFormSection 
-            title="Service Details" 
+          <ServiceFormSection
+            title="Service Details"
             description="Basic information about the service"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -345,14 +345,15 @@ export function ServiceForm({
                     error={fieldState.error?.message ?? ""}
                   >
                     <DatePicker
-                      value={field.value}
-                      onChange={field.onChange}
+                      value={field.value as Date | null}
+                      onChange={(date) => field.onChange(date)}
                       placeholder="DD/MM/YYYY"
-                       error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ""}
                     />
                   </FormField>
                 )}
               />
+
 
               {/* Client */}
               <div className="md:col-span-2">
@@ -520,8 +521,8 @@ export function ServiceForm({
           </ServiceFormSection>
 
           {/* Locations Section */}
-          <ServiceFormSection 
-            title="Locations" 
+          <ServiceFormSection
+            title="Locations"
             description="Loading and unloading information"
           >
             <div className="space-y-4">
@@ -568,8 +569,8 @@ export function ServiceForm({
           </ServiceFormSection>
 
           {/* Pricing Section */}
-          <ServiceFormSection 
-            title="Pricing" 
+          <ServiceFormSection
+            title="Pricing"
             description="Service costs and pricing"
           >
             <PricingCalculator
@@ -580,8 +581,8 @@ export function ServiceForm({
           </ServiceFormSection>
 
           {/* Additional Information */}
-          <ServiceFormSection 
-            title="Additional Information" 
+          <ServiceFormSection
+            title="Additional Information"
             description="Any other relevant details"
           >
             <div className="space-y-4">
@@ -784,7 +785,7 @@ export function ServiceForm({
               Save & New
             </Button>
           )}
-          
+
           <Button
             type="submit"
             loading={isSaving && !saveAndNew}

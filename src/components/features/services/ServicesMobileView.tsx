@@ -21,6 +21,7 @@ import {
   MoreVertical,
   Users,
   Building2,
+  ArrowRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
@@ -132,8 +133,8 @@ export function ServicesMobileView({
 
                   <div className="flex items-center gap-2">
                     <MapPin className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs">
-                      {service.origin} → {service.destination}
+                    <span className="text-xs flex items-center gap-1">
+                      {service.origin} <ArrowRight className='w-3 h-3' /> {service.destination}
                     </span>
                   </div>
 

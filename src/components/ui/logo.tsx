@@ -127,5 +127,5 @@ export function LogoMark({
   size = 'md',
   variant = 'default',
 }: Omit<LogoProps, 'showText' | 'href'>) {
-  return <Logo className={className} size={size} variant={variant} showText={false} />;
+  return <Logo className={className ?? ""} size={size} variant={variant} showText={false} />;
 }

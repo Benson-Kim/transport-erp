@@ -8,23 +8,28 @@ import { Card, CardBody, Badge } from '@/components/ui';
 import {
     Info,
     Calendar,
-    CheckCircle,
-    XCircle,
     Building2,
     Phone,
     Mail,
     ExternalLink,
 } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
-import { getStatusVariant } from '@/lib/service-helpers';
+import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
+import { ServiceStatus } from '@/app/generated/prisma';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
+
 
 interface ServiceSidebarProps {
     service: any;
     userRole: UserRole;
 }
 
+
 export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
+
     const canViewInternal = hasPermission(userRole, 'services', 'view');
+    const config = SERVICE_STATUS_CONFIG[service.status as ServiceStatus];
+
 
     return (
         <div className="space-y-6">
@@ -39,7 +44,7 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Current Status</span>
-                            <Badge variant={getStatusVariant(service.status)}>
+                            <Badge variant={config.variant}>
                                 {service.status.replace(/_/g, ' ')}
                             </Badge>
                         </div>
@@ -67,12 +72,9 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
 
                         <div className="flex items-center justify-between">
                             <span className="text-sm text-muted-foreground">Status</span>
-                            {service.status === 'INVOICED' ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                            ) : (
-                                <XCircle className="h-4 w-4 text-neutral-400" />
-                            )}
+                            <ServiceStatusBadge status={service.status} size="sm" />
                         </div>
+
                     </div>
                 </CardBody>
             </Card>

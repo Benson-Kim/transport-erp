@@ -56,7 +56,7 @@ export type Permission = `${Resource}:${Action}`;
  */
 export const PERMISSION_MATRIX: Record<
   Resource,
-  Record<Action, UserRole[]>
+  Partial<Record<Action, UserRole[]>>
 > = {
   [RESOURCES.DASHBOARD]: {
     [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],

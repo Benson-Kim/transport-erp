@@ -4,7 +4,7 @@
  */
 
 import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react';
-import { Loader2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize } from '@/types/ui';
 
