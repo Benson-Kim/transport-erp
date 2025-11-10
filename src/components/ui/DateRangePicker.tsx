@@ -6,7 +6,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Calendar, ChevronDown, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, isValid, parseISO } from 'date-fns';
 import { cn } from "@/lib/utils/cn";
 import { Button } from "./Button";
