@@ -1,10 +1,20 @@
+import { MainLayout } from "@/components/layout/MainLayout";
+import { requireAuth } from "@/lib/auth";
 
-const DashboardLayout = ({children}: {children: React.ReactNode}) => {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireAuth();
+  const companyName = "Acme Corp";
+
+  const userForLayout = {
+    name: session.user.name,
+    email: session.user.email,
+    role: session.user.role as string,
+    // avatar: session.user.avatar ?? undefined, 
+  };
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-neutral-50 to-neutral-100">
-        {children}
-    </div>
-  )
+    <MainLayout user={userForLayout} companyName={companyName}>
+      {children}
+    </MainLayout>
+  );
 }
-
-export default DashboardLayout
