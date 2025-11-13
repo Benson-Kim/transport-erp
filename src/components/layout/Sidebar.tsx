@@ -107,7 +107,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Sideb
               onClick={toggleSidebarCollapse}
               className="rounded-md p-1.5 hover:bg-row-hover"
             >
-              <Menu className="size-icon-sm" />
+              <Menu className="icon-sm" />
             </button>
           )}
           {(!collapsed || variant === 'desktop') && (

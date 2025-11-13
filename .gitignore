@@ -16,6 +16,8 @@
 *.pem
 private/
 
+src/app/generated/prisma
+
 # testing
 /coverage
 /.nyc_output

@@ -47,16 +47,16 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
           className={cn(
             'nav-item w-full',
             active && 'nav-item-active',
-            depth > 0 && 'ps-[var(--space-9)]'
+            depth > 0 && 'ps-9'
           )}
         >
-          <Icon className="size-[var(--icon-sm)] flex-shrink-0" />
+          <Icon className="icon-sm flex-shrink-0" />
           <span className="flex-1 text-left font-medium">{item.label}</span>
           {item.badge !== undefined && <span className="badge badge-active">{item.badge}</span>}
         </button>
 
         {hasChildren && (
-          <ul className="mt-[var(--space-1)] space-y-[var(--space-1)]">
+          <ul className="mt-1 space-y-1">
             {item.children!.map((c) => renderItem(c, depth + 1))}
           </ul>
         )}
@@ -78,38 +78,38 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
       {/* Panel */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-[var(--neutral-white)] transition-transform lg:hidden',
+          'fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-neutral transition-transform lg:hidden',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
           {/* Header */}
-          <header className="flex h-[var(--header-height)] items-center justify-between border-b border-[var(--neutral-200)] px-[var(--space-4)]">
-            <div className="flex items-center gap-[var(--space-2)]">
-              <div className="size-[var(--logo-size)] rounded-[var(--radius-md)] bg-[var(--primary)]" />
+          <header className="flex layout-header items-center justify-between border-b border-neutral-200 px-4">
+            <div className="flex items-center gap-2">
+              <div className="logo rounded-radius-md bg-primary" />
               <span className="font-semibold">{companyName}</span>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md p-[var(--space-1.5)] hover:bg-[var(--row-hover)]"
+              className="rounded-md p-1.5 hover:bg-row-hover"
             >
-              <X className="size-[var(--icon-sm)]" />
+              <X className="icon-sm" />
             </button>
           </header>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-[var(--space-4)]">
-            <ul className="space-y-[var(--space-1)]">{navigation.map((i) => renderItem(i))}</ul>
+          <nav className="flex-1 overflow-y-auto p-4">
+            <ul className="space-y-1">{navigation.map((i) => renderItem(i))}</ul>
           </nav>
 
           {/* User */}
-          <footer className="border-t border-[var(--neutral-200)] p-[var(--space-4)]">
-            <div className="flex items-center gap-[var(--space-3)] px-[var(--space-3)] py-[var(--space-2)]">
-              <div className="size-[var(--avatar-size)] rounded-full bg-[var(--primary)]" />
+          <footer className="border-t border-neutral-200 p-4">
+            <div className="flex items-center gap-3 px-3 py-2">
+              <div className="avatar rounded-full bg-primary" />
               <div className="flex-1 min-w-0">
                 <p className="truncate font-medium">{user.name}</p>
-                <p className="truncate text-xs text-[var(--neutral-500)]">{user.role}</p>
+                <p className="truncate text-xs text-neutral-500">{user.role}</p>
               </div>
             </div>
           </footer>
