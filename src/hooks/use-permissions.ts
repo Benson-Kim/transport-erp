@@ -121,11 +121,7 @@ export function usePermissions() {
    * Check if user is manager or above
    */
   const isManager = useMemo(() => {
-    return hasAnyRole([
-      UserRole.SUPER_ADMIN,
-      UserRole.ADMIN,
-      UserRole.MANAGER,
-    ]);
+    return hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]);
   }, [hasAnyRole]);
 
   return {

@@ -3,7 +3,7 @@
  * Accessible date picker with calendar dropdown
  */
 
-'use client'
+'use client';
 
 import { forwardRef, useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
@@ -124,17 +124,17 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const generateCalendarDays = () => {
       const today = new Date();
       const days = [];
-      
+
       // This is a simplified calendar - in production, use a proper calendar library
       for (let i = 0; i < 30; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        
-        const isDisabled = 
+
+        const isDisabled =
           (minDate && isBefore(date, minDate)) ||
           (maxDate && isAfter(date, maxDate)) ||
           disabledDates?.(date);
-        
+
         days.push({
           date,
           isDisabled,
@@ -142,7 +142,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           isSelected: selectedDate?.toDateString() === date.toDateString(),
         });
       }
-      
+
       return days;
     };
 
@@ -167,7 +167,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             aria-describedby={error ? `${id}-error` : undefined}
             id={id}
           />
-          
+
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
             {clearable && selectedDate && !disabled && (
               <button
@@ -179,7 +179,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                 <X size={16} className="text-neutral-500" />
               </button>
             )}
-            
+
             <button
               type="button"
               onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -201,30 +201,32 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         {isOpen && (
           <div className="absolute z-50 mt-1 w-64 bg-white border border-neutral-200 rounded-md shadow-lg p-3">
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                 <div key={day} className="text-xs font-medium text-neutral-500 text-center">
                   {day}
                 </div>
               ))}
             </div>
-            
+
             <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays().slice(0, 28).map(({ date, isDisabled, isToday, isSelected }) => (
-                <button
-                  key={date.toISOString()}
-                  type="button"
-                  onClick={() => !isDisabled && handleDateSelect(date)}
-                  disabled={isDisabled}
-                  className={cn(
-                    'h-8 text-sm rounded hover:bg-neutral-100 transition-colors',
-                    isDisabled && 'opacity-50 cursor-not-allowed',
-                    isToday && 'font-semibold',
-                    isSelected && 'bg-primary text-white hover:bg-primary-hover'
-                  )}
-                >
-                  {date.getDate()}
-                </button>
-              ))}
+              {generateCalendarDays()
+                .slice(0, 28)
+                .map(({ date, isDisabled, isToday, isSelected }) => (
+                  <button
+                    key={date.toISOString()}
+                    type="button"
+                    onClick={() => !isDisabled && handleDateSelect(date)}
+                    disabled={isDisabled}
+                    className={cn(
+                      'h-8 text-sm rounded hover:bg-neutral-100 transition-colors',
+                      isDisabled && 'opacity-50 cursor-not-allowed',
+                      isToday && 'font-semibold',
+                      isSelected && 'bg-primary text-white hover:bg-primary-hover'
+                    )}
+                  >
+                    {date.getDate()}
+                  </button>
+                ))}
             </div>
           </div>
         )}

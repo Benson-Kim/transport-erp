@@ -15,12 +15,7 @@ interface PageHeaderProps {
   className?: string;
 }
 
-export function PageHeader({
-  title,
-  description,
-  children,
-  className,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, children, className }: PageHeaderProps) {
   return (
     <div
       className={cn(
@@ -32,15 +27,9 @@ export function PageHeader({
         <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
           {title}
         </h1>
-        {description && (
-          <p className="text-neutral-500 dark:text-neutral-400">
-            {description}
-          </p>
-        )}
+        {description && <p className="text-neutral-500 dark:text-neutral-400">{description}</p>}
       </div>
-      {children && (
-        <div className="flex items-center gap-2">{children}</div>
-      )}
+      {children && <div className="flex items-center gap-2">{children}</div>}
     </div>
   );
 }

@@ -3,7 +3,6 @@
  * Handles all email sending functionality with multiple provider support
  */
 
-
 import { z } from 'zod';
 import nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
@@ -65,12 +64,14 @@ export interface EmailOptions {
   subject: string;
   html?: string | undefined;
   text?: string | undefined;
-  attachments?: Array<{
-    filename: string;
-    content?: Buffer | string | undefined;
-    path?: string | undefined;
-    contentType?: string | undefined;
-  }> | undefined;
+  attachments?:
+    | Array<{
+        filename: string;
+        content?: Buffer | string | undefined;
+        path?: string | undefined;
+        contentType?: string | undefined;
+      }>
+    | undefined;
   cc?: string | string[] | undefined;
   bcc?: string | string[] | undefined;
   replyTo?: string | undefined;
@@ -79,7 +80,6 @@ export interface EmailOptions {
   tags?: string[] | undefined;
   metadata?: Record<string, any> | undefined;
 }
-
 
 /**
  * Email template data interfaces
@@ -282,7 +282,9 @@ class EmailService {
   /**
    * Send an email
    */
-  async send(options: EmailOptions): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  async send(
+    options: EmailOptions
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
       if (!this.transporter) {
         throw new Error('Email transporter not initialized');
@@ -295,8 +297,16 @@ class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text || this.extractTextFromHtml(options.html || ''),
-        cc: options.cc ? (Array.isArray(options.cc) ? options.cc.join(', ') : options.cc) : undefined,
-        bcc: options.bcc ? (Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc) : undefined,
+        cc: options.cc
+          ? Array.isArray(options.cc)
+            ? options.cc.join(', ')
+            : options.cc
+          : undefined,
+        bcc: options.bcc
+          ? Array.isArray(options.bcc)
+            ? options.bcc.join(', ')
+            : options.bcc
+          : undefined,
         replyTo: options.replyTo || this.config.replyTo,
         attachments: options.attachments,
         headers: options.headers,
@@ -405,7 +415,6 @@ class EmailService {
   }): Promise<void> {
     console.log('Email event:', event);
   }
-  
 
   /**
    * Send verification email
@@ -415,7 +424,7 @@ class EmailService {
     data: VerificationEmailData
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(VerificationEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: 'Verify your email address',
@@ -434,7 +443,7 @@ class EmailService {
     data: PasswordResetEmailData
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(PasswordResetEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: 'Reset your password',
@@ -453,7 +462,7 @@ class EmailService {
     data: WelcomeEmailData
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(WelcomeEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: 'Welcome to Enterprise Dashboard!',
@@ -472,14 +481,14 @@ class EmailService {
     attachments?: EmailOptions['attachments']
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(InvoiceEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: `Invoice ${data.invoiceNumber} - ${data.totalAmount} ${data.currency}`,
       html,
       attachments,
       tags: ['invoice'],
-      metadata: { 
+      metadata: {
         invoiceNumber: data.invoiceNumber,
         recipientEmail: data.recipientEmail,
       },
@@ -495,14 +504,14 @@ class EmailService {
     attachments?: EmailOptions['attachments']
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(LoadingOrderEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: `Loading Order ${data.orderNumber}`,
       html,
       attachments,
       tags: ['loading-order'],
-      metadata: { 
+      metadata: {
         orderNumber: data.orderNumber,
         recipientEmail: data.recipientEmail,
       },
@@ -517,7 +526,7 @@ class EmailService {
     data: NotificationEmailData
   ): Promise<{ success: boolean; error?: string }> {
     const html = await render(NotificationEmailTemplate(data));
-    
+
     return this.send({
       to,
       subject: data.title,
@@ -596,7 +605,7 @@ export const emailService = new EmailService();
 // Export helper functions
 export const sendVerificationEmail = (email: string, token: string) => {
   const verificationUrl = `${process.env['NEXT_PUBLIC_APP_URL']}/verify-email?token=${token}`;
-  
+
   return emailService.sendVerificationEmail(email, {
     name: email.split('@')[0] ?? 'User', // Fallback name
     email,
@@ -607,7 +616,7 @@ export const sendVerificationEmail = (email: string, token: string) => {
 
 export const sendPasswordResetEmail = (email: string, token: string) => {
   const resetUrl = `${process.env['NEXT_PUBLIC_APP_URL']}/reset-password?token=${token}`;
-  
+
   return emailService.sendPasswordResetEmail(email, {
     name: email.split('@')[0] ?? 'User', // Fallback name
     email,

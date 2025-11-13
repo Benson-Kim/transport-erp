@@ -1,4 +1,4 @@
-'use client'
+'use client';
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { Tooltip } from '@/components/ui';
@@ -6,20 +6,20 @@ import { useEscapeKey } from '@/hooks';
 
 export type DropdownMenuItem =
   | {
-    id: string;
-    label: ReactNode;
-    icon?: ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-    tooltip?: string;
-    submenu?: DropdownMenuItem[];
-    divider?: false;
-  }
+      id: string;
+      label: ReactNode;
+      icon?: ReactNode;
+      onClick?: () => void;
+      disabled?: boolean;
+      danger?: boolean;
+      tooltip?: string;
+      submenu?: DropdownMenuItem[];
+      divider?: false;
+    }
   | {
-    id: string;
-    divider: true;
-  };
+      id: string;
+      divider: true;
+    };
 
 export interface DropdownMenuProps {
   trigger: ReactNode;
@@ -28,12 +28,7 @@ export interface DropdownMenuProps {
   className?: string;
 }
 
-export function DropdownMenu({
-  trigger,
-  items,
-  align = 'left',
-  className,
-}: DropdownMenuProps) {
+export function DropdownMenu({ trigger, items, align = 'left', className }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [submenuOpenId, setSubmenuOpenId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -69,20 +64,17 @@ export function DropdownMenu({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // const enabledItems = items.filter(i => !i.disabled && !i.divider);
     const enabledItems = items.filter(
-      (i): i is Exclude<DropdownMenuItem, { divider: true }> =>
-        !("divider" in i) && !i.disabled
+      (i): i is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in i) && !i.disabled
     );
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setFocusedIndex(prev => (prev + 1) % enabledItems.length);
+        setFocusedIndex((prev) => (prev + 1) % enabledItems.length);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setFocusedIndex(prev =>
-          prev <= 0 ? enabledItems.length - 1 : prev - 1
-        );
+        setFocusedIndex((prev) => (prev <= 0 ? enabledItems.length - 1 : prev - 1));
         break;
       case 'Enter':
       case ' ':
@@ -154,31 +146,22 @@ export function DropdownMenu({
         >
           <div className="py-1">
             {items.map((item, index) => {
-              if ("divider" in item && item.divider) {
-
-                return (
-                  <div
-                    key={index}
-                    className="my-1 h-px bg-neutral-200"
-                    role="separator"
-                  />
-                );
+              if ('divider' in item && item.divider) {
+                return <div key={index} className="my-1 h-px bg-neutral-200" role="separator" />;
               }
 
               const enabledIndex = items
                 .filter((i): i is Exclude<DropdownMenuItem, { divider: true }> => {
                   return !('divider' in i) && !i.disabled;
                 })
-                .findIndex(i => i.id === item.id);
+                .findIndex((i) => i.id === item.id);
 
               const isFocused = enabledIndex === focusedIndex;
 
               const handleItemClick = () => {
                 if (item.disabled) return;
                 if (item.submenu) {
-                  setSubmenuOpenId(
-                    submenuOpenId === item.id ? null : item.id
-                  );
+                  setSubmenuOpenId(submenuOpenId === item.id ? null : item.id);
                 } else {
                   item.onClick?.();
                   setIsOpen(false);
@@ -215,9 +198,7 @@ export function DropdownMenu({
                     {item.icon && <span className="w-4">{item.icon}</span>}
                     <span>{item.label}</span>
                   </div>
-                  {item.submenu && (
-                    <span className="text-xs opacity-60">›</span>
-                  )}
+                  {item.submenu && <span className="text-xs opacity-60">›</span>}
                 </button>
               );
 
@@ -243,8 +224,11 @@ export function DropdownMenu({
                     >
                       <div className="py-1">
                         {item.submenu
-                          .filter((sub): sub is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in sub))
-                          .map(sub => (
+                          .filter(
+                            (sub): sub is Exclude<DropdownMenuItem, { divider: true }> =>
+                              !('divider' in sub)
+                          )
+                          .map((sub) => (
                             <button
                               key={sub.id}
                               type="button"
@@ -265,7 +249,6 @@ export function DropdownMenu({
                               <span>{sub.label}</span>
                             </button>
                           ))}
-
                       </div>
                     </div>
                   )}

@@ -47,12 +47,12 @@ interface StatsCardsProps {
   compact?: boolean;
 }
 
-export function StatsCards({ 
-  stats, 
+export function StatsCards({
+  stats,
   loading = false,
   error = null,
   onRefresh,
-  compact = false
+  compact = false,
 }: StatsCardsProps) {
   // const router = useRouter();
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
@@ -110,7 +110,7 @@ export function StatsCards({
           details: [
             `Revenue: ${formatCurrency(stats.totalRevenue)}`,
             `Growth: ${stats.totalRevenueChange >= 0 ? '+' : ''}${formatPercentage(stats.totalRevenueChange)}`,
-            stats.totalServices > 0 
+            stats.totalServices > 0
               ? `Avg per service: ${formatCurrency(stats.totalRevenue / stats.totalServices)}`
               : null,
           ].filter(Boolean),
@@ -181,10 +181,7 @@ export function StatsCards({
   }
 
   return (
-    <div className={cn(
-      "grid gap-4",
-      compact ? "grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"
-    )}>
+    <div className={cn('grid gap-4', compact ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-4')}>
       {cards.map((card) => (
         <Tooltip
           key={card.id}
@@ -201,107 +198,104 @@ export function StatsCards({
                   </div>
                 ))}
               </div>
-              <div className="text-xs opacity-60 pt-1">
-                Click to view details →
-              </div>
+              <div className="text-xs opacity-60 pt-1">Click to view details →</div>
             </div>
           }
           position="top"
         >
-          <Link 
+          <Link
             href={card.href}
             onMouseEnter={() => setHoveredCard(card.id)}
             onMouseLeave={() => setHoveredCard(null)}
           >
-            <Card 
+            <Card
               className={cn(
-                "transition-all cursor-pointer relative overflow-hidden",
-                "hover:shadow-lg hover:-translate-y-1",
-                "group",
-                hoveredCard === card.id && "ring-2 ring-primary ring-opacity-50"
-              )} 
-              padding={compact ? "sm" : "md"}
+                'transition-all cursor-pointer relative overflow-hidden',
+                'hover:shadow-lg hover:-translate-y-1',
+                'group',
+                hoveredCard === card.id && 'ring-2 ring-primary ring-opacity-50'
+              )}
+              padding={compact ? 'sm' : 'md'}
             >
               {/* Hover Indicator */}
-              <div className={cn(
-                "absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity",
-                "text-muted-foreground"
-              )}>
+              <div
+                className={cn(
+                  'absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity',
+                  'text-muted-foreground'
+                )}
+              >
                 <ArrowUpRight className="h-3 w-3" />
               </div>
 
               {/* Content */}
               <div className="relative">
                 <div className="flex items-center justify-between mb-3">
-                  <span className={cn(
-                    "font-medium text-muted-foreground",
-                    compact ? "text-xs" : "text-sm"
-                  )}>
+                  <span
+                    className={cn(
+                      'font-medium text-muted-foreground',
+                      compact ? 'text-xs' : 'text-sm'
+                    )}
+                  >
                     {card.label}
                   </span>
-                  <div className={cn(
-                    'rounded-lg transition-transform group-hover:scale-110',
-                    card.iconBg,
-                    compact ? "p-1.5" : "p-2"
-                  )}>
-                    <card.icon className={cn(
-                      card.iconColor,
-                      compact ? "h-3 w-3" : "h-4 w-4"
-                    )} />
+                  <div
+                    className={cn(
+                      'rounded-lg transition-transform group-hover:scale-110',
+                      card.iconBg,
+                      compact ? 'p-1.5' : 'p-2'
+                    )}
+                  >
+                    <card.icon className={cn(card.iconColor, compact ? 'h-3 w-3' : 'h-4 w-4')} />
                   </div>
                 </div>
-                
+
                 <div className="space-y-1">
                   <div className="flex items-baseline justify-between gap-2">
-                    <div className={cn(
-                      "font-bold text-foreground group-hover:text-primary transition-colors",
-                      compact ? "text-xl" : "text-2xl"
-                    )}>
+                    <div
+                      className={cn(
+                        'font-bold text-foreground group-hover:text-primary transition-colors',
+                        compact ? 'text-xl' : 'text-2xl'
+                      )}
+                    >
                       {card.value}
                     </div>
-                    
+
                     {card.subValue && (
-                      <div className={cn(
-                        "text-muted-foreground",
-                        compact ? "text-xs" : "text-sm"
-                      )}>
+                      <div className={cn('text-muted-foreground', compact ? 'text-xs' : 'text-sm')}>
                         {card.subValue}
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Trend Indicator */}
-                  <div className={cn(
-                    "flex items-center gap-1",
-                    compact ? "text-xs" : "text-sm"
-                  )}>
-                    <div className={cn(
-                      "flex items-center gap-0.5",
-                      card.change >= 0 
-                        ? "text-green-600 dark:text-green-400" 
-                        : "text-red-600 dark:text-red-400"
-                    )}>
-                      {card.change >= 0 ? (
-                        <TrendingUp className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
-                      ) : (
-                        <TrendingDown className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />
+                  <div className={cn('flex items-center gap-1', compact ? 'text-xs' : 'text-sm')}>
+                    <div
+                      className={cn(
+                        'flex items-center gap-0.5',
+                        card.change >= 0
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-red-600 dark:text-red-400'
                       )}
-                      <span className="font-medium">
-                        {Math.abs(card.change)}%
-                      </span>
+                    >
+                      {card.change >= 0 ? (
+                        <TrendingUp className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                      ) : (
+                        <TrendingDown className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+                      )}
+                      <span className="font-medium">{Math.abs(card.change)}%</span>
                     </div>
-                    <span className="text-muted-foreground">
-                      vs last period
-                    </span>
+                    <span className="text-muted-foreground">vs last period</span>
                   </div>
                 </div>
               </div>
 
               {/* Background Pattern */}
-              <div className={cn(
-                "absolute -bottom-2 -right-2 opacity-5 group-hover:opacity-10 transition-opacity",
-                card.iconColor.replace('text-', 'text-')
-              )}>
+              <div
+                className={cn(
+                  'absolute -bottom-2 -right-2 opacity-5 group-hover:opacity-10 transition-opacity',
+                  card.iconColor.replace('text-', 'text-')
+                )}
+              >
                 <card.icon className="h-24 w-24" />
               </div>
             </Card>
@@ -345,10 +339,9 @@ export function MiniStats({ stats }: { stats: StatsData }) {
               <span className="text-xs text-muted-foreground">{item.label}</span>
               <span className="text-sm font-semibold">{item.value}</span>
               {item.change !== 0 && (
-                <span className={cn(
-                  "text-xs",
-                  item.change >= 0 ? "text-green-600" : "text-red-600"
-                )}>
+                <span
+                  className={cn('text-xs', item.change >= 0 ? 'text-green-600' : 'text-red-600')}
+                >
                   {item.change >= 0 ? '↑' : '↓'}
                 </span>
               )}

@@ -16,14 +16,7 @@ interface TableProps extends HTMLAttributes<HTMLTableElement> {
 export function Table({ children, fixed = false, className, ...props }: TableProps) {
   return (
     <div className="relative overflow-auto">
-      <table
-        className={cn(
-          'table w-full',
-          fixed && 'table-fixed',
-          className
-        )}
-        {...props}
-      >
+      <table className={cn('table w-full', fixed && 'table-fixed', className)} {...props}>
         {children}
       </table>
     </div>
@@ -39,11 +32,7 @@ interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {
 function TableHeader({ children, sticky = false, className, ...props }: TableHeaderProps) {
   return (
     <thead
-      className={cn(
-        'bg-neutral-50',
-        sticky && 'sticky top-0 z-10 bg-white shadow-sm',
-        className
-      )}
+      className={cn('bg-neutral-50', sticky && 'sticky top-0 z-10 bg-white shadow-sm', className)}
       {...props}
     >
       {children}
@@ -176,10 +165,7 @@ interface TableFooterProps extends HTMLAttributes<HTMLTableSectionElement> {
 
 function TableFooter({ children, className, ...props }: TableFooterProps) {
   return (
-    <tfoot
-      className={cn('bg-neutral-50 font-medium', className)}
-      {...props}
-    >
+    <tfoot className={cn('bg-neutral-50 font-medium', className)} {...props}>
       {children}
     </tfoot>
   );

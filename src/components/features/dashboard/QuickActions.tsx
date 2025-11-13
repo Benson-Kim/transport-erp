@@ -8,15 +8,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { UserRole } from '@/app/generated/prisma';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Tooltip,
-  EmptyState,
-  Badge
-} from '@/components/ui';
+import { Button, Card, CardBody, CardHeader, Tooltip, EmptyState, Badge } from '@/components/ui';
 import {
   Plus,
   FileText,
@@ -53,133 +45,139 @@ export function QuickActions({
   userRole,
   loading = false,
   error = null,
-  onRefresh
+  onRefresh,
 }: QuickActionsProps) {
   const permissions = usePermissions();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   console.log('User Role in QuickActions:', userRole);
 
-  const actions = useMemo(() => [
-    {
-      id: 'new-service',
-      label: 'New Service',
-      description: 'Create a new transportation service',
-      icon: Plus,
-      href: '/services/new',
-      variant: 'primary' as const,
-      color: 'bg-blue-500',
-      show: permissions.can('services', 'create'),
-      badge: 'Quick',
-      hotkey: 'N',
-    },
-    {
-      id: 'loading-order',
-      label: 'Loading Order',
-      description: 'Generate a new loading order document',
-      icon: FileText,
-      href: '/loading-orders/new',
-      variant: 'secondary' as const,
-      color: 'bg-purple-500',
-      show: permissions.can('loading_orders', 'create'),
-      hotkey: 'L',
-    },
-    {
-      id: 'invoice',
-      label: 'Create Invoice',
-      description: 'Generate invoice for completed services',
-      icon: Receipt,
-      href: '/invoices/new',
-      variant: 'secondary' as const,
-      color: 'bg-green-500',
-      show: permissions.can('invoices', 'create'),
-      hotkey: 'I',
-    },
-    {
-      id: 'clients',
-      label: 'Manage Clients',
-      description: 'View and manage client information',
-      icon: Users,
-      href: '/clients',
-      variant: 'secondary' as const,
-      color: 'bg-orange-500',
-      show: permissions.can('clients', 'view'),
-    },
-    {
-      id: 'suppliers',
-      label: 'Manage Suppliers',
-      description: 'View and manage supplier relationships',
-      icon: Building2,
-      href: '/suppliers',
-      variant: 'secondary' as const,
-      color: 'bg-indigo-500',
-      show: permissions.can('suppliers', 'view'),
-    },
-    {
-      id: 'reports',
-      label: 'View Reports',
-      description: 'Access analytics and reports',
-      icon: TrendingUp,
-      href: '/reports',
-      variant: 'secondary' as const,
-      color: 'bg-pink-500',
-      show: permissions.can('reports', 'view'),
-      badge: 'Updated',
-    },
-  ], [permissions]);
+  const actions = useMemo(
+    () => [
+      {
+        id: 'new-service',
+        label: 'New Service',
+        description: 'Create a new transportation service',
+        icon: Plus,
+        href: '/services/new',
+        variant: 'primary' as const,
+        color: 'bg-blue-500',
+        show: permissions.can('services', 'create'),
+        badge: 'Quick',
+        hotkey: 'N',
+      },
+      {
+        id: 'loading-order',
+        label: 'Loading Order',
+        description: 'Generate a new loading order document',
+        icon: FileText,
+        href: '/loading-orders/new',
+        variant: 'secondary' as const,
+        color: 'bg-purple-500',
+        show: permissions.can('loading_orders', 'create'),
+        hotkey: 'L',
+      },
+      {
+        id: 'invoice',
+        label: 'Create Invoice',
+        description: 'Generate invoice for completed services',
+        icon: Receipt,
+        href: '/invoices/new',
+        variant: 'secondary' as const,
+        color: 'bg-green-500',
+        show: permissions.can('invoices', 'create'),
+        hotkey: 'I',
+      },
+      {
+        id: 'clients',
+        label: 'Manage Clients',
+        description: 'View and manage client information',
+        icon: Users,
+        href: '/clients',
+        variant: 'secondary' as const,
+        color: 'bg-orange-500',
+        show: permissions.can('clients', 'view'),
+      },
+      {
+        id: 'suppliers',
+        label: 'Manage Suppliers',
+        description: 'View and manage supplier relationships',
+        icon: Building2,
+        href: '/suppliers',
+        variant: 'secondary' as const,
+        color: 'bg-indigo-500',
+        show: permissions.can('suppliers', 'view'),
+      },
+      {
+        id: 'reports',
+        label: 'View Reports',
+        description: 'Access analytics and reports',
+        icon: TrendingUp,
+        href: '/reports',
+        variant: 'secondary' as const,
+        color: 'bg-pink-500',
+        show: permissions.can('reports', 'view'),
+        badge: 'Updated',
+      },
+    ],
+    [permissions]
+  );
 
-  const shortcuts = useMemo(() => [
-    {
-      id: 'import',
-      label: 'Import Data',
-      description: 'Bulk import from Excel or CSV',
-      icon: Upload,
-      onClick: async () => {
-        setLoadingAction('import');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Import data');
-        setLoadingAction(null);
+  const shortcuts = useMemo(
+    () => [
+      {
+        id: 'import',
+        label: 'Import Data',
+        description: 'Bulk import from Excel or CSV',
+        icon: Upload,
+        onClick: async () => {
+          setLoadingAction('import');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.log('Import data');
+          setLoadingAction(null);
+        },
+        show: permissions.isAdmin,
+        color: 'bg-cyan-500',
       },
-      show: permissions.isAdmin,
-      color: 'bg-cyan-500',
-    },
-    {
-      id: 'export',
-      label: 'Export Report',
-      description: 'Download reports in various formats',
-      icon: Download,
-      onClick: async () => {
-        setLoadingAction('export');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Export report');
-        setLoadingAction(null);
+      {
+        id: 'export',
+        label: 'Export Report',
+        description: 'Download reports in various formats',
+        icon: Download,
+        onClick: async () => {
+          setLoadingAction('export');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.log('Export report');
+          setLoadingAction(null);
+        },
+        show: permissions.can('reports', 'export'),
+        color: 'bg-teal-500',
       },
-      show: permissions.can('reports', 'export'),
-      color: 'bg-teal-500',
-    },
-    {
-      id: 'notifications',
-      label: 'Send Notifications',
-      description: 'Send bulk notifications to users',
-      icon: Send,
-      onClick: async () => {
-        setLoadingAction('notifications');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        console.log('Send notifications');
-        setLoadingAction(null);
+      {
+        id: 'notifications',
+        label: 'Send Notifications',
+        description: 'Send bulk notifications to users',
+        icon: Send,
+        onClick: async () => {
+          setLoadingAction('notifications');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.log('Send notifications');
+          setLoadingAction(null);
+        },
+        show: permissions.isManager,
+        color: 'bg-amber-500',
       },
-      show: permissions.isManager,
-      color: 'bg-amber-500',
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      description: 'Configure system preferences',
-      icon: Settings,
-      href: '/settings',
-      show: permissions.can('settings', 'view'),
-      color: 'bg-gray-500',
-    },
-  ], [permissions]);
+      {
+        id: 'settings',
+        label: 'Settings',
+        description: 'Configure system preferences',
+        icon: Settings,
+        href: '/settings',
+        show: permissions.can('settings', 'view'),
+        color: 'bg-gray-500',
+      },
+    ],
+    [permissions]
+  );
 
   const helpResources = [
     {
@@ -215,10 +213,7 @@ export function QuickActions({
   if (!loading && !error && visibleActions.length === 0 && visibleShortcuts.length === 0) {
     return (
       <Card variant="elevated" padding="none">
-        <CardHeader
-          title="Quick Actions"
-          subtitle="Available actions and shortcuts"
-        />
+        <CardHeader title="Quick Actions" subtitle="Available actions and shortcuts" />
         <CardBody>
           <EmptyState
             icon={<Zap size={48} />}
@@ -227,10 +222,10 @@ export function QuickActions({
             action={
               onRefresh
                 ? {
-                  label: 'Refresh Permissions',
-                  onClick: onRefresh,
-                  icon: <ArrowRight size={16} />,
-                }
+                    label: 'Refresh Permissions',
+                    onClick: onRefresh,
+                    icon: <ArrowRight size={16} />,
+                  }
                 : undefined
             }
           />
@@ -265,9 +260,7 @@ export function QuickActions({
                     <div className="space-y-1">
                       <div className="font-medium">{action.description}</div>
                       {action.hotkey && (
-                        <div className="text-xs opacity-75">
-                          Shortcut: Alt + {action.hotkey}
-                        </div>
+                        <div className="text-xs opacity-75">Shortcut: Alt + {action.hotkey}</div>
                       )}
                     </div>
                   }
@@ -278,12 +271,16 @@ export function QuickActions({
                       variant={action.variant}
                       className="w-full justify-start group hover:shadow-md transition-all"
                       size="md"
-                      icon={<ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />}
+                      icon={
+                        <ChevronRight className="h-4 w-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                      }
                     >
-                      <div className={cn(
-                        "flex items-center mr-3 p-1.5 rounded-lg bg-white/10",
-                        "group-hover:bg-white/20 transition-colors"
-                      )}>
+                      <div
+                        className={cn(
+                          'flex items-center mr-3 p-1.5 rounded-lg bg-white/10',
+                          'group-hover:bg-white/20 transition-colors'
+                        )}
+                      >
                         <action.icon className="h-4 w-4 mr-3" />
                         <span className="flex-1 text-left">{action.label}</span>
                         {action.badge && (
@@ -304,40 +301,35 @@ export function QuickActions({
       {/* Shortcuts Grid */}
       {visibleShortcuts.length > 0 && (
         <Card variant="elevated" padding="none">
-          <CardHeader
-            title="Shortcuts"
-            subtitle="Quick access to common tasks"
-          />
+          <CardHeader title="Shortcuts" subtitle="Quick access to common tasks" />
           <CardBody>
             <div className="grid grid-cols-2 gap-3">
               {visibleShortcuts.map((shortcut) => {
                 const isLoading = loadingAction === shortcut.id;
 
                 return (
-                  <Tooltip
-                    key={shortcut.id}
-                    content={shortcut.description}
-                    position="top"
-                  >
+                  <Tooltip key={shortcut.id} content={shortcut.description} position="top">
                     {shortcut.href ? (
                       <Link href={shortcut.href} className="block">
-                        <div className={cn(
-                          "relative h-24 rounded-lg border-2 border-neutral-200",
-                          "hover:border-primary hover:shadow-md transition-all cursor-pointer",
-                          "dark:border-neutral-700 dark:hover:border-primary",
-                          "flex flex-col items-center justify-center gap-2 p-4",
-                          "group"
-                        )}>
-                          <div className={cn(
-                            "p-2 rounded-lg transition-colors",
-                            shortcut.color,
-                            "bg-opacity-10 group-hover:bg-opacity-20"
-                          )}>
+                        <div
+                          className={cn(
+                            'relative h-24 rounded-lg border-2 border-neutral-200',
+                            'hover:border-primary hover:shadow-md transition-all cursor-pointer',
+                            'dark:border-neutral-700 dark:hover:border-primary',
+                            'flex flex-col items-center justify-center gap-2 p-4',
+                            'group'
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              'p-2 rounded-lg transition-colors',
+                              shortcut.color,
+                              'bg-opacity-10 group-hover:bg-opacity-20'
+                            )}
+                          >
                             <shortcut.icon className="h-5 w-5" />
                           </div>
-                          <span className="text-xs font-medium text-center">
-                            {shortcut.label}
-                          </span>
+                          <span className="text-xs font-medium text-center">{shortcut.label}</span>
                         </div>
                       </Link>
                     ) : (
@@ -345,18 +337,20 @@ export function QuickActions({
                         onClick={shortcut.onClick}
                         disabled={isLoading}
                         className={cn(
-                          "relative h-24 w-full rounded-lg border-2 border-neutral-200",
-                          "hover:border-primary hover:shadow-md transition-all",
-                          "dark:border-neutral-700 dark:hover:border-primary",
-                          "flex flex-col items-center justify-center gap-2 p-4",
-                          "group disabled:opacity-50 disabled:cursor-not-allowed"
+                          'relative h-24 w-full rounded-lg border-2 border-neutral-200',
+                          'hover:border-primary hover:shadow-md transition-all',
+                          'dark:border-neutral-700 dark:hover:border-primary',
+                          'flex flex-col items-center justify-center gap-2 p-4',
+                          'group disabled:opacity-50 disabled:cursor-not-allowed'
                         )}
                       >
-                        <div className={cn(
-                          "p-2 rounded-lg transition-colors",
-                          shortcut.color,
-                          "bg-opacity-10 group-hover:bg-opacity-20"
-                        )}>
+                        <div
+                          className={cn(
+                            'p-2 rounded-lg transition-colors',
+                            shortcut.color,
+                            'bg-opacity-10 group-hover:bg-opacity-20'
+                          )}
+                        >
                           {isLoading ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
                           ) : (
@@ -390,7 +384,8 @@ export function QuickActions({
         <CardBody>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              Access guides, tutorials, and direct support to help you get the most out of the platform.
+              Access guides, tutorials, and direct support to help you get the most out of the
+              platform.
             </p>
 
             <div className="grid gap-2">
@@ -404,27 +399,25 @@ export function QuickActions({
                     rel: 'noopener noreferrer',
                   })}
                 >
-                  <div className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg",
-                    "border border-neutral-200 dark:border-neutral-700",
-                    "hover:border-primary hover:bg-neutral-50 dark:hover:bg-neutral-900",
-                    "transition-all"
-                  )}>
+                  <div
+                    className={cn(
+                      'flex items-center gap-3 p-3 rounded-lg',
+                      'border border-neutral-200 dark:border-neutral-700',
+                      'hover:border-primary hover:bg-neutral-50 dark:hover:bg-neutral-900',
+                      'transition-all'
+                    )}
+                  >
                     <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                       <resource.icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {resource.label}
-                        </span>
+                        <span className="text-sm font-medium">{resource.label}</span>
                         {resource.external && (
                           <ExternalLink className="h-3 w-3 text-muted-foreground" />
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {resource.description}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{resource.description}</span>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
@@ -434,9 +427,7 @@ export function QuickActions({
 
             {/* Quick contact */}
             <div className="pt-3 border-t flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                Need immediate assistance?
-              </div>
+              <div className="text-xs text-muted-foreground">Need immediate assistance?</div>
               <Button
                 variant="ghost"
                 size="sm"
@@ -479,7 +470,7 @@ export function QuickActionsWidget({ userRole: _userRole }: { userRole: UserRole
       href: '/reports',
       show: permissions.can('reports', 'view'),
     },
-  ].filter(a => a.show);
+  ].filter((a) => a.show);
 
   if (topActions.length === 0) return null;
 
@@ -488,11 +479,7 @@ export function QuickActionsWidget({ userRole: _userRole }: { userRole: UserRole
       {topActions.map((action) => (
         <Tooltip key={action.id} content={action.label} position="bottom">
           <Link href={action.href}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 w-9 p-0"
-            >
+            <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
               <action.icon className="h-4 w-4" />
             </Button>
           </Link>

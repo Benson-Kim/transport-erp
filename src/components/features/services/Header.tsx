@@ -3,14 +3,7 @@
 
 import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import {
-  PageHeader,
-  Alert,
-  Button,
-  Card,
-  CardBody,
-  EmptyState
-} from '@/components/ui';
+import { PageHeader, Alert, Button, Card, CardBody, EmptyState } from '@/components/ui';
 import { formatPercentage } from '@/lib/utils/formatting';
 import Link from 'next/link';
 
@@ -22,12 +15,8 @@ export function ServicesHeader({ description }: ServicesHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="">
-
-      <PageHeader
-        title="Services"       
-        description={description}
-      />
-      {/* <Breadcrumb
+        <PageHeader title="Services" description={description} />
+        {/* <Breadcrumb
             items={[
               { label: 'Dashboard', href: '/dashboard' },
               { label: 'Services' },
@@ -35,18 +24,13 @@ export function ServicesHeader({ description }: ServicesHeaderProps) {
             className="mt-2"
           /> */}
       </div>
-          
+
       <Link href="/services/new">
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<Plus className="h-3.5 w-3.5" />}
-        >
+        <Button size="sm" variant="primary" icon={<Plus className="h-3.5 w-3.5" />}>
           New Service
         </Button>
       </Link>
     </div>
-
   );
 }
 
@@ -117,8 +101,8 @@ export function PerformanceTip({ averageMargin }: PerformanceTipProps) {
           <div className="space-y-1">
             <p className="text-sm font-medium">Performance Tip</p>
             <p className="text-xs text-muted-foreground">
-              Your average margin is {formatPercentage(averageMargin)}.
-              Consider reviewing services with margins below this threshold.
+              Your average margin is {formatPercentage(averageMargin)}. Consider reviewing services
+              with margins below this threshold.
             </p>
             <Button
               variant="ghost"

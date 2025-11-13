@@ -14,10 +14,7 @@ const passwordSchema = z
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
   .regex(/\d/, 'Password must contain at least one number')
-  .regex(
-    /[^A-Za-z0-9]/,
-    'Password must contain at least one special character'
-  );
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
 
 /**
  * Login form schema
@@ -35,9 +32,7 @@ const rememberMeField = z
   .default(false);
 
 export const loginSchema = z.object({
-  email: z
-    .email('Please enter a valid email address')
-    .min(1, 'Email is required'),
+  email: z.email('Please enter a valid email address').min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: rememberMeField,
 });
@@ -56,10 +51,7 @@ export const registerSchema = z
       .string()
       .min(2, 'Name must be at least 2 characters')
       .max(100, 'Name must be less than 100 characters')
-      .regex(
-        /^[a-zA-Z\s'-]+$/,
-        'Name can only contain letters, spaces, hyphens and apostrophes'
-      ),
+      .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens and apostrophes'),
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     acceptTerms: z
@@ -71,16 +63,12 @@ export const registerSchema = z
     path: ['confirmPassword'],
   });
 
-
 /**
  * Forgot password schema
  */
 export const forgotPasswordSchema = z.object({
-  email: z
-    .email('Please enter a valid email address')
-    .min(1, 'Email is required')
+  email: z.email('Please enter a valid email address').min(1, 'Email is required'),
 });
-
 
 /**
  * Reset password schema
@@ -113,7 +101,6 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   });
 
-
 /**
  * Profile update schema
  */
@@ -126,14 +113,10 @@ export const profileSchema = z.object({
   phone: z
     .string()
     .optional()
-    .refine(
-      (val) => !val || /^\+?[\d\s()-]+$/.test(val),
-      'Please enter a valid phone number'
-    ),
+    .refine((val) => !val || /^\+?[\d\s()-]+$/.test(val), 'Please enter a valid phone number'),
   department: z.string().optional(),
   avatar: z.url('Please enter a valid URL').optional().or(z.literal('')),
 });
-
 
 /**
  * Two-factor authentication schema
@@ -144,8 +127,6 @@ export const twoFactorSchema = z.object({
     .length(6, 'Code must be 6 digits')
     .regex(/^\d+$/, 'Code must contain only numbers'),
 });
-
-
 
 /**
  * Validate email format
@@ -165,7 +146,6 @@ export function sanitizeInput(input: string): string {
     .replace(/javascript:/gi, '') // Remove javascript: protocol
     .replace(/on\w+=/gi, ''); // Remove event handlers
 }
-
 
 export type LoginFormData = z.input<typeof loginSchema>;
 export type LoginOutputData = z.infer<typeof loginSchema>;

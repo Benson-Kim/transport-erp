@@ -54,7 +54,7 @@ export const toast = {
   success: (title: string, description?: string) => {
     return useToastStore.getState().addToast({
       title,
-      description: description ?? "",
+      description: description ?? '',
       variant: 'success',
     });
   },
@@ -62,7 +62,7 @@ export const toast = {
   error: (title: string, description?: string) => {
     return useToastStore.getState().addToast({
       title,
-      description: description ?? "",
+      description: description ?? '',
       variant: 'error',
     });
   },
@@ -70,7 +70,7 @@ export const toast = {
   warning: (title: string, description?: string) => {
     return useToastStore.getState().addToast({
       title,
-      description: description ?? "",
+      description: description ?? '',
       variant: 'warning',
     });
   },
@@ -78,7 +78,7 @@ export const toast = {
   info: (title: string, description?: string) => {
     return useToastStore.getState().addToast({
       title,
-      description: description ?? "",
+      description: description ?? '',
       variant: 'info',
     });
   },

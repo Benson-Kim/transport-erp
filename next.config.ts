@@ -1,24 +1,24 @@
 // next.config.ts
-import type { NextConfig } from "next";
-import createBundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from 'next';
+import createBundleAnalyzer from '@next/bundle-analyzer';
 
 const withBundleAnalyzer = createBundleAnalyzer({
-  enabled: process.env['ANALYZE'] === "true",
+  enabled: process.env['ANALYZE'] === 'true',
 });
 
 // Security headers for production
 const securityHeaders: { key: string; value: string }[] = [
-  { key: "X-DNS-Prefetch-Control", value: "on" },
-  { key: "X-XSS-Protection", value: "1; mode=block" },
-  { key: "X-Frame-Options", value: "SAMEORIGIN" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: 'X-DNS-Prefetch-Control', value: 'on' },
+  { key: 'X-XSS-Protection', value: '1; mode=block' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
 // Derive the exact ImageFormat[] type from NextConfig
-type NextImageFormats = NonNullable<NonNullable<NextConfig["images"]>["formats"]>;
-const imageFormats: NextImageFormats = ["image/avif", "image/webp"];
+type NextImageFormats = NonNullable<NonNullable<NextConfig['images']>['formats']>;
+const imageFormats: NextImageFormats = ['image/avif', 'image/webp'];
 
 const nextConfig: NextConfig = {
   // Enable React strict mode for better development warnings
@@ -28,21 +28,21 @@ const nextConfig: NextConfig = {
   experimental: {
     // Server Actions configuration
     serverActions: {
-      bodySizeLimit: "2mb",
-      allowedOrigins:
-        (process.env['ALLOWED_ORIGINS']?.split(",")
-          .map((s) => s.trim())
-          .filter(Boolean) as string[]) || ["localhost:3000"],
+      bodySizeLimit: '2mb',
+      allowedOrigins: (process.env['ALLOWED_ORIGINS']
+        ?.split(',')
+        .map((s) => s.trim())
+        .filter(Boolean) as string[]) || ['localhost:3000'],
     },
     // Optimize package imports
-    optimizePackageImports: ["lucide-react", "recharts", "date-fns"],
+    optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
   },
 
   // Image optimization configuration
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "**.amazonaws.com" },
-      { protocol: "https", hostname: "**.cloudinary.com" },
+      { protocol: 'https', hostname: '**.amazonaws.com' },
+      { protocol: 'https', hostname: '**.cloudinary.com' },
     ],
     formats: imageFormats,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -51,10 +51,10 @@ const nextConfig: NextConfig = {
 
   // Headers configuration
   async headers() {
-    if (process.env['NODE_ENV'] !== "production") return [];
+    if (process.env['NODE_ENV'] !== 'production') return [];
     return [
       {
-        source: "/:path*",
+        source: '/:path*',
         headers: securityHeaders,
       },
     ];
@@ -64,8 +64,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: "/",
-        destination: "/dashboard",
+        source: '/',
+        destination: '/dashboard',
         permanent: false,
       },
     ];
@@ -79,7 +79,7 @@ const nextConfig: NextConfig = {
       issuer: /\.[jt]sx?$/,
       use: [
         {
-          loader: "@svgr/webpack",
+          loader: '@svgr/webpack',
           options: { svgo: true, titleProp: true, ref: true },
         },
       ],
@@ -113,7 +113,7 @@ const nextConfig: NextConfig = {
   generateEtags: true,
 
   // Page extensions
-  pageExtensions: ["tsx", "ts", "jsx", "js"],
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
   // Trailing slash configuration
   trailingSlash: false,

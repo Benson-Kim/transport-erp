@@ -5,20 +5,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { UserRole } from '@/app/generated/prisma';
-import { 
-  Button, 
-  Badge,
-  DropdownMenu,
-  DropdownMenuItem,
-} from '@/components/ui';
+import { Button, Badge, DropdownMenu, DropdownMenuItem } from '@/components/ui';
 // import { ServiceActions } from './ServiceActions';
 import { hasPermission } from '@/lib/permissions';
-import { 
-  Edit, 
-  Copy, 
-  Trash2, 
-  CheckCircle2, 
-  FileText, 
+import {
+  Edit,
+  Copy,
+  Trash2,
+  CheckCircle2,
+  FileText,
   MoreVertical,
   Printer,
   Share2,
@@ -81,7 +76,7 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
     },
   ];
 
-   if (canGenerateDocs) {
+  if (canGenerateDocs) {
     dropdownItems.push({
       id: 'send-email',
       label: 'Send by Email',
@@ -139,13 +134,8 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
           {/* Service Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-neutral-900">
-                {service.serviceNumber}
-              </h1>
-              <Badge 
-                variant={getStatusVariant(service.status)}
-                size="lg"
-              >
+              <h1 className="text-3xl font-bold text-neutral-900">{service.serviceNumber}</h1>
+              <Badge variant={getStatusVariant(service.status)} size="lg">
                 {getStatusLabel(service.status)}
               </Badge>
               {service.urgent && (
@@ -154,7 +144,7 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
                 </Badge>
               )}
             </div>
-            
+
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>{format(new Date(service.date), 'PPP')}</span>
               <span>•</span>
@@ -172,7 +162,7 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
                 variant="secondary"
                 size="sm"
                 onClick={() => router.push(`/services/${service.id}/edit`)}
-                 icon={<Edit className="h-4 w-4 mr-2" />}
+                icon={<Edit className="h-4 w-4 mr-2" />}
               >
                 Edit
               </Button>
@@ -194,8 +184,10 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
                 service={service}
                 action="complete"
                 trigger={
-                  <Button variant="secondary" size="sm"
-                   icon={<CheckCircle2 className="h-4 w-4 mr-2" />}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<CheckCircle2 className="h-4 w-4 mr-2" />}
                   >
                     Complete
                   </Button>
@@ -208,9 +200,11 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
                 service={service}
                 action="generate-loading-order"
                 trigger={
-                  <Button variant="secondary" size="sm"
-                   icon={<FileText className="h-4 w-4 mr-2" />}
-                    >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon={<FileText className="h-4 w-4 mr-2" />}
+                  >
                     Loading Order
                   </Button>
                 }
@@ -220,7 +214,7 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
             {/* More Actions Dropdown */}
             <DropdownMenu
               trigger={
-                <Button variant="secondary" size="sm"  icon={<MoreVertical className="h-4 w-4" />} />               
+                <Button variant="secondary" size="sm" icon={<MoreVertical className="h-4 w-4" />} />
               }
               items={dropdownItems}
               align="right"
@@ -231,16 +225,13 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
               <ServiceActions
                 service={service}
                 action={serviceActionType as any}
-                trigger={
-                  <span className="hidden" />
-                }
+                trigger={<span className="hidden" />}
                 onSuccess={() => {
                   setShowServiceAction(false);
                   setServiceActionType(null);
                 }}
               />
             )}
-
           </div>
         </div>
       </div>

@@ -7,17 +7,17 @@
 
 import { useState } from 'react';
 import { UserRole } from '@/app/generated/prisma';
-import { 
-  Trash2, 
-  CheckCircle, 
-  FileText, 
+import {
+  Trash2,
+  CheckCircle,
+  FileText,
   // X,
   AlertTriangle,
   Info,
 } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
-import { 
-  bulkUpdateServices, 
+import {
+  bulkUpdateServices,
   bulkDeleteServices,
   generateBulkLoadingOrders,
 } from '@/actions/service-actions';
@@ -54,7 +54,9 @@ export function BulkActions({
     setIsProcessing(true);
     try {
       await bulkUpdateServices(selectedIds, { status: 'COMPLETED' });
-      toast.success(`${selectedCount} service${selectedCount !== 1 ? 's' : ''} marked as completed`);
+      toast.success(
+        `${selectedCount} service${selectedCount !== 1 ? 's' : ''} marked as completed`
+      );
       onClear();
     } catch (error) {
       toast.error('Failed to update services');
@@ -112,10 +114,10 @@ export function BulkActions({
 
   return (
     <>
-      <Alert 
+      <Alert
         variant="info"
         icon={Info}
-        className={cn("animate-in slide-in-from-top-2 fade-in duration-300", className)}
+        className={cn('animate-in slide-in-from-top-2 fade-in duration-300', className)}
         dismissible
         onDismiss={onClear}
       >
@@ -123,7 +125,7 @@ export function BulkActions({
           <span className="font-medium text-sm">
             {selectedCount} {selectedCount === 1 ? 'service' : 'services'} selected
           </span>
-          
+
           {hasAnyAction && (
             <div className="flex flex-wrap items-center gap-2">
               {canMarkCompleted && (
@@ -138,7 +140,7 @@ export function BulkActions({
                   Mark Completed
                 </Button>
               )}
-              
+
               {canGenerateOrders && (
                 <Button
                   size="sm"
@@ -151,7 +153,7 @@ export function BulkActions({
                   Generate Orders
                 </Button>
               )}
-              
+
               {canDelete && (
                 <Button
                   size="sm"
@@ -184,11 +186,11 @@ export function BulkActions({
             {/* Warning Alert */}
             <Alert variant="warning" icon={AlertTriangle}>
               <div className="space-y-2">
-                <p className="font-medium">
-                  Warning: This will permanently delete the following:
-                </p>
+                <p className="font-medium">Warning: This will permanently delete the following:</p>
                 <ul className="list-disc list-inside text-sm space-y-1 ml-2">
-                  <li>{selectedCount} service record{selectedCount !== 1 ? 's' : ''}</li>
+                  <li>
+                    {selectedCount} service record{selectedCount !== 1 ? 's' : ''}
+                  </li>
                   <li>All associated data and history</li>
                   <li>Related loading orders (if any)</li>
                 </ul>
@@ -197,7 +199,10 @@ export function BulkActions({
 
             {/* Confirmation Input */}
             <div className="space-y-2">
-              <label htmlFor="delete-confirmation" className="block text-sm font-medium text-neutral-700">
+              <label
+                htmlFor="delete-confirmation"
+                className="block text-sm font-medium text-neutral-700"
+              >
                 Type <span className="font-mono font-bold text-red-600">DELETE</span> to confirm:
               </label>
               <input
@@ -206,27 +211,26 @@ export function BulkActions({
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
                 className={cn(
-                  "w-full px-3 py-2 border rounded-lg transition-colors",
-                  "focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent",
-                  deleteConfirmText === 'DELETE' 
-                    ? "border-green-500 bg-green-50" 
-                    : "border-neutral-300 hover:border-neutral-400"
+                  'w-full px-3 py-2 border rounded-lg transition-colors',
+                  'focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent',
+                  deleteConfirmText === 'DELETE'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-neutral-300 hover:border-neutral-400'
                 )}
                 placeholder="Type DELETE"
                 autoComplete="off"
                 disabled={isDeleting}
               />
               {deleteConfirmText && deleteConfirmText !== 'DELETE' && (
-                <p className="text-xs text-red-600">
-                  Please type DELETE exactly to confirm
-                </p>
+                <p className="text-xs text-red-600">Please type DELETE exactly to confirm</p>
               )}
             </div>
 
             {/* Service Count Reminder */}
             <div className="p-3 bg-neutral-50 rounded-lg">
               <p className="text-sm text-neutral-600">
-                You are deleting <span className="font-bold text-red-600">{selectedCount}</span> service{selectedCount !== 1 ? 's' : ''}.
+                You are deleting <span className="font-bold text-red-600">{selectedCount}</span>{' '}
+                service{selectedCount !== 1 ? 's' : ''}.
                 {selectedCount > 10 && (
                   <span className="block mt-1 text-xs text-red-600 font-medium">
                     This is a large number of services. Please double-check before proceeding.
@@ -238,11 +242,7 @@ export function BulkActions({
         </Modal.Body>
 
         <Modal.Footer>
-          <Button
-            variant="ghost"
-            onClick={handleCloseDeleteDialog}
-            disabled={isDeleting}
-          >
+          <Button variant="ghost" onClick={handleCloseDeleteDialog} disabled={isDeleting}>
             Cancel
           </Button>
           <Button

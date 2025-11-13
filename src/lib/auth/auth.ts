@@ -107,11 +107,7 @@ export const authConfig = {
           const userAgent = req.headers.get('user-agent') ?? null;
 
           // Rate limit
-          const rateLimitResult = await rateLimiter.check(
-            validatedFields.email,
-            5,
-            15 * 60 * 1000
-          );
+          const rateLimitResult = await rateLimiter.check(validatedFields.email, 5, 15 * 60 * 1000);
 
           if (!rateLimitResult.success) {
             throw new Error(
@@ -341,7 +337,9 @@ export const authConfig = {
   // Events
   events: {
     async signIn({ user, account }) {
-      console.log(`User ${user?.email ?? user?.id} signed in via ${account?.provider ?? 'unknown'}`);
+      console.log(
+        `User ${user?.email ?? user?.id} signed in via ${account?.provider ?? 'unknown'}`
+      );
     },
     async signOut(message) {
       // message is a union: { session } | { token }
@@ -356,8 +354,7 @@ export const authConfig = {
       } else if ('token' in message && message.token) {
         const t = message.token as AppJWT;
         userId =
-          (typeof t.id === 'string' && t.id) ||
-          (typeof t.sub === 'string' ? t.sub : undefined);
+          (typeof t.id === 'string' && t.id) || (typeof t.sub === 'string' ? t.sub : undefined);
       }
 
       if (userId) {

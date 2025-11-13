@@ -3,19 +3,13 @@
 
 import { useState, ReactElement, cloneElement, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Button,
-  Input,
-  Alert,
-  Spinner,
-  Modal,
-} from '@/components/ui';
-import { 
-  markServiceComplete, 
+import { Button, Input, Alert, Spinner, Modal } from '@/components/ui';
+import {
+  markServiceComplete,
   deleteService,
   generateLoadingOrder,
-//   archiveService,
-//   sendServiceEmail,
+  //   archiveService,
+  //   sendServiceEmail,
 } from '@/actions/service-actions';
 import { toast } from '@/lib/toast';
 import { AlertCircle } from 'lucide-react';
@@ -28,12 +22,12 @@ interface ServiceActionsProps {
   autoOpen?: boolean;
 }
 
-export function ServiceActions({ 
-  service, 
-  action, 
+export function ServiceActions({
+  service,
+  action,
   trigger,
   onSuccess,
-  autoOpen = false  
+  autoOpen = false,
 }: ServiceActionsProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
@@ -48,7 +42,7 @@ export function ServiceActions({
 
   const handleAction = async () => {
     setIsLoading(true);
-    
+
     try {
       switch (action) {
         case 'complete':
@@ -56,7 +50,7 @@ export function ServiceActions({
           toast.success('Service marked as completed');
           router.refresh();
           break;
-          
+
         case 'delete':
           if (deleteConfirmation !== 'DELETE') {
             toast.error('Please type DELETE to confirm');
@@ -67,26 +61,26 @@ export function ServiceActions({
           toast.success('Service deleted successfully');
           router.push('/services');
           break;
-          
+
         case 'generate-loading-order':
           const { url } = await generateLoadingOrder(service.id);
           window.open(url, '_blank');
           toast.success('Loading order generated');
           router.refresh();
           break;
-          
+
         case 'archive':
-        //   await archiveService(service.id);
+          //   await archiveService(service.id);
           toast.success('Service archived');
           router.refresh();
           break;
-          
+
         case 'send-email':
-        //   await sendServiceEmail(service.id);
+          //   await sendServiceEmail(service.id);
           toast.success('Email sent successfully');
           break;
       }
-      
+
       onSuccess?.();
       setIsOpen(false);
     } catch (error) {
@@ -102,42 +96,43 @@ export function ServiceActions({
       case 'complete':
         return {
           title: 'Mark Service as Completed',
-          description: 'Are you sure you want to mark this service as completed? This will move it to the archive.',
+          description:
+            'Are you sure you want to mark this service as completed? This will move it to the archive.',
           confirmText: 'Mark Complete',
         };
-        
+
       case 'delete':
         return {
           title: 'Delete Service',
-          description: service.invoice 
+          description: service.invoice
             ? 'This service is included in an invoice and cannot be deleted.'
             : 'This action cannot be undone. Please type DELETE to confirm.',
           confirmText: 'Delete Service',
           showDeleteInput: !service.invoice,
           cannotDelete: !!service.invoice,
         };
-        
+
       case 'generate-loading-order':
         return {
           title: 'Generate Loading Order',
           description: 'A PDF loading order will be generated for this service.',
           confirmText: 'Generate PDF',
         };
-        
+
       case 'archive':
         return {
           title: 'Archive Service',
           description: 'This service will be moved to the archive.',
           confirmText: 'Archive',
         };
-        
+
       case 'send-email':
         return {
           title: 'Send Service by Email',
           description: `Service details will be sent to ${service.client.email}`,
           confirmText: 'Send Email',
         };
-        
+
       default:
         return {
           title: 'Confirm Action',
@@ -151,25 +146,19 @@ export function ServiceActions({
 
   return (
     <>
-      {trigger.type !== 'span' && cloneElement(trigger, {
-        onClick: () => setIsOpen(true),
-      })}
+      {trigger.type !== 'span' &&
+        cloneElement(trigger, {
+          onClick: () => setIsOpen(true),
+        })}
 
-      <Modal 
-        isOpen={isOpen} 
-        onClose={() => setIsOpen(false)}
-        title={dialogContent.title}
-        size="md"
-      >
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title={dialogContent.title} size="md">
         <Modal.Body>
           {dialogContent.cannotDelete ? (
             <Alert variant="error" icon={<AlertCircle />}>
               {dialogContent.description}
             </Alert>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              {dialogContent.description}
-            </p>
+            <p className="text-sm text-muted-foreground">{dialogContent.description}</p>
           )}
 
           {dialogContent.showDeleteInput && (
@@ -186,21 +175,14 @@ export function ServiceActions({
         </Modal.Body>
 
         <Modal.Footer>
-          <Button
-            variant="ghost"
-            onClick={() => setIsOpen(false)}
-            disabled={isLoading}
-          >
+          <Button variant="ghost" onClick={() => setIsOpen(false)} disabled={isLoading}>
             Cancel
           </Button>
           {!dialogContent.cannotDelete && (
             <Button
               variant={action === 'delete' ? 'danger' : 'primary'}
               onClick={handleAction}
-              disabled={
-                isLoading || 
-                (action === 'delete' && deleteConfirmation !== 'DELETE')
-              }
+              disabled={isLoading || (action === 'delete' && deleteConfirmation !== 'DELETE')}
             >
               {isLoading && <Spinner className="mr-2" />}
               {dialogContent.confirmText}

@@ -3,21 +3,19 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Card, CardBody, Button,  EmptyState } from '@/components/ui';
-import { 
-  FileText, 
-  Download, 
+import { Card, CardBody, Button, EmptyState } from '@/components/ui';
+import {
+  FileText,
+  Download,
   Eye,
   File,
   Calendar,
-  
   FileCheck,
   Receipt,
   ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { DocumentType } from '@/app/generated/prisma';
-
 
 interface Document {
   id: string;
@@ -38,7 +36,6 @@ interface RelatedDocumentsProps {
 }
 
 export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocumentsProps) {
-
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const handleDownload = async (doc: Document) => {
@@ -67,34 +64,52 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
 
   const getDocumentIcon = (type: DocumentType) => {
     switch (type) {
-      case 'LOADING_ORDER': return FileText;
-      case 'INVOICE': return FileCheck;
-      case 'RECEIPT': return Receipt;
-      case 'DELIVERY_NOTE': return ScrollText;
-      case 'CONTRACT': return File;
-      default: return File;
+      case 'LOADING_ORDER':
+        return FileText;
+      case 'INVOICE':
+        return FileCheck;
+      case 'RECEIPT':
+        return Receipt;
+      case 'DELIVERY_NOTE':
+        return ScrollText;
+      case 'CONTRACT':
+        return File;
+      default:
+        return File;
     }
   };
 
   const getDocumentColor = (type: DocumentType) => {
     switch (type) {
-      case 'LOADING_ORDER': return 'text-blue-600';
-      case 'INVOICE': return 'text-green-600';
-      case 'RECEIPT': return 'text-purple-600';
-      case 'DELIVERY_NOTE': return 'text-orange-600';
-      case 'CONTRACT': return 'text-indigo-600';
-      default: return 'text-gray-600';
+      case 'LOADING_ORDER':
+        return 'text-blue-600';
+      case 'INVOICE':
+        return 'text-green-600';
+      case 'RECEIPT':
+        return 'text-purple-600';
+      case 'DELIVERY_NOTE':
+        return 'text-orange-600';
+      case 'CONTRACT':
+        return 'text-indigo-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
   const getDocumentLabel = (type: DocumentType, documentNumber?: string | null) => {
     switch (type) {
-      case 'LOADING_ORDER': return 'Loading Order';
-      case 'INVOICE': return documentNumber ? `Invoice ${documentNumber}` : 'Invoice';
-      case 'RECEIPT': return documentNumber ? `Receipt ${documentNumber}` : 'Receipt';
-      case 'DELIVERY_NOTE': return 'Delivery Note';
-      case 'CONTRACT': return 'Contract';
-      default: return 'Document';
+      case 'LOADING_ORDER':
+        return 'Loading Order';
+      case 'INVOICE':
+        return documentNumber ? `Invoice ${documentNumber}` : 'Invoice';
+      case 'RECEIPT':
+        return documentNumber ? `Receipt ${documentNumber}` : 'Receipt';
+      case 'DELIVERY_NOTE':
+        return 'Delivery Note';
+      case 'CONTRACT':
+        return 'Contract';
+      default:
+        return 'Document';
     }
   };
 
@@ -103,7 +118,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   return (
@@ -113,7 +128,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
           <FileText className="h-4 w-4 mr-2" />
           Related Documents
         </h3>
-        
+
         {documents.length === 0 ? (
           <EmptyState
             variant="custom"
@@ -123,12 +138,12 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
           />
         ) : (
           <div className="space-y-3">
-            {documents.map(doc => {
+            {documents.map((doc) => {
               const Icon = getDocumentIcon(doc.documentType);
               const color = getDocumentColor(doc.documentType);
               const isPDF = doc.mimeType === 'application/pdf';
               const isViewable = isPDF || doc.mimeType.includes('image');
-              
+
               return (
                 <div
                   key={doc.id}
@@ -136,26 +151,22 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
-                      <Icon className={cn("h-5 w-5 mt-0.5", color)} />
+                      <Icon className={cn('h-5 w-5 mt-0.5', color)} />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-sm truncate">
                           {getDocumentLabel(doc.documentType, doc.documentNumber)}
                         </p>
-                        
+
                         {doc.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {doc.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{doc.description}</p>
                         )}
-                        
+
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <div className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
                             {format(new Date(doc.uploadedAt), 'dd MMM yyyy')}
                           </div>
-                          <div>
-                            {formatFileSize(doc.fileSize)}
-                          </div>
+                          <div>{formatFileSize(doc.fileSize)}</div>
                         </div>
 
                         <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -163,7 +174,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-1 ml-2">
                       {isViewable && (
                         <Button
@@ -175,7 +186,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocuments
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
-                      
+
                       <Button
                         variant="ghost"
                         size="sm"

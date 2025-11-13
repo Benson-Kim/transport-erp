@@ -4,14 +4,7 @@
  */
 
 import { ReactNode } from 'react';
-import { 
-  Search, 
-  Database, 
-  Lock, 
-  AlertCircle,
-  Plus,
-  Upload
-} from 'lucide-react';
+import { Search, Database, Lock, AlertCircle, Plus, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui';
 
@@ -20,15 +13,19 @@ export interface EmptyStateProps {
   icon?: ReactNode;
   title?: string;
   description?: string;
-  action?: {
-    label: string;
-    onClick: () => void;
-    icon?: ReactNode;
-  } | undefined;
-  secondaryAction?: {
-    label: string;
-    onClick: () => void;
-  } | undefined;
+  action?:
+    | {
+        label: string;
+        onClick: () => void;
+        icon?: ReactNode;
+      }
+    | undefined;
+  secondaryAction?:
+    | {
+        label: string;
+        onClick: () => void;
+      }
+    | undefined;
   className?: string;
 }
 
@@ -59,7 +56,6 @@ const presetConfigs: Record<
   custom: {}, // valid now
 };
 
-
 export function EmptyState({
   variant = 'no-data',
   icon,
@@ -70,50 +66,33 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   const config = presetConfigs[variant];
-  
+
   const displayIcon = icon !== undefined ? icon : config.icon;
   const displayTitle = title || config.title || 'No content';
   const displayDescription = description || config.description;
 
   return (
     <div
-      className={cn(
-        'flex flex-col items-center justify-center py-12 px-6 text-center',
-        className
-      )}
+      className={cn('flex flex-col items-center justify-center py-12 px-6 text-center', className)}
     >
-      {displayIcon && (
-        <div className="text-neutral-400 mb-4">
-          {displayIcon}
-        </div>
-      )}
-      
-      <h3 className="text-lg font-medium text-neutral-900 mb-2">
-        {displayTitle}
-      </h3>
-      
+      {displayIcon && <div className="text-neutral-400 mb-4">{displayIcon}</div>}
+
+      <h3 className="text-lg font-medium text-neutral-900 mb-2">{displayTitle}</h3>
+
       {displayDescription && (
-        <p className="text-sm text-neutral-600 mb-6 max-w-md">
-          {displayDescription}
-        </p>
+        <p className="text-sm text-neutral-600 mb-6 max-w-md">{displayDescription}</p>
       )}
-      
+
       {(action || secondaryAction) && (
         <div className="flex items-center gap-3">
           {action && (
-            <Button
-              onClick={action.onClick}
-              icon={action.icon}
-            >
+            <Button onClick={action.onClick} icon={action.icon}>
               {action.label}
             </Button>
           )}
-          
+
           {secondaryAction && (
-            <Button
-              variant="ghost"
-              onClick={secondaryAction.onClick}
-            >
+            <Button variant="ghost" onClick={secondaryAction.onClick}>
               {secondaryAction.label}
             </Button>
           )}

@@ -10,7 +10,6 @@ import { addHours } from 'date-fns';
 import { UserRole } from '@/app/generated/prisma';
 import prisma from '../prisma/prisma';
 
-
 /**
  * Password hashing configuration
  */
@@ -35,10 +34,7 @@ export async function hashPassword(password: string): Promise<string> {
 /**
  * Verify a password against a hash
  */
-export async function verifyPassword(
-  password: string,
-  hashedPassword: string
-): Promise<boolean> {
+export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
   return compare(password, hashedPassword);
 }
 
@@ -49,15 +45,13 @@ export function generateToken(length: number = 32): string {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
 
-  return Array.from(array, b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(array, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
  * Generate and store email verification token
  */
-export async function generateVerificationToken(
-  email: string
-): Promise<string> {
+export async function generateVerificationToken(email: string): Promise<string> {
   const token = generateToken();
   const expires = addHours(new Date(), TOKEN_EXPIRY.VERIFICATION);
 
@@ -145,9 +139,7 @@ export async function verifyEmailToken(
 /**
  * Generate and store password reset token
  */
-export async function generatePasswordResetToken(
-  email: string
-): Promise<string | null> {
+export async function generatePasswordResetToken(email: string): Promise<string | null> {
   try {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -247,7 +239,6 @@ export async function resetPasswordWithToken(
       });
     }
 
-
     return { success: true };
   } catch (error) {
     console.error('Error resetting password:', error);
@@ -258,11 +249,7 @@ export async function resetPasswordWithToken(
 /**
  * Check if user has permission for an action
  */
-export function hasPermission(
-  userRole: UserRole,
-  action: string,
-  resource: string
-): boolean {
+export function hasPermission(userRole: UserRole, action: string, resource: string): boolean {
   const permissions: Record<UserRole, string[]> = {
     SUPER_ADMIN: ['*'], // All permissions
     ADMIN: [
@@ -284,26 +271,9 @@ export function hasPermission(
       'invoices:*',
       'reports:*',
     ],
-    ACCOUNTANT: [
-      'clients:read',
-      'suppliers:read',
-      'services:read',
-      'invoices:*',
-      'reports:read',
-    ],
-    OPERATOR: [
-      'clients:read',
-      'suppliers:read',
-      'services:*',
-      'invoices:read',
-    ],
-    VIEWER: [
-      'clients:read',
-      'suppliers:read',
-      'services:read',
-      'invoices:read',
-      'reports:read',
-    ],
+    ACCOUNTANT: ['clients:read', 'suppliers:read', 'services:read', 'invoices:*', 'reports:read'],
+    OPERATOR: ['clients:read', 'suppliers:read', 'services:*', 'invoices:read'],
+    VIEWER: ['clients:read', 'suppliers:read', 'services:read', 'invoices:read', 'reports:read'],
   };
 
   const userPermissions = permissions[userRole] || [];

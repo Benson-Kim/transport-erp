@@ -38,11 +38,7 @@ export function Spinner({
       className={cn('inline-flex items-center justify-center', className)}
     >
       <svg
-        className={cn(
-          'animate-spin',
-          sizes[size],
-          colors[color]
-        )}
+        className={cn('animate-spin', sizes[size], colors[color])}
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -90,9 +86,7 @@ export function LoadingOverlay({
     >
       <div className="flex flex-col items-center gap-3">
         <Spinner size="lg" />
-        {label && (
-          <p className="text-sm text-neutral-600">{label}</p>
-        )}
+        {label && <p className="text-sm text-neutral-600">{label}</p>}
       </div>
     </div>
   );

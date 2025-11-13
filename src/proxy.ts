@@ -27,50 +27,48 @@ const API_ROUTES = ['/api/auth'];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Allow public routes
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
-  
+
   // Allow API routes to handle their own auth
   if (API_ROUTES.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
-  
+
   // Get session
   const session = await auth();
-  
+
   // Redirect to login if not authenticated
   if (!session?.user) {
     const url = new URL('/login', request.url);
     url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
   }
-  
+
   // Check route permissions for dashboard routes
   if (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) {
     const hasAccess = canAccessRoute(session.user.role, pathname);
-    
+
     if (!hasAccess) {
       // Log unauthorized access attempt
-      console.warn(
-        `Unauthorized access attempt by ${session.user.email} to ${pathname}`
-      );
-      
+      console.warn(`Unauthorized access attempt by ${session.user.email} to ${pathname}`);
+
       // Redirect to dashboard with error
       const url = new URL('/dashboard', request.url);
       url.searchParams.set('error', 'unauthorized');
       return NextResponse.redirect(url);
     }
   }
-  
+
   // Add user info to headers for server components
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', session.user.id);
   requestHeaders.set('x-user-role', session.user.role);
   requestHeaders.set('x-user-email', session.user.email);
-  
+
   return NextResponse.next({
     request: {
       headers: requestHeaders,

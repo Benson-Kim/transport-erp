@@ -3,7 +3,7 @@
  * Common utilities for database operations
  */
 
-import { AuditAction, Prisma, PrismaClient } from "@/app/generated/prisma";
+import { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
 import prisma from './prisma';
 
 /**
@@ -51,9 +51,7 @@ export function getPaginationParams(params: PaginationParams) {
   return {
     skip,
     take: limit,
-    orderBy: params.sortBy
-      ? { [params.sortBy]: params.sortOrder || 'asc' }
-      : undefined,
+    orderBy: params.sortBy ? { [params.sortBy]: params.sortOrder || 'asc' } : undefined,
   };
 }
 
@@ -63,7 +61,7 @@ export function getPaginationParams(params: PaginationParams) {
 export function createPaginatedResponse<T>(
   data: T[],
   total: number,
-  params: PaginationParams,
+  params: PaginationParams
 ): PaginationResult<T> {
   const page = params.page || 1;
   const limit = params.limit || 20;
@@ -122,7 +120,6 @@ export async function createAuditLog({
       },
     },
   });
-
 }
 
 /**
@@ -132,7 +129,7 @@ export async function createAuditLog({
 export async function processBatch<T, R>(
   items: T[],
   batchSize: number,
-  processor: (batch: T[]) => Promise<R[]>,
+  processor: (batch: T[]) => Promise<R[]>
 ): Promise<R[]> {
   const results: R[] = [];
 
@@ -149,10 +146,10 @@ export async function processBatch<T, R>(
  * Transaction Helper
  * Wrapper for Prisma transactions with error handling
  */
-type IsolationLevel = "ReadUncommitted" | "ReadCommitted" | "RepeatableRead" | "Serializable";
+type IsolationLevel = 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable';
 
 export async function withTransaction<T>(
-  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  fn: (tx: Prisma.TransactionClient) => Promise<T>
 ): Promise<T> {
   return prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
@@ -166,8 +163,8 @@ export async function withTransaction<T>(
     {
       maxWait: 5000,
       timeout: 10000,
-      isolationLevel: "Serializable" as IsolationLevel,
-    },
+      isolationLevel: 'Serializable' as IsolationLevel,
+    }
   );
 }
 
@@ -175,11 +172,7 @@ export async function withTransaction<T>(
  * Soft Delete Function
  * Marks a record as deleted instead of removing it
  */
-export async function softDelete(
-  model: string,
-  id: string,
-  userId?: string,
-): Promise<void> {
+export async function softDelete(model: string, id: string, userId?: string): Promise<void> {
   const now = new Date();
 
   // Create audit log
@@ -204,11 +197,7 @@ export async function softDelete(
 /**
  * Restore Soft Deleted Record
  */
-export async function restore(
-  model: string,
-  id: string,
-  userId?: string,
-): Promise<void> {
+export async function restore(model: string, id: string, userId?: string): Promise<void> {
   // Create audit log
   if (userId) {
     await createAuditLog({
@@ -235,7 +224,7 @@ export async function restore(
 export async function bulkInsert<T>(
   model: string,
   data: T[],
-  batchSize: number = 1000,
+  batchSize: number = 1000
 ): Promise<number> {
   let inserted = 0;
 
@@ -257,16 +246,15 @@ export async function bulkInsert<T>(
  */
 export function createSearchCondition(
   searchTerm: string,
-  fields: string[],
+  fields: string[]
 ): { text: string; params: any[] } {
   const pattern = `%${searchTerm.toLowerCase()}%`;
   const clauses = fields.map((field, idx) => `"${field}" ILIKE $${idx + 1}`);
   return {
-    text: `(${clauses.join(" OR ")})`,
+    text: `(${clauses.join(' OR ')})`,
     params: Array(fields.length).fill(pattern),
   };
 }
-
 
 /**
  * Date Range Filter
@@ -276,10 +264,7 @@ export interface DateRangeFilter {
   to?: Date;
 }
 
-export function createDateRangeCondition(
-  field: string,
-  range: DateRangeFilter,
-) {
+export function createDateRangeCondition(field: string, range: DateRangeFilter) {
   const conditions: any = {};
 
   if (range.from) {
@@ -306,7 +291,7 @@ export function createDateRangeCondition(
 export async function generateUniqueIdentifier(
   prefix: string,
   model: string,
-  field: string,
+  field: string
 ): Promise<string> {
   const year = new Date().getFullYear();
 

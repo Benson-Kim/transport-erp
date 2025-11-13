@@ -1,15 +1,15 @@
-import { designTokens } from "@/lib/design-tokens";
-import type { Config } from "tailwindcss";
+import { designTokens } from '@/lib/design-tokens';
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
-    "./app/**/*.{ts,tsx,mdx}",
-    "./components/**/*.{ts,tsx}",
-    "./pages/**/*.{ts,tsx}",
-    "./lib/**/*.{ts,tsx}",
-    "./actions/**/*.{ts,tsx}",
-    "./hooks/**/*.{ts,tsx}",
-    "./styles/**/*.{css}",
+    './app/**/*.{ts,tsx,mdx}',
+    './components/**/*.{ts,tsx}',
+    './pages/**/*.{ts,tsx}',
+    './lib/**/*.{ts,tsx}',
+    './actions/**/*.{ts,tsx}',
+    './hooks/**/*.{ts,tsx}',
+    './styles/**/*.{css}',
   ],
   theme: {
     extend: {
@@ -100,69 +100,61 @@ const config: Config = {
         white: designTokens.colors.neutral.white,
       },
       fontFamily: {
-        ...Object.fromEntries(
-          Object.entries(designTokens.fonts).map(([k, v]) => [k, v])
-        ),
+        ...Object.fromEntries(Object.entries(designTokens.fonts).map(([k, v]) => [k, v])),
       },
       spacing: {
-        ...Object.fromEntries(
-          Object.entries(designTokens.spacing).map(([k, v]) => [k, v])
-        ),
+        ...Object.fromEntries(Object.entries(designTokens.spacing).map(([k, v]) => [k, v])),
       },
       borderRadius: {
-        ...Object.fromEntries(
-          Object.entries(designTokens.radii).map(([k, v]) => [k, v])
-        ),
+        ...Object.fromEntries(Object.entries(designTokens.radii).map(([k, v]) => [k, v])),
       },
       boxShadow: {
-        ...Object.fromEntries(
-          Object.entries(designTokens.shadows).map(([k, v]) => [k, v])
-        ),
+        ...Object.fromEntries(Object.entries(designTokens.shadows).map(([k, v]) => [k, v])),
       },
       width: {
         'icon-sm': '1.25rem', //20px
         'icon-md': '1.5rem', //24px
-        "sidebar-desktop": "var(--sidebar-desktop)",
-        "sidebar-tablet": "var(--sidebar-tablet)",
-        "sidebar-collapsed": "var(--sidebar-collapsed)",
+        'sidebar-desktop': 'var(--sidebar-desktop)',
+        'sidebar-tablet': 'var(--sidebar-tablet)',
+        'sidebar-collapsed': 'var(--sidebar-collapsed)',
       },
       height: {
         'icon-sm': '1.25rem', //20px
         'icon-md': '1.5rem', //24px
-        header: "var(--header-height)",
-        logo: "var(--logo-size)",
-        avatar: "var(--avatar-size)",
+        header: 'var(--header-height)',
+        logo: 'var(--logo-size)',
+        avatar: 'var(--avatar-size)',
       },
       transitionDuration: {
-        100: "100ms",
-        150: "150ms",
-        200: "200ms",
-        300: "300ms",
+        100: '100ms',
+        150: '150ms',
+        200: '200ms',
+        300: '300ms',
       },
       keyframes: {
         spin: {
-          to: { transform: "rotate(360deg)" },
+          to: { transform: 'rotate(360deg)' },
         },
       },
       animation: {
-        spin: "spin 1s linear infinite",
+        spin: 'spin 1s linear infinite',
       },
       container: {
         center: true,
         padding: {
-          DEFAULT: "1rem",
-          md: "1.25rem",
-          xl: "1.5rem",
+          DEFAULT: '1rem',
+          md: '1.25rem',
+          xl: '1.5rem',
         },
       },
     },
     screens: {
       /* Keep Tailwind defaults for compatibility, plus "wide" */
-      sm: "640px",
+      sm: '640px',
       md: designTokens.breakpoints.tablet, // 768px
-      lg: "1024px",
+      lg: '1024px',
       xl: designTokens.breakpoints.desktop, // 1280px
-      "2xl": "1536px",
+      '2xl': '1536px',
       wide: designTokens.breakpoints.wide, // 1920px
     },
   },

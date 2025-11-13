@@ -30,7 +30,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
   ) => {
     return (
       <div className="w-full">
-        <div 
+        <div
           className={cn(
             'flex gap-4',
             orientation === 'vertical' && 'flex-col',
@@ -66,19 +66,15 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
                 {...props}
               />
               <div>
-                <div className="text-sm font-medium text-neutral-700">
-                  {option.label}
-                </div>
+                <div className="text-sm font-medium text-neutral-700">{option.label}</div>
                 {option.description && (
-                  <div className="text-xs text-neutral-500">
-                    {option.description}
-                  </div>
+                  <div className="text-xs text-neutral-500">{option.description}</div>
                 )}
               </div>
             </label>
           ))}
         </div>
-        
+
         {error && (
           <div id={`${name}-error`} className="mt-2 text-danger text-xs" role="alert">
             {error}

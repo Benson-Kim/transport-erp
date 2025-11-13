@@ -33,32 +33,32 @@ export function Pagination({
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 7;
-    
+
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
       pages.push(1);
-      
+
       if (currentPage > 3) {
         pages.push('...');
       }
-      
+
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
+
       if (currentPage < totalPages - 2) {
         pages.push('...');
       }
-      
+
       pages.push(totalPages);
     }
-    
+
     return pages;
   };
 
@@ -91,7 +91,7 @@ export function Pagination({
           <div className="flex items-center gap-2">
             <span className="text-sm text-neutral-600">Show</span>
             <Select
-              options={pageSizeOptions.map(size => ({
+              options={pageSizeOptions.map((size) => ({
                 value: String(size),
                 label: String(size),
               }))}
@@ -103,12 +103,8 @@ export function Pagination({
             <span className="text-sm text-neutral-600">per page</span>
           </div>
         )}
-        
-        {totalItems && (
-          <span className="text-sm text-neutral-600">
-            {totalItems} total items
-          </span>
-        )}
+
+        {totalItems && <span className="text-sm text-neutral-600">{totalItems} total items</span>}
       </div>
 
       <div className="flex items-center gap-1">
@@ -125,10 +121,7 @@ export function Pagination({
         {getPageNumbers().map((page, index) => {
           if (page === '...') {
             return (
-              <span
-                key={`ellipsis-${index}`}
-                className="px-2 text-neutral-400"
-              >
+              <span key={`ellipsis-${index}`} className="px-2 text-neutral-400">
                 <MoreHorizontal size={16} />
               </span>
             );

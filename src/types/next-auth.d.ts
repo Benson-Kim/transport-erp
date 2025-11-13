@@ -1,11 +1,9 @@
-import { DefaultSession } from "next-auth";
-import { AdapterUser } from "@auth/core/adapters";
+import { DefaultSession } from 'next-auth';
+import { AdapterUser } from '@auth/core/adapters';
 import { UserRole } from '@/app/generated/prisma';
 
-
-
 // Extend next-auth session & user
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
@@ -16,7 +14,7 @@ declare module "next-auth" {
       twoFactorEnabled: boolean;
       department?: string | null;
       avatar?: string | null;
-    } & DefaultSession["user"];
+    } & DefaultSession['user'];
   }
 
   interface User {
@@ -32,7 +30,7 @@ declare module "next-auth" {
 }
 
 // Extend next-auth JWT
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     role: UserRole;
@@ -44,7 +42,7 @@ declare module "next-auth/jwt" {
 }
 
 // Extend the adapter user type (Prisma adapter compatibility)
-declare module "@auth/core/adapters" {
+declare module '@auth/core/adapters' {
   interface AdapterUser {
     role?: UserRole;
     twoFactorEnabled?: boolean;

@@ -3,14 +3,7 @@
 
 import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { 
-  PageHeader, 
-  Alert,
-  Button,
-  Card,
-  CardBody,
-  EmptyState 
-} from '@/components/ui';
+import { PageHeader, Alert, Button, Card, CardBody, EmptyState } from '@/components/ui';
 import { formatPercentage } from '@/lib/utils/formatting';
 
 interface DashboardHeaderProps {
@@ -25,9 +18,7 @@ export function DashboardHeader({ userName, isNewUser, description }: DashboardH
       title={
         <div className="flex items-center gap-2">
           <span>Welcome back, {userName}</span>
-          {!isNewUser && (
-            <Sparkles className="h-5 w-5 text-yellow-500" />
-          )}
+          {!isNewUser && <Sparkles className="h-5 w-5 text-yellow-500" />}
         </div>
       }
       description={description}
@@ -37,7 +28,7 @@ export function DashboardHeader({ userName, isNewUser, description }: DashboardH
 
 export function DashboardRefreshButton() {
   const router = useRouter();
-  
+
   return (
     <Button
       variant="ghost"
@@ -56,8 +47,8 @@ interface DashboardErrorAlertProps {
 
 export function DashboardErrorAlert({ errorMessage }: DashboardErrorAlertProps) {
   return (
-    <Alert 
-      variant="error" 
+    <Alert
+      variant="error"
       icon={<Info className="h-4 w-4" />}
       title="Failed to load dashboard data"
     >
@@ -68,7 +59,7 @@ export function DashboardErrorAlert({ errorMessage }: DashboardErrorAlertProps) 
 
 export function NewUserWelcome() {
   const router = useRouter();
-  
+
   return (
     <EmptyState
       icon={<Sparkles size={48} />}
@@ -93,7 +84,7 @@ interface PerformanceTipProps {
 
 export function PerformanceTip({ averageMargin }: PerformanceTipProps) {
   const router = useRouter();
-  
+
   return (
     <Card variant="bordered">
       <CardBody className="p-4">
@@ -102,14 +93,14 @@ export function PerformanceTip({ averageMargin }: PerformanceTipProps) {
           <div className="space-y-1">
             <p className="text-sm font-medium">Performance Tip</p>
             <p className="text-xs text-muted-foreground">
-              Your average margin is {formatPercentage(averageMargin)}. 
-              Consider reviewing services with margins below this threshold.
+              Your average margin is {formatPercentage(averageMargin)}. Consider reviewing services
+              with margins below this threshold.
             </p>
             <Button
               variant="ghost"
               size="sm"
               className="h-auto p-0 text-xs"
-              icon={ <ArrowRight className="h-3 w-3 ml-1" /> }
+              icon={<ArrowRight className="h-3 w-3 ml-1" />}
               onClick={() => router.push('/reports/margins')}
             >
               View Margin Report

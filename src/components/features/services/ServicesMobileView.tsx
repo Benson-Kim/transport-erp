@@ -5,18 +5,12 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserRole } from '@/app/generated/prisma';
 import { ServiceData } from '@/types/service';
-import { 
-  Card, 
-  CardBody, 
-  Button,
-  Pagination,
-  Checkbox,
-} from '@/components/ui';
+import { Card, CardBody, Button, Pagination, Checkbox } from '@/components/ui';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 import { BulkActions } from './BulkActions';
-import { 
-  Calendar, 
-  MapPin, 
+import {
+  Calendar,
+  MapPin,
   DollarSign,
   MoreVertical,
   Users,
@@ -45,9 +39,9 @@ export function ServicesMobileView({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
-  
+
   const totalPages = Math.ceil(total / pageSize);
-  
+
   const handleSelect = (serviceId: string) => {
     const newSelected = new Set(selectedServices);
     if (newSelected.has(serviceId)) {
@@ -73,16 +67,15 @@ export function ServicesMobileView({
       {/* Service Cards */}
       <div className="space-y-3">
         {services.map((service) => {
-          const marginPercent = service.saleAmount > 0 
-            ? (service.margin / service.saleAmount) * 100
-            : 0;
+          const marginPercent =
+            service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
 
           return (
-            <Card 
+            <Card
               key={service.id}
               className={cn(
-                "cursor-pointer transition-all",
-                selectedServices.has(service.id) && "ring-2 ring-primary"
+                'cursor-pointer transition-all',
+                selectedServices.has(service.id) && 'ring-2 ring-primary'
               )}
               onClick={() => router.push(`/services/${service.id}`)}
             >
@@ -96,9 +89,7 @@ export function ServicesMobileView({
                       />
                     </div>
                     <div>
-                      <p className="font-semibold text-primary">
-                        {service.serviceNumber}
-                      </p>
+                      <p className="font-semibold text-primary">{service.serviceNumber}</p>
                       <ServiceStatusBadge status={service.status} size="sm" />
                     </div>
                   </div>
@@ -134,7 +125,7 @@ export function ServicesMobileView({
                   <div className="flex items-center gap-2">
                     <MapPin className="h-3 w-3 text-muted-foreground" />
                     <span className="text-xs flex items-center gap-1">
-                      {service.origin} <ArrowRight className='w-3 h-3' /> {service.destination}
+                      {service.origin} <ArrowRight className="w-3 h-3" /> {service.destination}
                     </span>
                   </div>
 
@@ -143,10 +134,12 @@ export function ServicesMobileView({
                       <DollarSign className="h-3 w-3 text-muted-foreground" />
                       <span className="font-medium">{formatCurrency(service.saleAmount)}</span>
                     </div>
-                    <span className={cn(
-                      "text-xs font-medium",
-                      service.margin >= 0 ? "text-green-600" : "text-red-600"
-                    )}>
+                    <span
+                      className={cn(
+                        'text-xs font-medium',
+                        service.margin >= 0 ? 'text-green-600' : 'text-red-600'
+                      )}
+                    >
                       {formatPercentage(marginPercent)} margin
                     </span>
                   </div>

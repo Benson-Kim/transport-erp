@@ -29,11 +29,11 @@ tokens.color('primary', 700); // Active state
 // Semantic colors
 tokens.color('success', 500); // Success states
 tokens.color('warning', 500); // Warning states
-tokens.color('error', 500);   // Error states
-tokens.color('info', 500);    // Information
+tokens.color('error', 500); // Error states
+tokens.color('info', 500); // Information
 
 // Neutral colors
-tokens.color('neutral', 50);  // Lightest
+tokens.color('neutral', 50); // Lightest
 tokens.color('neutral', 900); // Darkest
 ```
 
@@ -57,10 +57,10 @@ tokens.color('neutral', 900); // Darkest
 Based on 4px increments:
 
 ```typescript
-tokens.spacing(1);  // 0.25rem (4px)
-tokens.spacing(2);  // 0.5rem (8px)
-tokens.spacing(4);  // 1rem (16px)
-tokens.spacing(8);  // 2rem (32px)
+tokens.spacing(1); // 0.25rem (4px)
+tokens.spacing(2); // 0.5rem (8px)
+tokens.spacing(4); // 1rem (16px)
+tokens.spacing(8); // 2rem (32px)
 tokens.spacing(16); // 4rem (64px)
 ```
 
@@ -149,14 +149,11 @@ const spacing = tokens.spacing(4);
 const shadow = tokens.shadow('lg');
 
 // Responsive utilities
-const responsiveClasses = responsive.classes(
-  'p-4',
-  {
-    sm: 'p-6',
-    md: 'p-8',
-    lg: 'p-10',
-  }
-);
+const responsiveClasses = responsive.classes('p-4', {
+  sm: 'p-6',
+  md: 'p-8',
+  lg: 'p-10',
+});
 // Result: 'p-4 sm:p-6 md:p-8 lg:p-10'
 ```
 
@@ -183,18 +180,12 @@ console.log(textColor); // '#ffffff'
 ### Card with hover effect
 
 ```jsx
-<div className={cn(
-  'card',
-  'hover-lift',
-  'transition-shadow hover:shadow-lg'
-)}>
+<div className={cn('card', 'hover-lift', 'transition-shadow hover:shadow-lg')}>
   <div className="card-header">
     <h3 className="card-title">Title</h3>
     <p className="card-description">Description</p>
   </div>
-  <div className="card-content">
-    Content
-  </div>
+  <div className="card-content">Content</div>
 </div>
 ```
 
@@ -207,17 +198,10 @@ console.log(textColor); // '#ffffff'
   </label>
   <input
     id="email"
-    className={cn(
-      'input',
-      errors.email && 'border-error-500 focus:ring-error-500'
-    )}
+    className={cn('input', errors.email && 'border-error-500 focus:ring-error-500')}
     type="email"
   />
-  {errors.email && (
-    <p className="text-sm text-error-600">
-      {errors.email.message}
-    </p>
-  )}
+  {errors.email && <p className="text-sm text-error-600">{errors.email.message}</p>}
 </div>
 ```
 

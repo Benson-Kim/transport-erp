@@ -9,9 +9,13 @@ import { auth } from '@/lib/auth';
 import { getServices, getClientsAndSuppliers } from '@/actions/service-actions';
 import { ServicesFilters } from '@/components/features/services/ServicesFilters';
 import { Alert, Card, CardBody, ErrorBoundary } from '@/components/ui';
-import { ServiceSkeleton, ServicesTable, ServicesHeader, ServicesMobileView } from '@/components/features/services';
+import {
+  ServiceSkeleton,
+  ServicesTable,
+  ServicesHeader,
+  ServicesMobileView,
+} from '@/components/features/services';
 import { ServiceStatus } from '@/app/generated/prisma';
-
 
 export const metadata: Metadata = {
   title: 'Services | Enterprise Dashboard',
@@ -52,7 +56,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     supplierId: params.supplierId || '',
     driver: params.driver || '',
     sortBy: params.sortBy || 'date',
-    sortOrder: params.sortOrder || 'desc' as const,
+    sortOrder: params.sortOrder || ('desc' as const),
     page: Number(params.page) || 1,
     pageSize: Number(params.pageSize) || 50,
   };
@@ -70,11 +74,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Page Header */}
-      <ServicesHeader
-        description={
-          "Manage transport and logistics services"
-        }
-      />
+      <ServicesHeader description={'Manage transport and logistics services'} />
 
       {/* Filters */}
       <ServicesFilters
@@ -89,9 +89,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
         fallback={
           <Card>
             <CardBody>
-              <Alert variant="error">
-                Failed to load recent services
-              </Alert>
+              <Alert variant="error">Failed to load recent services</Alert>
             </CardBody>
           </Card>
         }
@@ -121,11 +119,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
             />
           </div>
         </Suspense>
-
       </ErrorBoundary>
-
-
-
     </div>
   );
 }

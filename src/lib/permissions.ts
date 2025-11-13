@@ -54,12 +54,15 @@ export type Permission = `${Resource}:${Action}`;
  * Permission Matrix
  * Defines which roles have access to which resource-action combinations
  */
-export const PERMISSION_MATRIX: Record<
-  Resource,
-  Partial<Record<Action, UserRole[]>>
-> = {
+export const PERMISSION_MATRIX: Record<Resource, Partial<Record<Action, UserRole[]>>> = {
   [RESOURCES.DASHBOARD]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
   },
 
   [RESOURCES.USERS]: {
@@ -79,7 +82,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.CLIENTS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -88,7 +97,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.SUPPLIERS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -97,7 +112,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.SERVICES]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
@@ -112,7 +133,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.LOADING_ORDERS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -121,7 +148,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.INVOICES]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.ACCOUNTANT,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
     [ACTIONS.EDIT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -131,7 +164,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.REPORTS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.ACCOUNTANT,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.EXPORT]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
   },
@@ -148,7 +187,13 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.DOCUMENTS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
     [ACTIONS.CREATE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR],
     [ACTIONS.DELETE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
     [ACTIONS.SEND]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
@@ -163,8 +208,22 @@ export const PERMISSION_MATRIX: Record<
   },
 
   [RESOURCES.NOTIFICATIONS]: {
-    [ACTIONS.VIEW]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.OPERATOR, UserRole.VIEWER],
-    [ACTIONS.MANAGE]: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.OPERATOR, UserRole.VIEWER],
+    [ACTIONS.VIEW]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.ACCOUNTANT,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
+    [ACTIONS.MANAGE]: [
+      UserRole.SUPER_ADMIN,
+      UserRole.ADMIN,
+      UserRole.MANAGER,
+      UserRole.ACCOUNTANT,
+      UserRole.OPERATOR,
+      UserRole.VIEWER,
+    ],
   },
 } as const;
 
@@ -172,12 +231,49 @@ export const PERMISSION_MATRIX: Record<
  * Route access configuration
  */
 export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
-  '/dashboard': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.OPERATOR, UserRole.VIEWER],
-  '/services': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
-  '/clients': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
-  '/suppliers': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.OPERATOR, UserRole.VIEWER],
-  '/invoices': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
-  '/reports': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT, UserRole.VIEWER],
+  '/dashboard': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.ACCOUNTANT,
+    UserRole.OPERATOR,
+    UserRole.VIEWER,
+  ],
+  '/services': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.OPERATOR,
+    UserRole.VIEWER,
+  ],
+  '/clients': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.OPERATOR,
+    UserRole.VIEWER,
+  ],
+  '/suppliers': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.OPERATOR,
+    UserRole.VIEWER,
+  ],
+  '/invoices': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.ACCOUNTANT,
+    UserRole.VIEWER,
+  ],
+  '/reports': [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.ACCOUNTANT,
+    UserRole.VIEWER,
+  ],
   '/settings': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   '/settings/users': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
   '/settings/company': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
@@ -226,19 +322,14 @@ export function hasPermission(
 /**
  * Check if a role can access a route
  */
-export function canAccessRoute(
-  userRole: UserRole | undefined,
-  path: string
-): boolean {
+export function canAccessRoute(userRole: UserRole | undefined, path: string): boolean {
   if (!userRole) return false;
 
   // Super admin can access all routes
   if (userRole === UserRole.SUPER_ADMIN) return true;
 
   // Find the matching route pattern
-  const matchingRoute = Object.entries(ROUTE_PERMISSIONS).find(
-    ([route]) => path.startsWith(route)
-  );
+  const matchingRoute = Object.entries(ROUTE_PERMISSIONS).find(([route]) => path.startsWith(route));
 
   if (!matchingRoute) return false;
 

@@ -23,7 +23,7 @@ export function useUnsavedChanges(
         e.returnValue = message;
         return message;
       }
-      return undefined
+      return undefined;
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);

@@ -15,14 +15,10 @@ import {
 } from '@/lib/permissions';
 import prisma from '@/lib/prisma/prisma';
 
-
 /**
  * Check if current user has permission for an action
  */
-export async function checkPermission(
-  resource: Resource,
-  action: Action
-): Promise<boolean> {
+export async function checkPermission(resource: Resource, action: Action): Promise<boolean> {
   const session = await getServerAuth();
 
   if (!session?.user) {
@@ -35,16 +31,11 @@ export async function checkPermission(
 /**
  * Require permission for an action (throws if not authorized)
  */
-export async function requirePermission(
-  resource: Resource,
-  action: Action
-): Promise<void> {
+export async function requirePermission(resource: Resource, action: Action): Promise<void> {
   const hasAccess = await checkPermission(resource, action);
 
   if (!hasAccess) {
-    throw new Error(
-      `Insufficient permissions: ${resource}:${action} required`
-    );
+    throw new Error(`Insufficient permissions: ${resource}:${action} required`);
   }
 }
 
@@ -98,10 +89,7 @@ export async function checkResourceOwnership(
         select: { createdById: true, assignedToId: true },
       });
 
-      return (
-        service?.createdById === targetUserId ||
-        service?.assignedToId === targetUserId
-      );
+      return service?.createdById === targetUserId || service?.assignedToId === targetUserId;
     }
 
     case 'invoices': {
@@ -142,11 +130,7 @@ export async function checkResourcePermission(
   }
 
   // First check general permission
-  const hasGeneralPermission = hasPermission(
-    session.user.role,
-    resource,
-    action
-  );
+  const hasGeneralPermission = hasPermission(session.user.role, resource, action);
 
   if (!hasGeneralPermission) {
     return false;
@@ -155,19 +139,13 @@ export async function checkResourcePermission(
   // For certain actions, check ownership or special conditions
   if (resourceId && action === 'edit') {
     // Special case: Operators can only edit non-completed services
-    if (
-      session.user.role === UserRole.OPERATOR &&
-      resource === 'services'
-    ) {
+    if (session.user.role === UserRole.OPERATOR && resource === 'services') {
       const service = await prisma.service.findUnique({
         where: { id: resourceId },
         select: { status: true },
       });
 
-      return (
-        service?.status !== 'COMPLETED' &&
-        service?.status !== 'INVOICED'
-      );
+      return service?.status !== 'COMPLETED' && service?.status !== 'INVOICED';
     }
   }
 
@@ -243,11 +221,7 @@ export async function checkMultiplePermissions(
 
   for (const check of checks) {
     const key = `${check.resource}:${check.action}`;
-    results[key] = hasPermission(
-      session.user.role,
-      check.resource,
-      check.action
-    );
+    results[key] = hasPermission(session.user.role, check.resource, check.action);
   }
 
   return results;

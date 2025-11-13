@@ -15,7 +15,7 @@ interface State {
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
-  override state: Readonly<State> = { hasError: false, error: null }
+  override state: Readonly<State> = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };

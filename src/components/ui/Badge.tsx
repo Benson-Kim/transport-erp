@@ -41,14 +41,7 @@ export function Badge({
   className,
 }: BadgeProps) {
   return (
-    <span
-      className={cn(
-        'badge',
-        variants[variant],
-        sizes[size],
-        className
-      )}
-    >
+    <span className={cn('badge', variants[variant], sizes[size], className)}>
       {dot && (
         <span className="relative flex h-2 w-2">
           {pulse && (

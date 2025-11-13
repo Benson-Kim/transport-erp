@@ -3,7 +3,7 @@
  * Accessible tabbed interface
  */
 
-'use client'
+'use client';
 import { ReactNode, useState, useRef } from 'react';
 import { cn } from '@/lib/utils/cn';
 
@@ -23,13 +23,7 @@ export interface TabsProps {
   className?: string;
 }
 
-export function Tabs({
-  tabs,
-  defaultTab,
-  onChange,
-  variant = 'line',
-  className,
-}: TabsProps) {
+export function Tabs({ tabs, defaultTab, onChange, variant = 'line', className }: TabsProps) {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
   const tabListRef = useRef<HTMLDivElement>(null);
 
@@ -39,48 +33,47 @@ export function Tabs({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, currentIndex: number) => {
-  const enabledTabs = tabs.filter(tab => !tab.disabled);
-  const currentTab = tabs[currentIndex];
-  if (!currentTab) return;
+    const enabledTabs = tabs.filter((tab) => !tab.disabled);
+    const currentTab = tabs[currentIndex];
+    if (!currentTab) return;
 
-  const enabledIndex = enabledTabs.findIndex(tab => tab.id === currentTab.id);
-  if (enabledIndex === -1) return;
+    const enabledIndex = enabledTabs.findIndex((tab) => tab.id === currentTab.id);
+    if (enabledIndex === -1) return;
 
-  switch (e.key) {
-    case 'ArrowLeft': {
-      e.preventDefault();
-      const prevIndex = enabledIndex > 0 ? enabledIndex - 1 : enabledTabs.length - 1;
-      const prevTab = enabledTabs[prevIndex];
-      if (prevTab) handleTabChange(prevTab.id);
-      break;
+    switch (e.key) {
+      case 'ArrowLeft': {
+        e.preventDefault();
+        const prevIndex = enabledIndex > 0 ? enabledIndex - 1 : enabledTabs.length - 1;
+        const prevTab = enabledTabs[prevIndex];
+        if (prevTab) handleTabChange(prevTab.id);
+        break;
+      }
+
+      case 'ArrowRight': {
+        e.preventDefault();
+        const nextIndex = enabledIndex < enabledTabs.length - 1 ? enabledIndex + 1 : 0;
+        const nextTab = enabledTabs[nextIndex];
+        if (nextTab) handleTabChange(nextTab.id);
+        break;
+      }
+
+      case 'Home': {
+        e.preventDefault();
+        const firstTab = enabledTabs[0];
+        if (firstTab) handleTabChange(firstTab.id);
+        break;
+      }
+
+      case 'End': {
+        e.preventDefault();
+        const lastTab = enabledTabs[enabledTabs.length - 1];
+        if (lastTab) handleTabChange(lastTab.id);
+        break;
+      }
     }
+  };
 
-    case 'ArrowRight': {
-      e.preventDefault();
-      const nextIndex = enabledIndex < enabledTabs.length - 1 ? enabledIndex + 1 : 0;
-      const nextTab = enabledTabs[nextIndex];
-      if (nextTab) handleTabChange(nextTab.id);
-      break;
-    }
-
-    case 'Home': {
-      e.preventDefault();
-      const firstTab = enabledTabs[0];
-      if (firstTab) handleTabChange(firstTab.id);
-      break;
-    }
-
-    case 'End': {
-      e.preventDefault();
-      const lastTab = enabledTabs[enabledTabs.length - 1];
-      if (lastTab) handleTabChange(lastTab.id);
-      break;
-    }
-  }
-};
-
-
-  const activeTabContent = tabs.find(tab => tab.id === activeTab)?.content;
+  const activeTabContent = tabs.find((tab) => tab.id === activeTab)?.content;
 
   return (
     <div className={cn('w-full', className)}>

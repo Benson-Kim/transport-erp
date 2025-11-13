@@ -18,11 +18,11 @@ interface NewServicePageProps {
 export default async function NewServicePage({ searchParams }: NewServicePageProps) {
   const params = await searchParams;
   const session = await auth();
-  
+
   if (!session?.user) redirect('/login');
 
   const { clients, suppliers } = await getClientsAndSuppliers();
-  
+
   // If duplicating, fetch the source service
   let sourceService = null;
   if (params.duplicate) {

@@ -39,9 +39,7 @@ import {
   Checkbox,
 } from '@/components/ui';
 import { ServiceStatus } from '@/app/generated/prisma';
-import {
-  format, subDays, startOfWeek, startOfMonth,
-} from 'date-fns';
+import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { useDebounce } from '@/hooks';
 import { toast } from '@/lib/toast';
 import { exportToExcel } from '@/lib/utils/export';
@@ -50,11 +48,9 @@ import { ServiceStatusBadge } from './ServiceStatusBadge';
 import {
   bulkUpdateServices,
   bulkDeleteServices,
-  generateBulkLoadingOrders
+  generateBulkLoadingOrders,
 } from '@/actions/service-actions';
-import {  getStatusLabel, SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
-
-
+import { getStatusLabel, SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
 
 interface ClientData {
   id: string;
@@ -125,43 +121,49 @@ export function ServicesFilters({
   }, [debouncedSearch]);
 
   // Update filter in URL
-  const updateFilter = useCallback((key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+  const updateFilter = useCallback(
+    (key: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
 
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-
-    // Reset to page 1 when filters change
-    if (key !== 'page') {
-      params.set('page', '1');
-    }
-
-    startTransition(() => {
-      router.push(`/services?${params.toString()}`);
-    });
-  }, [searchParams, router]);
-
-  // Batch update multiple filters
-  const updateFilters = useCallback((filters: Record<string, string>) => {
-    const params = new URLSearchParams(searchParams.toString());
-
-    Object.entries(filters).forEach(([key, value]) => {
       if (value) {
         params.set(key, value);
       } else {
         params.delete(key);
       }
-    });
 
-    params.set('page', '1');
+      // Reset to page 1 when filters change
+      if (key !== 'page') {
+        params.set('page', '1');
+      }
 
-    startTransition(() => {
-      router.push(`/services?${params.toString()}`);
-    });
-  }, [searchParams, router]);
+      startTransition(() => {
+        router.push(`/services?${params.toString()}`);
+      });
+    },
+    [searchParams, router]
+  );
+
+  // Batch update multiple filters
+  const updateFilters = useCallback(
+    (filters: Record<string, string>) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {
+          params.set(key, value);
+        } else {
+          params.delete(key);
+        }
+      });
+
+      params.set('page', '1');
+
+      startTransition(() => {
+        router.push(`/services?${params.toString()}`);
+      });
+    },
+    [searchParams, router]
+  );
 
   // Clear all filters
   const clearFilters = useCallback(() => {
@@ -172,127 +174,136 @@ export function ServicesFilters({
   }, [router]);
 
   // Handle bulk actions
-  const handleBulkAction = useCallback(async (action: string, data?: any) => {
-    if (!selectedServices.length) {
-      toast.error('No services selected');
-      return;
-    }
-
-    setBulkActionLoading(action);
-
-    try {
-      switch (action) {
-        case 'updateStatus':
-          await bulkUpdateServices(selectedServices, { status: data.status });
-          toast.success(`Updated ${selectedServices.length} services`);
-          break;
-
-        case 'delete':
-          if (confirm(`Delete ${selectedServices.length} services?`)) {
-            await bulkDeleteServices(selectedServices);
-            toast.success(`Deleted ${selectedServices.length} services`);
-          }
-          break;
-
-        case 'loadingOrder':
-          const result = await generateBulkLoadingOrders(selectedServices);
-          toast.success(`Generated ${result.count} loading orders`);
-          break;
+  const handleBulkAction = useCallback(
+    async (action: string, data?: any) => {
+      if (!selectedServices.length) {
+        toast.error('No services selected');
+        return;
       }
 
-      onBulkAction?.(action as any, data);
-      onSelectionChange?.([]);
-      router.refresh();
-    } catch (error) {
-      console.error('Bulk action failed:', error);
-      toast.error('Operation failed');
-    } finally {
-      setBulkActionLoading(null);
-    }
-  }, [selectedServices, onBulkAction, onSelectionChange, router]);
+      setBulkActionLoading(action);
+
+      try {
+        switch (action) {
+          case 'updateStatus':
+            await bulkUpdateServices(selectedServices, { status: data.status });
+            toast.success(`Updated ${selectedServices.length} services`);
+            break;
+
+          case 'delete':
+            if (confirm(`Delete ${selectedServices.length} services?`)) {
+              await bulkDeleteServices(selectedServices);
+              toast.success(`Deleted ${selectedServices.length} services`);
+            }
+            break;
+
+          case 'loadingOrder':
+            const result = await generateBulkLoadingOrders(selectedServices);
+            toast.success(`Generated ${result.count} loading orders`);
+            break;
+        }
+
+        onBulkAction?.(action as any, data);
+        onSelectionChange?.([]);
+        router.refresh();
+      } catch (error) {
+        console.error('Bulk action failed:', error);
+        toast.error('Operation failed');
+      } finally {
+        setBulkActionLoading(null);
+      }
+    },
+    [selectedServices, onBulkAction, onSelectionChange, router]
+  );
 
   // Quick filter groups using status config
-  const quickStatusGroups = useMemo(() => [
-    {
-      label: 'Active',
-      value: 'active',
-      icon: Zap,
-      color: 'text-blue-600 dark:text-blue-400',
-      statuses: [ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS],
-      count: 0, // Would be populated from actual data
-    },
-    {
-      label: 'Pending',
-      value: 'pending',
-      icon: Clock,
-      color: 'text-yellow-600 dark:text-yellow-400',
-      statuses: [ServiceStatus.DRAFT],
-      count: 0,
-    },
-    {
-      label: 'Complete',
-      value: 'complete',
-      icon: CheckCircle,
-      color: 'text-green-600 dark:text-green-400',
-      statuses: [ServiceStatus.COMPLETED, ServiceStatus.INVOICED],
-      count: 0,
-    },
-  ], []);
+  const quickStatusGroups = useMemo(
+    () => [
+      {
+        label: 'Active',
+        value: 'active',
+        icon: Zap,
+        color: 'text-blue-600 dark:text-blue-400',
+        statuses: [ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS],
+        count: 0, // Would be populated from actual data
+      },
+      {
+        label: 'Pending',
+        value: 'pending',
+        icon: Clock,
+        color: 'text-yellow-600 dark:text-yellow-400',
+        statuses: [ServiceStatus.DRAFT],
+        count: 0,
+      },
+      {
+        label: 'Complete',
+        value: 'complete',
+        icon: CheckCircle,
+        color: 'text-green-600 dark:text-green-400',
+        statuses: [ServiceStatus.COMPLETED, ServiceStatus.INVOICED],
+        count: 0,
+      },
+    ],
+    []
+  );
 
   // Preset date ranges
-  const datePresets = useMemo(() => [
-    {
-      label: 'Today',
-      value: 'today',
-      icon: <Clock className="h-3 w-3" />,
-      action: () => {
-        const today = new Date();
-        updateFilters({
-          dateFrom: format(today, 'yyyy-MM-dd'),
-          dateTo: format(today, 'yyyy-MM-dd'),
-        });
+  const datePresets = useMemo(
+    () => [
+      {
+        label: 'Today',
+        value: 'today',
+        icon: <Clock className="h-3 w-3" />,
+        action: () => {
+          const today = new Date();
+          updateFilters({
+            dateFrom: format(today, 'yyyy-MM-dd'),
+            dateTo: format(today, 'yyyy-MM-dd'),
+          });
+        },
       },
-    },
-    {
-      label: 'This Week',
-      value: 'week',
-      icon: <Calendar className="h-3 w-3" />,
-      action: () => {
-        const start = startOfWeek(new Date(), { weekStartsOn: 1 });
-        const end = new Date();
-        updateFilters({
-          dateFrom: format(start, 'yyyy-MM-dd'),
-          dateTo: format(end, 'yyyy-MM-dd'),
-        });
+      {
+        label: 'This Week',
+        value: 'week',
+        icon: <Calendar className="h-3 w-3" />,
+        action: () => {
+          const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+          const end = new Date();
+          updateFilters({
+            dateFrom: format(start, 'yyyy-MM-dd'),
+            dateTo: format(end, 'yyyy-MM-dd'),
+          });
+        },
       },
-    },
-    {
-      label: 'This Month',
-      value: 'month',
-      icon: <Calendar className="h-3 w-3" />,
-      action: () => {
-        const start = startOfMonth(new Date());
-        const end = new Date();
-        updateFilters({
-          dateFrom: format(start, 'yyyy-MM-dd'),
-          dateTo: format(end, 'yyyy-MM-dd'),
-        });
+      {
+        label: 'This Month',
+        value: 'month',
+        icon: <Calendar className="h-3 w-3" />,
+        action: () => {
+          const start = startOfMonth(new Date());
+          const end = new Date();
+          updateFilters({
+            dateFrom: format(start, 'yyyy-MM-dd'),
+            dateTo: format(end, 'yyyy-MM-dd'),
+          });
+        },
       },
-    },
-    {
-      label: 'Last 30 Days',
-      value: '30days',
-      icon: <Clock className="h-3 w-3" />,
-      action: () => {
-        const end = new Date();
-        const start = subDays(end, 30);
-        updateFilters({
-          dateFrom: format(start, 'yyyy-MM-dd'),
-          dateTo: format(end, 'yyyy-MM-dd'),
-        });
+      {
+        label: 'Last 30 Days',
+        value: '30days',
+        icon: <Clock className="h-3 w-3" />,
+        action: () => {
+          const end = new Date();
+          const start = subDays(end, 30);
+          updateFilters({
+            dateFrom: format(start, 'yyyy-MM-dd'),
+            dateTo: format(end, 'yyyy-MM-dd'),
+          });
+        },
       },
-    },
-  ], [updateFilters]);
+    ],
+    [updateFilters]
+  );
 
   // Export to Excel
   const handleExport = useCallback(async () => {
@@ -310,7 +321,7 @@ export function ServicesFilters({
       const response = await fetch(`/api/services/export?${params.toString()}`, {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
 
@@ -341,25 +352,25 @@ export function ServicesFilters({
             'Cost',
             'Sale',
             'Margin',
-            'Status'
+            'Status',
           ],
           transformRow: (row: any) => ({
             'Service Number': row.serviceNumber,
-            'Date': row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '',
-            'Client': row.clientName || '',
-            'Supplier': row.supplierName || '',
-            'Driver': row.driverName || '-',
-            'Vehicle': row.vehiclePlate || '-',
-            'Origin': row.origin || '',
-            'Destination': row.destination || '',
-            'Cost': row.costAmount || 0,
-            'Sale': row.saleAmount || 0,
-            'Margin': row.margin || 0,
-            'Status': row.status || ''
+            Date: row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '',
+            Client: row.clientName || '',
+            Supplier: row.supplierName || '',
+            Driver: row.driverName || '-',
+            Vehicle: row.vehiclePlate || '-',
+            Origin: row.origin || '',
+            Destination: row.destination || '',
+            Cost: row.costAmount || 0,
+            Sale: row.saleAmount || 0,
+            Margin: row.margin || 0,
+            Status: row.status || '',
           }),
           onProgress: (progress) => {
-            setExportProgress(80 + (progress * 0.2));
-          }
+            setExportProgress(80 + progress * 0.2);
+          },
         }
       );
 
@@ -373,8 +384,6 @@ export function ServicesFilters({
     }
   }, [currentFilters]);
 
-
-
   // Active filter badges
   const activeFilters = useMemo(() => {
     const filters = [];
@@ -383,14 +392,14 @@ export function ServicesFilters({
       filters.push({
         key: 'search',
         label: `Search: ${currentFilters.search}`,
-        icon: <Search className="h-3 w-3" />
+        icon: <Search className="h-3 w-3" />,
       });
     }
     if (currentFilters.dateFrom || currentFilters.dateTo) {
       filters.push({
         key: 'date',
         label: `Date: ${currentFilters.dateFrom ? format(new Date(currentFilters.dateFrom), 'MMM d') : '...'} - ${currentFilters.dateTo ? format(new Date(currentFilters.dateTo), 'MMM d') : '...'}`,
-        icon: <Calendar className="h-3 w-3" />
+        icon: <Calendar className="h-3 w-3" />,
       });
     }
     if (currentFilters.status) {
@@ -399,29 +408,28 @@ export function ServicesFilters({
         label: getStatusLabel(currentFilters.status as ServiceStatus),
         icon: <ServiceStatusBadge status={currentFilters.status as ServiceStatus} size="sm" />,
       });
-
     }
     if (currentFilters.clientId) {
-      const client = clients.find(c => c.id === currentFilters.clientId);
+      const client = clients.find((c) => c.id === currentFilters.clientId);
       filters.push({
         key: 'clientId',
         label: `Client: ${client?.name || 'Unknown'}`,
-        icon: <Users className="h-3 w-3" />
+        icon: <Users className="h-3 w-3" />,
       });
     }
     if (currentFilters.supplierId) {
-      const supplier = suppliers.find(s => s.id === currentFilters.supplierId);
+      const supplier = suppliers.find((s) => s.id === currentFilters.supplierId);
       filters.push({
         key: 'supplierId',
         label: `Supplier: ${supplier?.name || 'Unknown'}`,
-        icon: <Building2 className="h-3 w-3" />
+        icon: <Building2 className="h-3 w-3" />,
       });
     }
     if (currentFilters.driver) {
       filters.push({
         key: 'driver',
         label: `Driver: ${currentFilters.driver}`,
-        icon: <Truck className="h-3 w-3" />
+        icon: <Truck className="h-3 w-3" />,
       });
     }
 
@@ -456,7 +464,9 @@ export function ServicesFilters({
               <div className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedServices.length === filteredCount}
-                  indeterminate={selectedServices.length > 0 && selectedServices.length < filteredCount}
+                  indeterminate={
+                    selectedServices.length > 0 && selectedServices.length < filteredCount
+                  }
                   onChange={(e) => {
                     if (e.target.checked) {
                       // Select all logic
@@ -465,9 +475,7 @@ export function ServicesFilters({
                     }
                   }}
                 />
-                <span className="text-sm font-medium">
-                  {selectedServices.length} selected
-                </span>
+                <span className="text-sm font-medium">{selectedServices.length} selected</span>
               </div>
             </>
           )}
@@ -479,7 +487,9 @@ export function ServicesFilters({
           {selectedServices.length > 0 && (
             <DropdownMenu
               trigger={
-                <Button variant="secondary" size="sm"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   disabled={bulkActionLoading !== null}
                   icon={<Edit className="h-4 w-4 mr-1" />}
                   loading={bulkActionLoading !== null}
@@ -490,14 +500,14 @@ export function ServicesFilters({
               items={[
                 {
                   id: 'status-header',
-                  label: <div className="text-xs font-medium text-muted-foreground">Update Status</div>,
+                  label: (
+                    <div className="text-xs font-medium text-muted-foreground">Update Status</div>
+                  ),
                   disabled: true,
                 },
                 ...Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => ({
                   id: `status-${status}`,
-                  label: (
-                    <ServiceStatusBadge status={status as ServiceStatus} size="sm" showIcon />
-                  ),
+                  label: <ServiceStatusBadge status={status as ServiceStatus} size="sm" showIcon />,
                   onClick: () => handleBulkAction('updateStatus', { status }),
                 })),
 
@@ -532,13 +542,11 @@ export function ServicesFilters({
           {savedFilters.length > 0 && (
             <DropdownMenu
               trigger={
-                <Button variant="ghost" size="sm"
-                  icon={<Sparkles className="h-4 w-4 mr-1" />}
-                >
+                <Button variant="ghost" size="sm" icon={<Sparkles className="h-4 w-4 mr-1" />}>
                   Saved
                 </Button>
               }
-              items={savedFilters.map(filter => ({
+              items={savedFilters.map((filter) => ({
                 id: filter.id,
                 label: filter.name,
                 onClick: () => updateFilters(filter.filters),
@@ -550,7 +558,9 @@ export function ServicesFilters({
             variant="ghost"
             size="sm"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            icon={showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            icon={
+              showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+            }
           >
             Advanced
           </Button>
@@ -584,7 +594,7 @@ export function ServicesFilters({
             {/* Status Quick Filters */}
             <div className="flex items-center gap-2">
               {quickStatusGroups.map((group) => {
-                const isActive = group.statuses.some(s => s === currentFilters.status);
+                const isActive = group.statuses.some((s) => s === currentFilters.status);
                 return (
                   <Tooltip key={group.value} content={`Filter by ${group.label} services`}>
                     <Button
@@ -635,16 +645,16 @@ export function ServicesFilters({
             {/* Date Range */}
             <DropdownMenu
               trigger={
-                <Button variant="secondary" size="sm"
-                  icon={<Calendar className="h-4 w-4 mr-1" />}
-                >
+                <Button variant="secondary" size="sm" icon={<Calendar className="h-4 w-4 mr-1" />}>
                   Date
                   {(currentFilters.dateFrom || currentFilters.dateTo) && (
-                    <Badge variant="active" size="sm" className="ml-2">1</Badge>
+                    <Badge variant="active" size="sm" className="ml-2">
+                      1
+                    </Badge>
                   )}
                 </Button>
               }
-              items={datePresets.map(preset => ({
+              items={datePresets.map((preset) => ({
                 id: preset.value,
                 label: (
                   <div className="flex items-center gap-2">
@@ -680,7 +690,9 @@ export function ServicesFilters({
                   icon={<Download className="h-4 w-4" />}
                   disabled={isExporting}
                   loading={isExporting}
-                  loadingText={exportProgress > 0 ? `${Math.round(exportProgress)}%` : "Processing..."}
+                  loadingText={
+                    exportProgress > 0 ? `${Math.round(exportProgress)}%` : 'Processing...'
+                  }
                 >
                   Export
                 </Button>
@@ -703,11 +715,11 @@ export function ServicesFilters({
                   onChange={(e) => updateFilter('clientId', e.target.value)}
                   options={[
                     { value: '', label: 'All Clients' },
-                    ...clients.map(client => ({
+                    ...clients.map((client) => ({
                       value: client.id,
                       label: client.name,
                       description: client.clientCode,
-                    }))
+                    })),
                   ]}
                   placeholder="Select client"
                   searchable
@@ -723,11 +735,11 @@ export function ServicesFilters({
                   onChange={(e) => updateFilter('supplierId', e.target.value)}
                   options={[
                     { value: '', label: 'All Suppliers' },
-                    ...suppliers.map(supplier => ({
+                    ...suppliers.map((supplier) => ({
                       value: supplier.id,
                       label: supplier.name,
                       description: supplier.supplierCode,
-                    }))
+                    })),
                   ]}
                   placeholder="Select supplier"
                   searchable

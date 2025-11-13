@@ -1,2 +1,2 @@
-export * from './login-form'
-export * from './oauth-buttons'
+export * from './login-form';
+export * from './oauth-buttons';

@@ -238,23 +238,16 @@ export async function createService(data: ServiceFormData) {
   const saleVatRate = validatedData.saleVatRate ?? 21;
 
   const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
-  const marginPercentage = validatedData.saleAmount > 0
-    ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
-    : 0;
+  const marginPercentage =
+    validatedData.saleAmount > 0
+      ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
+      : 0;
 
   const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
   const costVatAmount = Number((validatedData.costAmount * (costVatRate / 100)).toFixed(2));
 
-  const {
-    completed,
-    cancelled,
-    totalCost,
-    sale,
-    kilometers,
-    pricePerKm,
-    extras,
-    ...saveData
-  } = validatedData;
+  const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...saveData } =
+    validatedData;
 
   const service = await prisma.service.create({
     data: {
@@ -264,9 +257,11 @@ export async function createService(data: ServiceFormData) {
       marginPercentage,
       costVatAmount,
       saleVatAmount,
-      status: cancelled ? ServiceStatus.CANCELLED :
-        completed ? ServiceStatus.COMPLETED :
-          saveData.status || ServiceStatus.DRAFT,
+      status: cancelled
+        ? ServiceStatus.CANCELLED
+        : completed
+          ? ServiceStatus.COMPLETED
+          : saveData.status || ServiceStatus.DRAFT,
       createdById: session.user.id,
     },
   });
@@ -315,16 +310,8 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     costVatAmount = saleVatAmount = costAmount = saleAmount = margin = marginPercentage = 0;
   }
 
-  const {
-    completed,
-    cancelled,
-    totalCost,
-    sale,
-    kilometers,
-    pricePerKm,
-    extras,
-    ...dataToStore
-  } = validatedData;
+  const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
+    validatedData;
 
   const updateData = {
     ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
@@ -334,9 +321,11 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     marginPercentage: Number(marginPercentage.toFixed(2)),
     costVatAmount: Number(costVatAmount.toFixed(2)),
     saleVatAmount: Number(saleVatAmount.toFixed(2)),
-    status: cancelled ? ServiceStatus.CANCELLED :
-      completed ? ServiceStatus.COMPLETED :
-        dataToStore.status || currentService.status,
+    status: cancelled
+      ? ServiceStatus.CANCELLED
+      : completed
+        ? ServiceStatus.COMPLETED
+        : dataToStore.status || currentService.status,
     ...(completed ? { completedAt: new Date() } : {}),
     ...(cancelled ? { cancelledAt: new Date() } : {}),
   };
@@ -500,7 +489,7 @@ export async function getServiceActivity(
   const items = activities.slice(0, limit);
 
   // Transform activities into timeline items
-  const timelineItems = items.map(activity => {
+  const timelineItems = items.map((activity) => {
     let description = '';
     let metadata = {};
 

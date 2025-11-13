@@ -7,14 +7,10 @@
 import { format, startOfMonth, parseISO, subDays } from 'date-fns';
 import { ServiceStatus } from '@/app/generated/prisma';
 
-
 /**
  * Calculate percentage change between two values
  */
-export function calculatePercentageChange(
-  oldValue: number,
-  newValue: number
-): number {
+export function calculatePercentageChange(oldValue: number, newValue: number): number {
   if (oldValue === 0) {
     return newValue > 0 ? 100 : 0;
   }
@@ -24,11 +20,7 @@ export function calculatePercentageChange(
 /**
  * Calculate date range from preset or custom dates
  */
-export function calculateDateRange(dateRange: {
-  from?: string;
-  to?: string;
-  preset?: string;
-}) {
+export function calculateDateRange(dateRange: { from?: string; to?: string; preset?: string }) {
   let startDate: Date;
   let endDate: Date;
 
@@ -65,7 +57,7 @@ export function aggregateServicesByMonth(
   services: Array<{
     date: Date;
     status: ServiceStatus;
-    saleAmount?: any;  // Add optional fields
+    saleAmount?: any; // Add optional fields
     costAmount?: any;
     margin?: any;
   }>
@@ -154,9 +146,11 @@ export function aggregateRevenueByMonth(
 
   // Aggregate revenue
   services.forEach((service) => {
-    if (service.status === ServiceStatus.COMPLETED ||
+    if (
+      service.status === ServiceStatus.COMPLETED ||
       service.status === ServiceStatus.INVOICED ||
-      service.status === ServiceStatus.ARCHIVED) {
+      service.status === ServiceStatus.ARCHIVED
+    ) {
       const monthKey = format(startOfMonth(service.date), 'MMM yyyy');
       if (monthlyData[monthKey]) {
         monthlyData[monthKey].revenue += Number(service.saleAmount || 0);

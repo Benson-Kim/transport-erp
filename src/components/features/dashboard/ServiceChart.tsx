@@ -16,7 +16,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import {
-  Card, CardBody, CardHeader, Button, Tooltip, EmptyState, ErrorState} from '@/components/ui';
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Tooltip,
+  EmptyState,
+  ErrorState,
+} from '@/components/ui';
 
 import {
   Download,
@@ -26,7 +33,7 @@ import {
   BarChart3,
   Info,
   RefreshCw,
-  Activity
+  Activity,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { formatNumber } from '@/lib/utils/formatting';
@@ -53,7 +60,7 @@ export function ServicesChart({
   loading = false,
   error = null,
   onRefresh,
-  onViewDetails
+  onViewDetails,
 }: ServicesChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -110,7 +117,7 @@ export function ServicesChart({
     let worstMonth: ChartData | null = data[0] || null;
 
     if (bestMonth && worstMonth) {
-      data.forEach(month => {
+      data.forEach((month) => {
         if (bestMonth && month.total > bestMonth.total) {
           bestMonth = month;
         }
@@ -137,9 +144,8 @@ export function ServicesChart({
   const CustomChartTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const total = payload[0].payload.total;
-      const completionRate = total > 0
-        ? ((payload[0].payload.completed / total) * 100).toFixed(1)
-        : '0';
+      const completionRate =
+        total > 0 ? ((payload[0].payload.completed / total) * 100).toFixed(1) : '0';
 
       return (
         <div className="rounded-lg border border-neutral-200 bg-background p-3 shadow-md">
@@ -158,17 +164,10 @@ export function ServicesChart({
             {payload.map((entry: any) => (
               <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: entry.fill }}
-                  />
-                  <span className="text-muted-foreground">
-                    {entry.name}
-                  </span>
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }} />
+                  <span className="text-muted-foreground">{entry.name}</span>
                 </div>
-                <span className="font-medium tabular-nums">
-                  {formatNumber(entry.value)}
-                </span>
+                <span className="font-medium tabular-nums">{formatNumber(entry.value)}</span>
               </div>
             ))}
             <div className="mt-2 pt-2 border-t space-y-1">
@@ -199,7 +198,7 @@ export function ServicesChart({
     setIsExporting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const csv = [
         ['Month', 'Completed', 'In Progress', 'Cancelled', 'Total', 'Completion Rate'],
@@ -209,7 +208,7 @@ export function ServicesChart({
           row.inProgress,
           row.cancelled,
           row.total,
-          row.total > 0 ? `${((row.completed / row.total) * 100).toFixed(2)}%` : '0%'
+          row.total > 0 ? `${((row.completed / row.total) * 100).toFixed(2)}%` : '0%',
         ]),
         [],
         ['Summary'],
@@ -233,135 +232,128 @@ export function ServicesChart({
     }
   };
 
-  const headerAction = data.length > 0 ? (
-    <div className="flex items-center gap-4">
-      {/* Service Stats */}
-      <div className="flex items-center gap-3">
-        {/* Total Services */}
-        <Tooltip
-          content={
-            <div className="space-y-1">
-              <div className="font-semibold">Total Services</div>
-              <div className="text-xs opacity-90">
-                Completed: {formatNumber(stats.completed)}
-              </div>
-              <div className="text-xs opacity-90">
-                In Progress: {formatNumber(stats.inProgress)}
-              </div>
-              <div className="text-xs opacity-90">
-                Cancelled: {formatNumber(stats.cancelled)}
-              </div>
-            </div>
-          }
-          position="bottom"
-        >
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-help">
-            <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-              {formatNumber(stats.total)} total
-            </span>
-          </div>
-        </Tooltip>
-
-        {/* Trend Indicator */}
-        <Tooltip
-          content={
-            <div className="space-y-1">
-              <div className="font-semibold">
-                {stats.trend >= 0 ? 'Growth' : 'Decline'} Trend
-              </div>
-              <div className="text-xs opacity-90">
-                Month-over-month change
-              </div>
-              {data.length >= 2 && (
+  const headerAction =
+    data.length > 0 ? (
+      <div className="flex items-center gap-4">
+        {/* Service Stats */}
+        <div className="flex items-center gap-3">
+          {/* Total Services */}
+          <Tooltip
+            content={
+              <div className="space-y-1">
+                <div className="font-semibold">Total Services</div>
+                <div className="text-xs opacity-90">Completed: {formatNumber(stats.completed)}</div>
                 <div className="text-xs opacity-90">
-                  {data[data.length - 2]?.month}: {data[data.length - 2]?.total || 0} →{' '}
-                  {data[data.length - 1]?.month}: {data[data.length - 1]?.total || 0}
+                  In Progress: {formatNumber(stats.inProgress)}
                 </div>
+                <div className="text-xs opacity-90">Cancelled: {formatNumber(stats.cancelled)}</div>
+              </div>
+            }
+            position="bottom"
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-help">
+              <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                {formatNumber(stats.total)} total
+              </span>
+            </div>
+          </Tooltip>
+
+          {/* Trend Indicator */}
+          <Tooltip
+            content={
+              <div className="space-y-1">
+                <div className="font-semibold">{stats.trend >= 0 ? 'Growth' : 'Decline'} Trend</div>
+                <div className="text-xs opacity-90">Month-over-month change</div>
+                {data.length >= 2 && (
+                  <div className="text-xs opacity-90">
+                    {data[data.length - 2]?.month}: {data[data.length - 2]?.total || 0} →{' '}
+                    {data[data.length - 1]?.month}: {data[data.length - 1]?.total || 0}
+                  </div>
+                )}
+              </div>
+            }
+            position="bottom"
+          >
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help',
+                stats.trend >= 0
+                  ? 'bg-green-50 dark:bg-green-900/20'
+                  : 'bg-red-50 dark:bg-red-900/20'
+              )}
+            >
+              {stats.trend >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+              )}
+              <span
+                className={cn(
+                  'text-sm font-semibold',
+                  stats.trend >= 0
+                    ? 'text-green-900 dark:text-green-200'
+                    : 'text-red-900 dark:text-red-200'
+                )}
+              >
+                {Math.abs(stats.trend).toFixed(1)}%
+              </span>
+            </div>
+          </Tooltip>
+        </div>
+
+        <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
+
+        {/* Completion Rate */}
+        <Tooltip
+          content={
+            <div className="space-y-1">
+              <div className="font-semibold">Completion Rate</div>
+              <div className="text-xs opacity-90">
+                {formatNumber(stats.completed)} of {formatNumber(stats.total)} services
+              </div>
+              {stats.bestMonth && (
+                <div className="text-xs opacity-90">Best month: {stats.bestMonth}</div>
               )}
             </div>
           }
           position="bottom"
         >
-          <div className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help",
-            stats.trend >= 0
-              ? "bg-green-50 dark:bg-green-900/20"
-              : "bg-red-50 dark:bg-red-900/20"
-          )}>
-            {stats.trend >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-            )}
-            <span className={cn(
-              "text-sm font-semibold",
-              stats.trend >= 0
-                ? "text-green-900 dark:text-green-200"
-                : "text-red-900 dark:text-red-200"
-            )}>
-              {Math.abs(stats.trend).toFixed(1)}%
+          <div className="flex items-center gap-1.5 text-sm cursor-help">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="font-semibold text-green-900 dark:text-green-200">
+              {stats.completionRate.toFixed(1)}%
             </span>
+            <span className="text-muted-foreground">completed</span>
           </div>
         </Tooltip>
+
+        {/* Export Button */}
+        <Tooltip content="Download complete services report" position="bottom">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleExport}
+            icon={<Download className="h-4 w-4" />}
+            iconPosition="left"
+            loading={isExporting}
+            loadingText="Exporting..."
+          >
+            Export
+          </Button>
+        </Tooltip>
       </div>
-
-      <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
-
-      {/* Completion Rate */}
-      <Tooltip
-        content={
-          <div className="space-y-1">
-            <div className="font-semibold">Completion Rate</div>
-            <div className="text-xs opacity-90">
-              {formatNumber(stats.completed)} of {formatNumber(stats.total)} services
-            </div>
-            {stats.bestMonth && (
-              <div className="text-xs opacity-90">
-                Best month: {stats.bestMonth}
-              </div>
-            )}
-          </div>
-        }
-        position="bottom"
-      >
-        <div className="flex items-center gap-1.5 text-sm cursor-help">
-          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-          <span className="font-semibold text-green-900 dark:text-green-200">
-            {stats.completionRate.toFixed(1)}%
-          </span>
-          <span className="text-muted-foreground">completed</span>
-        </div>
-      </Tooltip>
-
-      {/* Export Button */}
-      <Tooltip
-        content="Download complete services report"
-        position="bottom"
-      >
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleExport}
-          icon={<Download className="h-4 w-4" />}
-          iconPosition="left"
-          loading={isExporting}
-          loadingText="Exporting..."
-        >
-          Export
-        </Button>
-      </Tooltip>
-    </div>
-  ) : null;
+    ) : null;
 
   // Handle error state
   if (!loading && error) {
     // Build error state props conditionally
     const errorStateProps: Parameters<typeof ErrorState>[0] = {
       error,
-      title: "Failed to load services data",
-      description: "We couldn't fetch your services data. Please check your connection and try again.",
-      variant: "full" as const,
+      title: 'Failed to load services data',
+      description:
+        "We couldn't fetch your services data. Please check your connection and try again.",
+      variant: 'full' as const,
     };
 
     // Only add onRetry if onRefresh exists
@@ -371,10 +363,7 @@ export function ServicesChart({
 
     return (
       <Card variant="elevated" padding="none">
-        <CardHeader
-          title="Services Overview"
-          subtitle="Monthly service distribution"
-        />
+        <CardHeader title="Services Overview" subtitle="Monthly service distribution" />
         <CardBody>
           <ErrorState {...errorStateProps} />
         </CardBody>
@@ -411,10 +400,10 @@ export function ServicesChart({
             action={
               onRefresh
                 ? {
-                  label: 'Refresh Data',
-                  onClick: onRefresh,
-                  icon: <RefreshCw size={16} />,
-                }
+                    label: 'Refresh Data',
+                    onClick: onRefresh,
+                    icon: <RefreshCw size={16} />,
+                  }
                 : undefined
             }
           />
@@ -449,7 +438,10 @@ export function ServicesChart({
 
           <Tooltip content="Currently active services" position="top">
             <div className="flex items-center gap-2 cursor-help">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors.inProgress }} />
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: colors.inProgress }}
+              />
               <span className="text-sm text-muted-foreground">In Progress</span>
               <span className="text-xs font-medium">({stats.inProgress})</span>
             </div>
@@ -486,11 +478,7 @@ export function ServicesChart({
             }}
             onMouseLeave={() => setHoveredBar(null)}
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke={colors.grid}
-              vertical={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
             <XAxis
               dataKey="month"
               stroke={colors.text}

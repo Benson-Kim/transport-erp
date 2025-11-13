@@ -3,7 +3,7 @@
 
 import { useMemo } from 'react';
 import { Plus } from 'lucide-react';
-import {  Select, Badge } from '@/components/ui';
+import { Select, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { useRouter } from 'next/navigation';
 import type { Option } from '@/types/ui';
@@ -39,17 +39,14 @@ export function ClientSelector({
 
   // Convert clients to Option format with groups
   const options = useMemo<Option[]>(() => {
-    const clientOptions: Option[] = clients.map(client => ({
+    const clientOptions: Option[] = clients.map((client) => ({
       value: client.id,
       label: client.name,
       description: `${client.clientCode}${client.email ? ` • ${client.email}` : ''}`,
       group: client.isActive !== false ? 'Active Clients' : 'Inactive Clients',
       disabled: false,
       icon: (
-        <Badge 
-          variant={client.isActive !== false ? "active" : "cancelled"} 
-          size="sm"
-        >
+        <Badge variant={client.isActive !== false ? 'active' : 'cancelled'} size="sm">
           {client.clientCode}
         </Badge>
       ),
@@ -70,7 +67,7 @@ export function ClientSelector({
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
-    
+
     if (selectedValue === '__create_new__') {
       router.push('/clients/new?returnTo=/services/new');
     } else {
@@ -90,9 +87,7 @@ export function ClientSelector({
       disabled={disabled}
       error={error ? error : ''}
       emptyMessage="No clients found"
-      className={cn(
-        error && 'border-red-500 ring-0 focus-visible:ring-red-500'
-      )}
+      className={cn(error && 'border-red-500 ring-0 focus-visible:ring-red-500')}
     />
   );
 }

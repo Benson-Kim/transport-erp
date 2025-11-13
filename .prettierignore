@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+
+src/app/generated
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+**/*.generated.*
+
+# Data files
+*.csv
+*.tsv
+
+# Certificates
+*.pem
+*.key
+*.crt

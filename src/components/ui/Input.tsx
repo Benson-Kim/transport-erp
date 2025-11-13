@@ -3,17 +3,14 @@
  * Accessible text input with extensive features
  */
 
-'use client'
+'use client';
 import { InputHTMLAttributes, forwardRef, useState, useCallback, ReactNode } from 'react';
 import { X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize, ComponentStatus, InputType } from '@/types/ui';
 
 export interface InputProps
-  extends Omit<
-    InputHTMLAttributes<HTMLInputElement>,
-    'size' | 'type' | 'prefix' | 'suffix'
-  > {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'prefix' | 'suffix'> {
   type?: InputType;
   size?: ComponentSize;
   status?: ComponentStatus;
@@ -26,7 +23,6 @@ export interface InputProps
   maxCharacters?: number;
   onClear?: () => void;
 }
-
 
 const sizeClasses = {
   sm: 'h-8 text-xs',
@@ -71,21 +67,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const hasError = status === 'error' || !!error;
     const characterCount = String(internalValue).length;
 
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-      const newValue = e.target.value;
-      
-      if (maxCharacters && newValue.length > maxCharacters) {
-        return;
-      }
-      
-      setInternalValue(newValue);
-      onChange?.(e);
-    }, [onChange, maxCharacters]);
+    const handleChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+
+        if (maxCharacters && newValue.length > maxCharacters) {
+          return;
+        }
+
+        setInternalValue(newValue);
+        onChange?.(e);
+      },
+      [onChange, maxCharacters]
+    );
 
     const handleClear = useCallback(() => {
       setInternalValue('');
       onClear?.();
-      
+
       // Create synthetic event
       const input = document.querySelector(`input[value="${internalValue}"]`) as HTMLInputElement;
       if (input && onChange) {
@@ -96,21 +95,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     }, [internalValue, onChange, onClear]);
 
     const togglePassword = useCallback(() => {
-      setShowPassword(prev => !prev);
+      setShowPassword((prev) => !prev);
     }, []);
 
     return (
       <div className="relative w-full">
-        <div className={cn(
-          'relative flex items-center',
-          disabled && 'opacity-60 cursor-not-allowed'
-        )}>
+        <div
+          className={cn('relative flex items-center', disabled && 'opacity-60 cursor-not-allowed')}
+        >
           {prefix && (
             <div className="absolute left-3 flex items-center pointer-events-none">
               <span className="text-neutral-500 text-sm">{prefix}</span>
             </div>
           )}
-          
+
           <input
             ref={ref}
             type={effectiveType}
@@ -131,7 +129,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={error ? `${props.id}-error` : undefined}
             {...props}
           />
-          
+
           <div className="absolute right-3 flex items-center gap-1">
             {clearable && internalValue && !disabled && !readOnly && (
               <button
@@ -143,7 +141,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 <X size={16} className="text-neutral-500" />
               </button>
             )}
-            
+
             {type === 'password' && showPasswordToggle && (
               <button
                 type="button"
@@ -158,30 +156,35 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 )}
               </button>
             )}
-            
-            {suffix && (
-              <span className="text-neutral-500 text-sm">{suffix}</span>
-            )}
+
+            {suffix && <span className="text-neutral-500 text-sm">{suffix}</span>}
           </div>
         </div>
-        
+
         {(error || showCharacterCount) && (
           <div className="flex items-center justify-between mt-1">
             {error && (
-              <div id={`${props.id}-error`} className="flex items-center gap-1 text-danger text-xs" role="alert">
+              <div
+                id={`${props.id}-error`}
+                className="flex items-center gap-1 text-danger text-xs"
+                role="alert"
+              >
                 <AlertCircle size={12} />
                 <span>{error}</span>
               </div>
             )}
-            
+
             {showCharacterCount && (
-              <div className={cn(
-                'text-xs ml-auto',
-                maxCharacters && characterCount >= maxCharacters
-                  ? 'text-danger'
-                  : 'text-neutral-500'
-              )}>
-                {characterCount}{maxCharacters ? `/${maxCharacters}` : ''}
+              <div
+                className={cn(
+                  'text-xs ml-auto',
+                  maxCharacters && characterCount >= maxCharacters
+                    ? 'text-danger'
+                    : 'text-neutral-500'
+                )}
+              >
+                {characterCount}
+                {maxCharacters ? `/${maxCharacters}` : ''}
               </div>
             )}
           </div>

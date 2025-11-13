@@ -37,17 +37,7 @@ export interface LabelProps
 
 const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
   (
-    {
-      className,
-      variant,
-      required,
-      optional,
-      helperText,
-      error,
-      success,
-      children,
-      ...props
-    },
+    { className, variant, required, optional, helperText, error, success, children, ...props },
     ref
   ) => {
     const computedVariant = error ? 'error' : success ? 'success' : variant;
@@ -78,8 +68,8 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
               error
                 ? 'text-error-600 dark:text-error-400'
                 : success
-                ? 'text-success-600 dark:text-success-400'
-                : 'text-neutral-500 dark:text-neutral-400'
+                  ? 'text-success-600 dark:text-success-400'
+                  : 'text-neutral-500 dark:text-neutral-400'
             )}
           >
             {helperText}

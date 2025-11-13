@@ -99,12 +99,14 @@ export function exportToCsv(
     const transformedRows = transformRow ? rows.map(transformRow) : rows;
 
     // Get headers from data or use provided headers
-    const columnHeaders = headers || Array.from(
-      transformedRows.reduce<Set<string>>((set, row) => {
-        Object.keys(row).forEach((k) => set.add(k));
-        return set;
-      }, new Set())
-    );
+    const columnHeaders =
+      headers ||
+      Array.from(
+        transformedRows.reduce<Set<string>>((set, row) => {
+          Object.keys(row).forEach((k) => set.add(k));
+          return set;
+        }, new Set())
+      );
 
     onProgress?.(50);
 
@@ -115,10 +117,8 @@ export function exportToCsv(
       // Data rows
       ...transformedRows.map((row, index) => {
         onProgress?.(50 + (index / transformedRows.length) * 40);
-        return columnHeaders
-          .map((header) => escapeCSVCell(row[header]))
-          .join(',');
-      })
+        return columnHeaders.map((header) => escapeCSVCell(row[header])).join(',');
+      }),
     ];
 
     const csvContent = csvRows.join('\n');
@@ -180,9 +180,9 @@ export async function exportToExcel(
     // If custom headers provided, reorder data
     let worksheetData = transformedRows;
     if (headers && headers.length > 0) {
-      worksheetData = transformedRows.map(row => {
+      worksheetData = transformedRows.map((row) => {
         const orderedRow: Row = {};
-        headers.forEach(header => {
+        headers.forEach((header) => {
           orderedRow[header] = row[header];
         });
         return orderedRow;
@@ -192,19 +192,16 @@ export async function exportToExcel(
     onProgress?.(60);
 
     const ws = XLSX.utils.json_to_sheet(worksheetData, {
-      ...(headers && { header: headers })
+      ...(headers && { header: headers }),
     });
 
     // Auto-size columns (approximate)
     const maxWidth = 50;
-    const cols = Object.keys(worksheetData[0] || {}).map(key => ({
+    const cols = Object.keys(worksheetData[0] || {}).map((key) => ({
       wch: Math.min(
         maxWidth,
-        Math.max(
-          key.length,
-          ...worksheetData.map(row => String(row[key] || '').length)
-        )
-      )
+        Math.max(key.length, ...worksheetData.map((row) => String(row[key] || '').length))
+      ),
     }));
     ws['!cols'] = cols;
 
@@ -217,7 +214,7 @@ export async function exportToExcel(
     const wbout = XLSX.write(wb, {
       bookType: 'xlsx',
       type: 'array',
-      compression: true
+      compression: true,
     });
 
     onProgress?.(90);

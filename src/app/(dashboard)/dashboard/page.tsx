@@ -10,14 +10,14 @@ import { Metadata } from 'next';
 
 import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
-import { 
-  ErrorBoundary, 
-  // PageHeader, 
+import {
+  ErrorBoundary,
+  // PageHeader,
   Alert,
   // Button,
   Card,
   CardBody,
-  // EmptyState 
+  // EmptyState
 } from '@/components/ui';
 import {
   DashboardDateRange,
@@ -67,7 +67,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   // Fetch dashboard data with error handling
   let dashboardData;
   let dataError = null;
-  
+
   try {
     dashboardData = await getDashboardData({
       userId: session.user.id,
@@ -116,12 +116,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             userName={userName}
             isNewUser={isNewUser}
             description={
-              isNewUser 
+              isNewUser
                 ? "Let's get started with your first service"
                 : "Here's what's happening with your business today"
             }
           />
-          
+
           {/* Mini Stats for quick overview */}
           {!isNewUser && !dataError && (
             <div className="mt-4 md:hidden">
@@ -129,27 +129,23 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Quick Actions Widget - Desktop only */}
           <div className="hidden lg:block">
             <QuickActionsWidget userRole={session.user.role} />
           </div>
-          
+
           {/* Date Range Selector */}
           <DashboardDateRange />
-          
+
           {/* Refresh Button */}
-          {!isNewUser && (
-            <DashboardRefreshButton />
-          )}
+          {!isNewUser && <DashboardRefreshButton />}
         </div>
       </div>
 
       {/* Error Alert */}
-      {dataError && (
-        <DashboardErrorAlert errorMessage={dataError.message} />
-      )}
+      {dataError && <DashboardErrorAlert errorMessage={dataError.message} />}
 
       {/* New User Welcome */}
       {isNewUser && !dataError && (
@@ -164,37 +160,29 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       {!isNewUser && (
         <>
           {/* Stats Cards */}
-          <ErrorBoundary 
+          <ErrorBoundary
             fallback={
-              <Alert variant="error">
-                Failed to load statistics. Please refresh the page.
-              </Alert>
+              <Alert variant="error">Failed to load statistics. Please refresh the page.</Alert>
             }
           >
             <Suspense fallback={<DashboardSkeleton.Stats />}>
-              <StatsCards 
-                stats={dashboardData.stats}
-                loading={false}
-                error={dataError}
-              />
+              <StatsCards stats={dashboardData.stats} loading={false} error={dataError} />
             </Suspense>
           </ErrorBoundary>
 
           {/* Charts Section */}
           <div className="grid gap-6 lg:grid-cols-2">
-            <ErrorBoundary 
+            <ErrorBoundary
               fallback={
                 <Card>
                   <CardBody>
-                    <Alert variant="error">
-                      Failed to load services chart
-                    </Alert>
+                    <Alert variant="error">Failed to load services chart</Alert>
                   </CardBody>
                 </Card>
               }
             >
               <Suspense fallback={<DashboardSkeleton.Chart />}>
-                <ServicesChart 
+                <ServicesChart
                   data={dashboardData.servicesChart}
                   loading={false}
                   error={dataError}
@@ -202,19 +190,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </Suspense>
             </ErrorBoundary>
 
-            <ErrorBoundary 
+            <ErrorBoundary
               fallback={
                 <Card>
                   <CardBody>
-                    <Alert variant="error">
-                      Failed to load revenue chart
-                    </Alert>
+                    <Alert variant="error">Failed to load revenue chart</Alert>
                   </CardBody>
                 </Card>
               }
             >
               <Suspense fallback={<DashboardSkeleton.Chart />}>
-                <RevenueChart 
+                <RevenueChart
                   data={dashboardData.revenueChart}
                   loading={false}
                   error={dataError}
@@ -227,13 +213,11 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           {/* Bottom Section */}
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <ErrorBoundary 
+              <ErrorBoundary
                 fallback={
                   <Card>
                     <CardBody>
-                      <Alert variant="error">
-                        Failed to load recent services
-                      </Alert>
+                      <Alert variant="error">Failed to load recent services</Alert>
                     </CardBody>
                   </Card>
                 }
@@ -251,29 +235,21 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
             {/* Quick Actions (1 column) */}
             <div className="space-y-6">
-              <ErrorBoundary 
+              <ErrorBoundary
                 fallback={
                   <Card>
                     <CardBody>
-                      <Alert variant="error">
-                        Failed to load quick actions
-                      </Alert>
+                      <Alert variant="error">Failed to load quick actions</Alert>
                     </CardBody>
                   </Card>
                 }
               >
-                <QuickActions 
-                  userRole={session.user.role}
-                  loading={false}
-                  error={dataError}
-                />
+                <QuickActions userRole={session.user.role} loading={false} error={dataError} />
               </ErrorBoundary>
 
               {/* Performance Tips - Optional */}
               {dashboardData.stats.totalServices > 10 && (
-                <PerformanceTip 
-                  averageMargin={dashboardData.stats.averageMargin}
-                />
+                <PerformanceTip averageMargin={dashboardData.stats.averageMargin} />
               )}
             </div>
           </div>

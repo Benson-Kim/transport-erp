@@ -3,22 +3,19 @@
  * Ensures a single database connection throughout the application lifecycle
  */
 
-import { PrismaClient } from "@/app/generated/prisma";
-import { withAccelerate } from '@prisma/extension-accelerate'
+import { PrismaClient } from '@/app/generated/prisma';
+import { withAccelerate } from '@prisma/extension-accelerate';
 
 const globalForPrisma = global as unknown as {
-  prisma: PrismaClient
-}
+  prisma: PrismaClient;
+};
 
 /**
  * Prisma client configuration
  */
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
-        : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     errorFormat: process.env.NODE_ENV === 'development' ? 'pretty' : 'minimal',
   }).$extends(withAccelerate());
 };

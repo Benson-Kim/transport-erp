@@ -16,7 +16,6 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }
 
-
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   (
     {
@@ -54,11 +53,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             )}
             aria-invalid={!!error}
             aria-describedby={
-              error
-                ? `${props.id}-error`
-                : description
-                ? `${props.id}-description`
-                : undefined
+              error ? `${props.id}-error` : description ? `${props.id}-description` : undefined
             }
             {...props}
           />

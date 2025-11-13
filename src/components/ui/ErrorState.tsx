@@ -32,12 +32,7 @@ export function ErrorState({
 
   if (variant === 'inline') {
     return (
-      <Alert
-        variant="error"
-        title={title}
-        dismissible={false}
-        className={className ?? ""}
-      >
+      <Alert variant="error" title={title} dismissible={false} className={className ?? ''}>
         <p>{errorMessage}</p>
         {onRetry && (
           <Button
@@ -84,29 +79,18 @@ export function ErrorState({
   // Full variant (default)
   return (
     <div
-      className={cn(
-        'flex flex-col items-center justify-center py-12 px-6 text-center',
-        className
-      )}
+      className={cn('flex flex-col items-center justify-center py-12 px-6 text-center', className)}
     >
       <div className="text-red-500 mb-4">
         <AlertTriangle size={48} />
       </div>
-      
-      <h3 className="text-lg font-medium text-neutral-900 mb-2">
-        {title}
-      </h3>
-      
-      <p className="text-sm text-neutral-600 mb-6 max-w-md">
-        {errorMessage}
-      </p>
-      
+
+      <h3 className="text-lg font-medium text-neutral-900 mb-2">{title}</h3>
+
+      <p className="text-sm text-neutral-600 mb-6 max-w-md">{errorMessage}</p>
+
       {onRetry && (
-        <Button
-          onClick={onRetry}
-          variant="secondary"
-          icon={<RefreshCw size={16} />}
-        >
+        <Button onClick={onRetry} variant="secondary" icon={<RefreshCw size={16} />}>
           Try Again
         </Button>
       )}

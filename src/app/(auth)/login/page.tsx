@@ -79,11 +79,17 @@ export default async function LoginPage() {
         {/* Footer */}
         <div className="text-center text-xs text-neutral-500 dark:text-neutral-400">
           By signing in, you agree to our{' '}
-          <Link href="/terms" className="underline hover:text-neutral-700 dark:hover:text-neutral-300">
+          <Link
+            href="/terms"
+            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
+          >
             Terms of Service
           </Link>{' '}
           and{' '}
-          <Link href="/privacy" className="underline hover:text-neutral-700 dark:hover:text-neutral-300">
+          <Link
+            href="/privacy"
+            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
+          >
             Privacy Policy
           </Link>
         </div>

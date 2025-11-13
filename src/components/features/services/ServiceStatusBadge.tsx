@@ -22,7 +22,7 @@ export function ServiceStatusBadge({
   pulse = false,
   className,
 }: ServiceStatusBadgeProps) {
-  const config = getStatusConfig(status)
+  const config = getStatusConfig(status);
 
   if (!config) {
     return (
@@ -33,13 +33,16 @@ export function ServiceStatusBadge({
   }
 
   const Icon = config.icon;
-  const iconElement = showIcon && Icon ? (
-    <Icon className={cn(
-      size === 'sm' && 'h-3 w-3',
-      size === 'md' && 'h-3.5 w-3.5',
-      size === 'lg' && 'h-4 w-4'
-    )} />
-  ) : undefined;
+  const iconElement =
+    showIcon && Icon ? (
+      <Icon
+        className={cn(
+          size === 'sm' && 'h-3 w-3',
+          size === 'md' && 'h-3.5 w-3.5',
+          size === 'lg' && 'h-4 w-4'
+        )}
+      />
+    ) : undefined;
   return (
     <Badge
       variant={config.variant}

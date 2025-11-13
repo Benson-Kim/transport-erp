@@ -2,18 +2,11 @@
  * DataTable Component
  * Advanced table with sorting, selection, pagination, and more
  */
-'use client'
+'use client';
 
 import { ReactNode, useState, useMemo, useCallback, useRef } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-  Download,
-  Settings,
-  Check,
-  X,
-  Search
-} from 'lucide-react';
-
+import { Download, Settings, Check, X, Search } from 'lucide-react';
 
 import { cn } from '@/lib/utils/cn';
 import { exportToExcel, exportToCsv } from '@/lib/utils/export';
@@ -133,7 +126,7 @@ export function DataTable<T extends { id: string }>({
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    new Set(initialColumns.filter(col => !col.hidden).map(col => col.key))
+    new Set(initialColumns.filter((col) => !col.hidden).map((col) => col.key))
   );
   // const [showColumnMenu, setShowColumnMenu] = useState(false);
 
@@ -147,22 +140,16 @@ export function DataTable<T extends { id: string }>({
     onSort,
   });
 
-  const {
-    selectedIds,
-    isAllSelected,
-    isIndeterminate,
-    toggleAll,
-    toggle,
-    clear,
-  } = useTableSelection({
-    data,
-    selectedRows,
-    onChange: onSelectionChange,
-  });
+  const { selectedIds, isAllSelected, isIndeterminate, toggleAll, toggle, clear } =
+    useTableSelection({
+      data,
+      selectedRows,
+      onChange: onSelectionChange,
+    });
 
   // Filter columns based on visibility
   const columns = useMemo(
-    () => initialColumns.filter(col => visibleColumns.has(col.key)),
+    () => initialColumns.filter((col) => visibleColumns.has(col.key)),
     [initialColumns, visibleColumns]
   );
 
@@ -170,9 +157,9 @@ export function DataTable<T extends { id: string }>({
   const filteredData = useMemo(() => {
     if (!searchQuery) return data;
 
-    return data.filter(row => {
+    return data.filter((row) => {
       const searchableText = columns
-        .map(col => {
+        .map((col) => {
           const value = col.accessor(row);
           return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
         })
@@ -193,9 +180,9 @@ export function DataTable<T extends { id: string }>({
 
   // Export handlers
   const handleExportExcel = useCallback(() => {
-    const exportData = filteredData.map(row => {
+    const exportData = filteredData.map((row) => {
       const rowData: Record<string, any> = {};
-      columns.forEach(col => {
+      columns.forEach((col) => {
         rowData[typeof col.header === 'string' ? col.header : col.key] = col.accessor(row);
       });
       return rowData;
@@ -205,9 +192,9 @@ export function DataTable<T extends { id: string }>({
   }, [filteredData, columns]);
 
   const handleExportCsv = useCallback(() => {
-    const exportData = filteredData.map(row => {
+    const exportData = filteredData.map((row) => {
       const rowData: Record<string, any> = {};
-      columns.forEach(col => {
+      columns.forEach((col) => {
         rowData[typeof col.header === 'string' ? col.header : col.key] = col.accessor(row);
       });
       return rowData;
@@ -218,7 +205,7 @@ export function DataTable<T extends { id: string }>({
 
   // Toggle column visibility
   const toggleColumnVisibility = useCallback((columnKey: string) => {
-    setVisibleColumns(prev => {
+    setVisibleColumns((prev) => {
       const next = new Set(prev);
       if (next.has(columnKey)) {
         next.delete(columnKey);
@@ -231,18 +218,21 @@ export function DataTable<T extends { id: string }>({
 
   // Get selected rows data
   const selectedRowsData = useMemo(
-    () => data.filter(row => selectedIds.has(row.id)),
+    () => data.filter((row) => selectedIds.has(row.id)),
     [data, selectedIds]
   );
 
   // Handle row click
-  const handleRowClick = useCallback((row: T, e: React.MouseEvent) => {
-    // Don't trigger if clicking on checkbox or actions
-    const target = e.target as HTMLElement;
-    if (target.closest('[data-no-row-click]')) return;
+  const handleRowClick = useCallback(
+    (row: T, e: React.MouseEvent) => {
+      // Don't trigger if clicking on checkbox or actions
+      const target = e.target as HTMLElement;
+      if (target.closest('[data-no-row-click]')) return;
 
-    onRowClick?.(row);
-  }, [onRowClick]);
+      onRowClick?.(row);
+    },
+    [onRowClick]
+  );
 
   // Render loading state
   if (loading && !data.length) {
@@ -270,9 +260,7 @@ export function DataTable<T extends { id: string }>({
           <EmptyState
             title={searchQuery ? 'No results found' : 'No data'}
             description={
-              searchQuery
-                ? 'Try adjusting your search terms'
-                : 'There are no items to display'
+              searchQuery ? 'Try adjusting your search terms' : 'There are no items to display'
             }
             icon={searchQuery ? <Search size={48} /> : undefined}
           />
@@ -299,15 +287,9 @@ export function DataTable<T extends { id: string }>({
 
           {bulkActions && selectedIds.size > 0 && (
             <div className="flex items-center gap-2 pl-4 border-l">
-              <span className="text-sm text-neutral-600">
-                {selectedIds.size} selected
-              </span>
+              <span className="text-sm text-neutral-600">{selectedIds.size} selected</span>
               {bulkActions(selectedRowsData)}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clear}
-              >
+              <Button variant="ghost" size="sm" onClick={clear}>
                 Clear
               </Button>
             </div>
@@ -322,7 +304,7 @@ export function DataTable<T extends { id: string }>({
                   Columns
                 </Button>
               }
-              items={initialColumns.map(col => ({
+              items={initialColumns.map((col) => ({
                 id: col.key,
                 label: (
                   <div className="flex items-center justify-between w-full">
@@ -362,10 +344,7 @@ export function DataTable<T extends { id: string }>({
       {/* Table */}
       <div
         ref={tableContainerRef}
-        className={cn(
-          'overflow-auto rounded-lg',
-          bordered && 'border border-neutral-200'
-        )}
+        className={cn('overflow-auto rounded-lg', bordered && 'border border-neutral-200')}
       >
         <div ref={parentRef} className={virtualScroll ? 'h-[600px] overflow-auto' : undefined}>
           <Table fixed={virtualScroll}>
@@ -384,24 +363,18 @@ export function DataTable<T extends { id: string }>({
                   </Table.HeaderCell>
                 )}
 
-                {columns.map(column => (
+                {columns.map((column) => (
                   <Table.HeaderCell
                     key={column.key}
                     sortable={!!column.sortable}
-                    sorted={
-                      sortKey === (column.sortKey || column.key)
-                        ? sortDirection
-                        : false
-                    }
+                    sorted={sortKey === (column.sortKey || column.key) ? sortDirection : false}
                     sticky={column.sticky || false}
                     style={{
                       width: column.width,
-                      minWidth: column.minWidth
+                      minWidth: column.minWidth,
                     }}
                     onClick={
-                      column.sortable
-                        ? () => handleSort(column.sortKey || column.key)
-                        : undefined
+                      column.sortable ? () => handleSort(column.sortKey || column.key) : undefined
                     }
                     className={cn(
                       column.align === 'center' && 'text-center',
@@ -423,33 +396,31 @@ export function DataTable<T extends { id: string }>({
             <Table.Body>
               {virtualScroll ? (
                 <>
-                  {rowVirtualizer.getVirtualItems().map((virtualRow: {
-                    index: number;
-                    size: number;
-                    start: number;
-                  }) => {
-                    const row = filteredData[virtualRow.index];
-                    if (!row) return null;
-                    return (
-                      <DataTableRow
-                        key={row.id}
-                        row={row}
-                        columns={columns}
-                        selectable={selectable}
-                        isSelected={selectedIds.has(row.id)}
-                        onToggle={() => toggle(row.id)}
-                        onClick={(e: React.MouseEvent) => handleRowClick(row, e)}
-                        {...(rowActions && { rowActions })}
-                        {...(rowClassName && { rowClassName })}
-                        compact={compact}
-                        striped={striped && virtualRow.index % 2 === 1}
-                        style={{
-                          height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                      />
-                    );
-                  })}
+                  {rowVirtualizer
+                    .getVirtualItems()
+                    .map((virtualRow: { index: number; size: number; start: number }) => {
+                      const row = filteredData[virtualRow.index];
+                      if (!row) return null;
+                      return (
+                        <DataTableRow
+                          key={row.id}
+                          row={row}
+                          columns={columns}
+                          selectable={selectable}
+                          isSelected={selectedIds.has(row.id)}
+                          onToggle={() => toggle(row.id)}
+                          onClick={(e: React.MouseEvent) => handleRowClick(row, e)}
+                          {...(rowActions && { rowActions })}
+                          {...(rowClassName && { rowClassName })}
+                          compact={compact}
+                          striped={striped && virtualRow.index % 2 === 1}
+                          style={{
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        />
+                      );
+                    })}
                 </>
               ) : (
                 filteredData.map((row, index) => (
@@ -485,7 +456,6 @@ export function DataTable<T extends { id: string }>({
           totalItems={pagination.total}
         />
       )}
-
     </div>
   );
 }
@@ -518,20 +488,14 @@ function DataTableRow<T extends { id: string }>({
   striped,
   style,
 }: DataTableRowProps<T>) {
-  const className = typeof rowClassName === 'function'
-    ? rowClassName(row)
-    : rowClassName;
+  const className = typeof rowClassName === 'function' ? rowClassName(row) : rowClassName;
 
   return (
     <Table.Row
       selected={isSelected}
       onClick={onClick}
       clickable={!!onClick}
-      className={cn(
-        compact && 'h-9',
-        striped && 'bg-neutral-50',
-        className
-      )}
+      className={cn(compact && 'h-9', striped && 'bg-neutral-50', className)}
       style={style}
     >
       {selectable && (
@@ -546,7 +510,7 @@ function DataTableRow<T extends { id: string }>({
         </Table.Cell>
       )}
 
-      {columns.map(column => (
+      {columns.map((column) => (
         <Table.Cell
           key={column.key}
           sticky={column.sticky || false}
@@ -563,9 +527,7 @@ function DataTableRow<T extends { id: string }>({
 
       {rowActions && (
         <Table.Cell align="center">
-          <div data-no-row-click>
-            {rowActions(row)}
-          </div>
+          <div data-no-row-click>{rowActions(row)}</div>
         </Table.Cell>
       )}
     </Table.Row>
@@ -576,7 +538,7 @@ function DataTableRow<T extends { id: string }>({
 function LoadingTable({
   columns,
   rows,
-  compact
+  compact,
 }: {
   columns: Column<any>[];
   rows: number;
@@ -586,7 +548,7 @@ function LoadingTable({
     <Table>
       <Table.Header>
         <Table.Row>
-          {columns.map(col => (
+          {columns.map((col) => (
             <Table.HeaderCell key={col.key}>
               <Skeleton className="h-4 w-20" />
             </Table.HeaderCell>
@@ -596,7 +558,7 @@ function LoadingTable({
       <Table.Body>
         {Array.from({ length: rows }).map((_, index) => (
           <Table.Row key={index}>
-            {columns.map(col => (
+            {columns.map((col) => (
               <Table.Cell key={col.key}>
                 <Skeleton className={cn('w-full', compact ? 'h-6' : 'h-8')} />
               </Table.Cell>
@@ -609,24 +571,14 @@ function LoadingTable({
 }
 
 // Error State Component
-function ErrorState({
-  error,
-  onRetry
-}: {
-  error: Error;
-  onRetry?: () => void;
-}) {
+function ErrorState({ error, onRetry }: { error: Error; onRetry?: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <div className="text-red-500 mb-4">
         <X size={48} />
       </div>
-      <h3 className="text-lg font-medium text-neutral-900 mb-2">
-        Error loading data
-      </h3>
-      <p className="text-sm text-neutral-600 mb-4">
-        {error.message}
-      </p>
+      <h3 className="text-lg font-medium text-neutral-900 mb-2">Error loading data</h3>
+      <p className="text-sm text-neutral-600 mb-4">{error.message}</p>
       {onRetry && (
         <Button onClick={onRetry} variant="secondary">
           Try Again

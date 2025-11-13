@@ -13,10 +13,7 @@ export function CreateUserDialog() {
   const [_open, setOpen] = useState(false);
 
   return (
-    <Button
-      onClick={() => setOpen(true)}
-      icon={<UserPlus className="h-4 w-4" />}
-    >
+    <Button onClick={() => setOpen(true)} icon={<UserPlus className="h-4 w-4" />}>
       Add User
     </Button>
   );

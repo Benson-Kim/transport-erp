@@ -54,14 +54,7 @@ export function Card({
   }
 
   return (
-    <div
-      className={cn(
-        variantClasses[variant],
-        paddingClasses[padding],
-        className
-      )}
-      {...props}
-    >
+    <div className={cn(variantClasses[variant], paddingClasses[padding], className)} {...props}>
       {children}
     </div>
   );
@@ -92,7 +85,13 @@ export function CardHeader({
   }
 
   return (
-    <div className={cn('flex items-center justify-between px-6 py-4 border-b border-neutral-200', className)} {...props}>
+    <div
+      className={cn(
+        'flex items-center justify-between px-6 py-4 border-b border-neutral-200',
+        className
+      )}
+      {...props}
+    >
       <div>
         {title && <h3 className="text-lg font-semibold text-neutral-900">{title}</h3>}
         {subtitle && <p className="text-sm text-neutral-600 mt-1">{subtitle}</p>}
@@ -121,12 +120,7 @@ interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
   align?: 'left' | 'center' | 'right';
 }
 
-export function CardFooter({
-  children,
-  align = 'right',
-  className,
-  ...props
-}: CardFooterProps) {
+export function CardFooter({ children, align = 'right', className, ...props }: CardFooterProps) {
   const alignClasses = {
     left: 'justify-start',
     center: 'justify-center',

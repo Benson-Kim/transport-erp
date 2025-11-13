@@ -17,7 +17,6 @@ import { LoginFormData, loginSchema } from '@/lib/validations/auth-schema';
 import { Button, Checkbox, FormField, Input } from '@/components/ui';
 import { toast } from '@/lib/toast';
 
-
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -59,55 +58,39 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit) as any} className="space-y-5" noValidate>
-
       {/* Email Field */}
-      <FormField
-        label="Email address"
-        required
-        error={errors.email?.message ?? ""}
-      >
+      <FormField label="Email address" required error={errors.email?.message ?? ''}>
         <Input
           {...register('email')}
           type="email"
           autoComplete="email"
-          error={errors.email?.message ?? ""}
+          error={errors.email?.message ?? ''}
         />
       </FormField>
 
       {/* Password Field */}
-      <FormField
-        label="Password"
-        required
-        error={errors.password?.message ?? ""}
-      >
+      <FormField label="Password" required error={errors.password?.message ?? ''}>
         <div className="relative">
           <Input
             {...register('password')}
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
             placeholder="Enter your password"
-            error={errors.password?.message ?? ""}
+            error={errors.password?.message ?? ''}
           />
           <Button
             type="button"
-            variant='secondary'
+            variant="secondary"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
-            icon={showPassword ? (
-              <EyeOff className="h-5 w-5" />
-            ) : (
-              <Eye className="h-5 w-5" />
-            )}
+            icon={showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           />
         </div>
       </FormField>
 
       {/* Remember Me */}
       <div className="flex items-center justify-between">
-        <Checkbox
-          {...register('rememberMe')}
-          label="Remember me for 30 days"
-        />
+        <Checkbox {...register('rememberMe')} label="Remember me for 30 days" />
       </div>
 
       {/* Error Message */}

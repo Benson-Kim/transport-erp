@@ -19,7 +19,18 @@ import { hasPermission } from '@/lib/permissions';
 import { toast } from '@/lib/toast';
 import { Save, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Alert, Badge, Button, Card, CardBody, Checkbox, DatePicker, FormField, Input, Textarea } from '@/components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  Checkbox,
+  DatePicker,
+  FormField,
+  Input,
+  Textarea,
+} from '@/components/ui';
 
 interface ServiceFormProps {
   mode: 'create' | 'edit' | 'duplicate';
@@ -36,7 +47,7 @@ function AutoSaveManager({
   control,
   mode,
   duplicateFrom,
-  onSave
+  onSave,
 }: {
   control: any;
   mode: string;
@@ -45,15 +56,12 @@ function AutoSaveManager({
 }) {
   const formValues = useWatch({ control });
 
-  useAutoSave(
-    formValues,
-    {
-      key: 'service-form-draft',
-      delay: 30000,
-      enabled: mode === 'create' && !duplicateFrom,
-      onSave,
-    }
-  );
+  useAutoSave(formValues, {
+    key: 'service-form-draft',
+    delay: 30000,
+    enabled: mode === 'create' && !duplicateFrom,
+    onSave,
+  });
 
   return null;
 }
@@ -107,12 +115,14 @@ export function ServiceForm({
     if (typeof window === 'undefined') {
       return {
         ...baseDefaults,
-        ...((mode === 'duplicate' && sourceService) ? {
-          ...sourceService,
-          date: new Date(),
-          serviceNumber: undefined,
-          status: ServiceStatus.DRAFT,
-        } : {}),
+        ...(mode === 'duplicate' && sourceService
+          ? {
+              ...sourceService,
+              date: new Date(),
+              serviceNumber: undefined,
+              status: ServiceStatus.DRAFT,
+            }
+          : {}),
         ...(mode === 'edit' && service ? service : {}),
       };
     }
@@ -124,12 +134,14 @@ export function ServiceForm({
       ...baseDefaults,
       clientId: lastClient || '',
       supplierId: lastSupplier || '',
-      ...((mode === 'duplicate' && sourceService) ? {
-        ...sourceService,
-        date: new Date(),
-        serviceNumber: undefined,
-        status: ServiceStatus.DRAFT,
-      } : {}),
+      ...(mode === 'duplicate' && sourceService
+        ? {
+            ...sourceService,
+            date: new Date(),
+            serviceNumber: undefined,
+            status: ServiceStatus.DRAFT,
+          }
+        : {}),
       ...(mode === 'edit' && service ? service : {}),
     };
   };
@@ -146,7 +158,7 @@ export function ServiceForm({
     watch,
     setValue,
     reset,
-    formState: { errors, isDirty }
+    formState: { errors, isDirty },
   } = form;
 
   // Restore draft on mount
@@ -178,7 +190,7 @@ export function ServiceForm({
   // Auto-calculate totalCost from legacy fields
   useEffect(() => {
     if (kilometers && pricePerKm) {
-      const calculated = (kilometers * pricePerKm) + (extras || 0);
+      const calculated = kilometers * pricePerKm + (extras || 0);
       setValue('totalCost', calculated, { shouldValidate: true });
     }
   }, [kilometers, pricePerKm, extras, setValue]);
@@ -259,16 +271,12 @@ export function ServiceForm({
   }, [handleSubmit]);
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 max-w-5xl mx-auto"
-      noValidate
-    >
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-5xl mx-auto" noValidate>
       {/* Auto-save component */}
       <AutoSaveManager
         control={control}
         mode={mode}
-        {...duplicateFrom && { duplicateFrom }}
+        {...(duplicateFrom && { duplicateFrom })}
         onSave={() => setLastSavedAt(new Date())}
       />
 
@@ -311,10 +319,7 @@ export function ServiceForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Service Number */}
               {(mode === 'edit' || service?.serviceNumber) && (
-                <FormField
-                  label="Service Number"
-                  helperText="Auto-generated on save"
-                >
+                <FormField label="Service Number" helperText="Auto-generated on save">
                   <Input
                     value={service?.serviceNumber || 'Will be generated'}
                     disabled
@@ -328,21 +333,16 @@ export function ServiceForm({
                 control={control}
                 name="date"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Date"
-                    required
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Date" required error={fieldState.error?.message ?? ''}>
                     <DatePicker
                       value={field.value as Date | null}
                       onChange={(date) => field.onChange(date)}
                       placeholder="DD/MM/YYYY"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
               />
-
 
               {/* Client */}
               <div className="md:col-span-2">
@@ -350,16 +350,12 @@ export function ServiceForm({
                   control={control}
                   name="clientId"
                   render={({ field, fieldState }) => (
-                    <FormField
-                      label="Client"
-                      required
-                      error={fieldState.error?.message ?? ""}
-                    >
+                    <FormField label="Client" required error={fieldState.error?.message ?? ''}>
                       <ClientSelector
                         clients={clients}
                         value={field.value}
                         onChange={field.onChange}
-                        error={fieldState.error?.message ?? ""}
+                        error={fieldState.error?.message ?? ''}
                       />
                     </FormField>
                   )}
@@ -372,16 +368,12 @@ export function ServiceForm({
                   control={control}
                   name="supplierId"
                   render={({ field, fieldState }) => (
-                    <FormField
-                      label="Supplier"
-                      required
-                      error={fieldState.error?.message ?? ""}
-                    >
+                    <FormField label="Supplier" required error={fieldState.error?.message ?? ''}>
                       <SupplierSelector
                         suppliers={suppliers}
                         value={field.value}
                         onChange={field.onChange}
-                        error={fieldState.error?.message ?? ""}
+                        error={fieldState.error?.message ?? ''}
                       />
                     </FormField>
                   )}
@@ -394,15 +386,11 @@ export function ServiceForm({
                   control={control}
                   name="description"
                   render={({ field, fieldState }) => (
-                    <FormField
-                      label="Description"
-                      required
-                      error={fieldState.error?.message ?? ""}
-                    >
+                    <FormField label="Description" required error={fieldState.error?.message ?? ''}>
                       <Input
                         {...field}
                         placeholder="Service description"
-                        error={fieldState.error?.message ?? ""}
+                        error={fieldState.error?.message ?? ''}
                       />
                     </FormField>
                   )}
@@ -414,15 +402,12 @@ export function ServiceForm({
                 control={control}
                 name="reference"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Reference"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Reference" error={fieldState.error?.message ?? ''}>
                     <Input
                       {...field}
                       value={field.value || ''}
                       placeholder="Optional reference"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -433,15 +418,12 @@ export function ServiceForm({
                 control={control}
                 name="driverName"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Driver"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Driver" error={fieldState.error?.message ?? ''}>
                     <Input
                       {...field}
                       value={field.value || ''}
                       placeholder="Driver name"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -452,15 +434,12 @@ export function ServiceForm({
                 control={control}
                 name="vehicleType"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Vehicle Type"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Vehicle Type" error={fieldState.error?.message ?? ''}>
                     <Input
                       {...field}
                       value={field.value || ''}
                       placeholder="e.g., Van, Truck"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -471,16 +450,13 @@ export function ServiceForm({
                 control={control}
                 name="vehiclePlate"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Registration"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Registration" error={fieldState.error?.message ?? ''}>
                     <Input
                       {...field}
                       value={field.value || ''}
                       placeholder="Vehicle registration"
                       className="uppercase"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -491,17 +467,14 @@ export function ServiceForm({
                 control={control}
                 name="distance"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Distance (km)"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Distance (km)" error={fieldState.error?.message ?? ''}>
                     <Input
                       {...field}
                       type="number"
                       value={field.value || ''}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                       placeholder="0"
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -510,10 +483,7 @@ export function ServiceForm({
           </ServiceFormSection>
 
           {/* Locations Section */}
-          <ServiceFormSection
-            title="Locations"
-            description="Loading and unloading information"
-          >
+          <ServiceFormSection title="Locations" description="Loading and unloading information">
             <div className="space-y-4">
               {/* Origin */}
               <Controller
@@ -523,13 +493,13 @@ export function ServiceForm({
                   <FormField
                     label="Origin / Loading Area"
                     required
-                    error={fieldState.error?.message ?? ""}
+                    error={fieldState.error?.message ?? ''}
                   >
                     <Textarea
                       {...field}
                       placeholder="Enter loading area details"
                       rows={2}
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -543,13 +513,13 @@ export function ServiceForm({
                   <FormField
                     label="Destination / Unloading Site"
                     required
-                    error={fieldState.error?.message ?? ""}
+                    error={fieldState.error?.message ?? ''}
                   >
                     <Textarea
                       {...field}
                       placeholder="Enter unloading site details"
                       rows={2}
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -558,15 +528,8 @@ export function ServiceForm({
           </ServiceFormSection>
 
           {/* Pricing Section */}
-          <ServiceFormSection
-            title="Pricing"
-            description="Service costs and pricing"
-          >
-            <PricingCalculator
-              form={form}
-              margin={margin}
-              marginPercent={marginPercent}
-            />
+          <ServiceFormSection title="Pricing" description="Service costs and pricing">
+            <PricingCalculator form={form} margin={margin} marginPercent={marginPercent} />
           </ServiceFormSection>
 
           {/* Additional Information */}
@@ -580,16 +543,13 @@ export function ServiceForm({
                 control={control}
                 name="notes"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Notes"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Notes" error={fieldState.error?.message ?? ''}>
                     <Textarea
                       {...field}
                       value={field.value || ''}
                       placeholder="Public notes (visible to client)"
                       rows={3}
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -600,16 +560,13 @@ export function ServiceForm({
                 control={control}
                 name="internalNotes"
                 render={({ field, fieldState }) => (
-                  <FormField
-                    label="Internal Notes"
-                    error={fieldState.error?.message ?? ""}
-                  >
+                  <FormField label="Internal Notes" error={fieldState.error?.message ?? ''}>
                     <Textarea
                       {...field}
                       value={field.value || ''}
                       placeholder="Internal notes (not visible to client)"
                       rows={3}
-                      error={fieldState.error?.message ?? ""}
+                      error={fieldState.error?.message ?? ''}
                     />
                   </FormField>
                 )}
@@ -633,7 +590,10 @@ export function ServiceForm({
                       <Checkbox
                         checked={field.value || false}
                         onCheckedChange={(checked) => {
-                          if (checked && !confirm('Mark service as completed? This will move it to archive.')) {
+                          if (
+                            checked &&
+                            !confirm('Mark service as completed? This will move it to archive.')
+                          ) {
                             return;
                           }
                           field.onChange(checked);
@@ -655,7 +615,10 @@ export function ServiceForm({
                         <Checkbox
                           checked={field.value || false}
                           onCheckedChange={(checked) => {
-                            if (checked && !confirm('Cancel this service? All prices will be set to €0.')) {
+                            if (
+                              checked &&
+                              !confirm('Cancel this service? All prices will be set to €0.')
+                            ) {
                               return;
                             }
                             if (checked) {
@@ -716,10 +679,9 @@ export function ServiceForm({
                 )}
                 <div className="flex justify-between items-center pt-2 border-t">
                   <dt className="text-muted-foreground">Margin:</dt>
-                  <dd className={cn(
-                    "font-semibold",
-                    margin >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
+                  <dd
+                    className={cn('font-semibold', margin >= 0 ? 'text-green-600' : 'text-red-600')}
+                  >
                     €{margin.toFixed(2)} ({marginPercent.toFixed(1)}%)
                   </dd>
                 </div>
@@ -789,11 +751,7 @@ export function ServiceForm({
 
       {/* Mobile Fixed Save Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t sm:hidden z-50">
-        <Button
-          type="submit"
-          loading={isSaving}
-          className="w-full"
-        >
+        <Button type="submit" loading={isSaving} className="w-full">
           <Save className="h-4 w-4 mr-2" />
           {mode === 'edit' ? 'Update' : 'Create'}
         </Button>

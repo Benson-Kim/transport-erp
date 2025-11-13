@@ -7,13 +7,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import {
-  MoreVertical,
-  Key,
-  Shield,
-  Mail,
-  Activity,
-} from 'lucide-react';
+import { MoreVertical, Key, Shield, Mail, Activity } from 'lucide-react';
 import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/permissions';
 import { cn } from '@/lib/utils/cn';
 import { UserRole } from '@/app/generated/prisma';
@@ -41,16 +35,12 @@ export function UsersList({ users }: UsersListProps) {
 
   const toggleUserSelection = (userId: string) => {
     setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
 
   const toggleAllUsers = () => {
-    setSelectedUsers((prev) =>
-      prev.length === users.length ? [] : users.map((u) => u.id)
-    );
+    setSelectedUsers((prev) => (prev.length === users.length ? [] : users.map((u) => u.id)));
   };
 
   return (
@@ -88,10 +78,7 @@ export function UsersList({ users }: UsersListProps) {
         </thead>
         <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {users.map((user) => (
-            <tr
-              key={user.id}
-              className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
-            >
+            <tr key={user.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
               <td className="p-4">
                 <input
                   type="checkbox"
@@ -145,7 +132,7 @@ export function UsersList({ users }: UsersListProps) {
                   {user.twoFactorEnabled && (
                     <span className="flex items-center gap-1 text-sm text-success-600">
                       <Key className="h-4 w-4 text-primary-600" />
-                     2FA Enabled
+                      2FA Enabled
                     </span>
                   )}
                 </div>
@@ -161,8 +148,12 @@ export function UsersList({ users }: UsersListProps) {
                 )}
               </td>
               <td className="p-4">
-                <Button size="sm" variant="ghost" icon={<MoreVertical className="h-4 w-4" />} aria-label="Actions" />
-                  
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<MoreVertical className="h-4 w-4" />}
+                  aria-label="Actions"
+                />
               </td>
             </tr>
           ))}

@@ -6,8 +6,7 @@
  * - Mobile-first
  */
 
-import { DesignTokens, Hex, StatusSwatch } from "@/types/styles";
-
+import { DesignTokens, Hex, StatusSwatch } from '@/types/styles';
 
 export const designTokens: DesignTokens = {
   colors: {
@@ -120,8 +119,7 @@ export const designTokens: DesignTokens = {
     lg: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
     xl: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
     card: '0 1px 3px rgba(0,0,0,0.1)',
-    modal:
-      '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+    modal: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
   },
   transitions: {
     fast: '100ms',
@@ -136,10 +134,8 @@ export const designTokens: DesignTokens = {
     wide: '1920px',
   },
   fonts: {
-    sans:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
-    mono:
-      "'SF Mono','Consolas','Monaco','Liberation Mono',monospace",
+    sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif",
+    mono: "'SF Mono','Consolas','Monaco','Liberation Mono',monospace",
   },
   weights: {
     regular: 400,
@@ -153,16 +149,41 @@ export const designTokens: DesignTokens = {
     body: { size: '0.875rem', lineHeight: '1.25rem', weight: 'regular' },
     small: { size: '0.75rem', lineHeight: '1rem', weight: 'regular' },
     xsmall: { size: '0.6875rem', lineHeight: '0.875rem', weight: 'regular' },
-    tableHeader: { size: '0.75rem', lineHeight: '1rem', weight: 'semibold', letterSpacing: '0.05em' },
+    tableHeader: {
+      size: '0.75rem',
+      lineHeight: '1rem',
+      weight: 'semibold',
+      letterSpacing: '0.05em',
+    },
     tableCell: { size: '0.875rem', lineHeight: '1.25rem', weight: 'regular' },
     formLabel: { size: '0.875rem', lineHeight: '1.25rem', weight: 'medium' },
     formHelper: { size: '0.75rem', lineHeight: '1rem', weight: 'regular' },
-    buttonText: { size: '0.875rem', lineHeight: '1.25rem', weight: 'medium', letterSpacing: '0.01em' },
-    badgeText: { size: '0.6875rem', lineHeight: '0.875rem', weight: 'semibold', letterSpacing: '0.05em' },
+    buttonText: {
+      size: '0.875rem',
+      lineHeight: '1.25rem',
+      weight: 'medium',
+      letterSpacing: '0.01em',
+    },
+    badgeText: {
+      size: '0.6875rem',
+      lineHeight: '0.875rem',
+      weight: 'semibold',
+      letterSpacing: '0.05em',
+    },
     amount: { size: '0.875rem', lineHeight: '1.25rem', weight: 'medium' },
     amountLarge: { size: '1.25rem', lineHeight: '1.75rem', weight: 'semibold' },
-    serviceNumber: { size: '0.875rem', lineHeight: '1.25rem', weight: 'semibold', letterSpacing: '0.025em' },
-    vatNumber: { size: '0.8125rem', lineHeight: '1.125rem', weight: 'regular', letterSpacing: '0.025em' },
+    serviceNumber: {
+      size: '0.875rem',
+      lineHeight: '1.25rem',
+      weight: 'semibold',
+      letterSpacing: '0.025em',
+    },
+    vatNumber: {
+      size: '0.8125rem',
+      lineHeight: '1.125rem',
+      weight: 'regular',
+      letterSpacing: '0.025em',
+    },
   },
 } as const;
 
@@ -175,33 +196,30 @@ type MaxDepth = 5;
 export type TokenPath<T, D extends number[] = []> = D['length'] extends MaxDepth
   ? never
   : T extends Primitive
-  ? never
-  : keyof T extends string
-  ? {
-    [K in keyof T]: T[K] extends Primitive
-    ? K
-    : K extends string
-    ? `${K}` | `${K}.${TokenPath<T[K], [...D, 1]>}`
-    : never;
-  }[keyof T]
-  : never;
+    ? never
+    : keyof T extends string
+      ? {
+          [K in keyof T]: T[K] extends Primitive
+            ? K
+            : K extends string
+              ? `${K}` | `${K}.${TokenPath<T[K], [...D, 1]>}`
+              : never;
+        }[keyof T]
+      : never;
 
 /** Resolve value at path */
-export type PathValue<T, P extends string> =
-  P extends `${infer K}.${infer Rest}`
+export type PathValue<T, P extends string> = P extends `${infer K}.${infer Rest}`
   ? K extends keyof T
-  ? PathValue<T[K], Rest>
-  : never
+    ? PathValue<T[K], Rest>
+    : never
   : P extends keyof T
-  ? T[P]
-  : never;
+    ? T[P]
+    : never;
 /**
  * Deeply get a value by a dot-path with runtime checks.
  * Throws an Error if the path is invalid at runtime.
  */
-export function getToken<P extends TokenPath<DesignTokens>>(
-  path: P,
-): PathValue<DesignTokens, P> {
+export function getToken<P extends TokenPath<DesignTokens>>(path: P): PathValue<DesignTokens, P> {
   const segments = (path as string).split('.');
   let current: unknown = designTokens as unknown;
 
@@ -264,9 +282,7 @@ export const media = {
   only: (bp: BreakpointName): string => {
     const keys = Object.keys(designTokens.breakpoints) as BreakpointName[];
     const sorted = keys.sort(
-      (a, b) =>
-        parsePx(designTokens.breakpoints[a]) -
-        parsePx(designTokens.breakpoints[b]),
+      (a, b) => parsePx(designTokens.breakpoints[a]) - parsePx(designTokens.breakpoints[b])
     );
     const index = sorted.indexOf(bp);
     const min = parsePx(getBreakpoint(bp));

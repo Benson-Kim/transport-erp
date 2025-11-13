@@ -61,72 +61,75 @@ src/
 
 ## Available Scripts
 
- - `npm run dev` - Start development server with Turbopack
- - `npm run build` - Build for production
- - `npm run start` - Start production server
- - `npm run lint` - Run ESLint
- - `npm run format` - Format code with Prettier
- - `npm run type-check` - Run TypeScript compiler checks
- - `npm run test` - Run tests
- - `npm run db:studio` - Open Prisma Studio
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+- `npm run type-check` - Run TypeScript compiler checks
+- `npm run test` - Run tests
+- `npm run db:studio` - Open Prisma Studio
 
 ## Security Features
 
- - Authentication with NextAuth.js
- - CSRF protection
- - XSS prevention
- - SQL injection protection via Prisma
- - Rate limiting
- - Security headers
- - Input validation with Zod
+- Authentication with NextAuth.js
+- CSRF protection
+- XSS prevention
+- SQL injection protection via Prisma
+- Rate limiting
+- Security headers
+- Input validation with Zod
 
 ## Styling Guidelines
 
- - Mobile-first responsive design
- - Dark mode support
- - WCAG 2.1 AA accessibility compliance
- - Consistent design tokens
- - Component-based architecture
+- Mobile-first responsive design
+- Dark mode support
+- WCAG 2.1 AA accessibility compliance
+- Consistent design tokens
+- Component-based architecture
 
 ## Performance Optimizations
 
- - Turbopack for faster development builds
- - Code splitting and lazy loading
- - Image optimization with Next.js Image
- - Font optimization
- - API route caching
- - Database query optimization
+- Turbopack for faster development builds
+- Code splitting and lazy loading
+- Image optimization with Next.js Image
+- Font optimization
+- API route caching
+- Database query optimization
 
 ## Contributing
 
- - Fork the repository
- - Create a feature branch (`git checkout -b feature/amazing-feature`)
- - Commit your changes (`git commit -m 'Add amazing feature'`)
- - Push to the branch (`git push origin feature/amazing-feature`)
- - Open a Pull Request
+- Fork the repository
+- Create a feature branch (`git checkout -b feature/amazing-feature`)
+- Commit your changes (`git commit -m 'Add amazing feature'`)
+- Push to the branch (`git push origin feature/amazing-feature`)
+- Open a Pull Request
 
 ## Code Standards
 
- - TypeScript strict mode enabled
- - ESLint and Prettier configured
- - Maximum 300 lines per component
- - Maximum 50 lines per function
- - Comprehensive error handling
- - JSDoc comments for functions
- - Unit tests for utilities
- - Integration tests for features
+- TypeScript strict mode enabled
+- ESLint and Prettier configured
+- Maximum 300 lines per component
+- Maximum 50 lines per function
+- Comprehensive error handling
+- JSDoc comments for functions
+- Unit tests for utilities
+- Integration tests for features
 
 ## Resources
 
- - [Next.js Documentation](https://nextjs.org/docs)
- - [TypeScript Documentation](https://www.typescriptlang.org/docs/)
- - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
- - [Prisma Documentation](https://www.prisma.io/docs)
- - [NextAuth.js Documentation](https://authjs.dev/)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [NextAuth.js Documentation](https://authjs.dev/)
 
 ## License
 
 This project is proprietary and confidential.
 
 Built with ❤️ using Next.js 16 and TypeScript
+
+```
+
 ```

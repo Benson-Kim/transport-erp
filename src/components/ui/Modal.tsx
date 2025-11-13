@@ -3,13 +3,12 @@
  * Accessible dialog with focus trap and animations
  */
 
-'use client'
+'use client';
 import { Fragment, useEffect, useRef, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useEscapeKey, useFocusTrap, useScrollLock } from '@/hooks';
-
 
 export interface ModalProps {
   isOpen: boolean;
@@ -69,7 +68,7 @@ export function Modal({
   useEffect(() => {
     if (isOpen) {
       previousActiveElement.current = document.activeElement as HTMLElement;
-      
+
       // Set initial focus
       setTimeout(() => {
         if (initialFocus?.current) {
@@ -108,7 +107,7 @@ export function Modal({
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
-      
+
       {/* Modal */}
       <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
@@ -119,7 +118,9 @@ export function Modal({
           role="dialog"
           aria-modal="true"
           aria-label={ariaProps['aria-label'] || title}
-          aria-describedby={ariaProps['aria-describedby'] || description ? 'modal-description' : undefined}
+          aria-describedby={
+            ariaProps['aria-describedby'] || description ? 'modal-description' : undefined
+          }
           className={cn(
             'relative w-full bg-white rounded-lg shadow-modal',
             'animate-in zoom-in-95 fade-in duration-200',
@@ -134,14 +135,14 @@ export function Modal({
               {title}
             </ModalHeader>
           )}
-          
+
           {/* Description */}
           {description && (
             <p id="modal-description" className="px-6 -mt-2 text-sm text-neutral-500">
               {description}
             </p>
           )}
-          
+
           {/* Content */}
           {children}
         </div>
@@ -167,9 +168,7 @@ export function ModalHeader({
 }: ModalHeaderProps) {
   return (
     <div className={cn('flex items-center justify-between p-6 pb-4', className)}>
-      <h2 className="text-lg font-semibold text-neutral-900">
-        {children}
-      </h2>
+      <h2 className="text-lg font-semibold text-neutral-900">{children}</h2>
       {showCloseButton && onClose && (
         <button
           onClick={onClose}
@@ -193,11 +192,7 @@ interface ModalBodyProps {
 }
 
 export function ModalBody({ children, className }: ModalBodyProps) {
-  return (
-    <div className={cn('px-6 py-4', className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('px-6 py-4', className)}>{children}</div>;
 }
 
 // Modal Footer Component
@@ -208,10 +203,12 @@ interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
   return (
-    <div className={cn(
-      'flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200',
-      className
-    )}>
+    <div
+      className={cn(
+        'flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200',
+        className
+      )}
+    >
       {children}
     </div>
   );

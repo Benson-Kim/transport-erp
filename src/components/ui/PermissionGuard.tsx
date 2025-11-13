@@ -37,14 +37,14 @@ export function PermissionGuard({
   showMessage = false,
 }: PermissionGuardProps) {
   const { can, canAll, canAny, hasAnyRole, isLoading } = usePermissions();
-  
+
   // Don't render anything while loading
   if (isLoading) {
     return null;
   }
-  
+
   let hasPermission = false;
-  
+
   // Custom check takes priority
   if (customCheck) {
     hasPermission = customCheck();
@@ -55,9 +55,7 @@ export function PermissionGuard({
   }
   // Check multiple resources
   else if (resources && resources.length > 0) {
-    hasPermission = requireAll
-      ? canAll(resources)
-      : canAny(resources);
+    hasPermission = requireAll ? canAll(resources) : canAny(resources);
   }
   // Check single resource/action
   else if (resource && action) {
@@ -67,11 +65,11 @@ export function PermissionGuard({
   else {
     hasPermission = true;
   }
-  
+
   if (hasPermission) {
     return <>{children}</>;
   }
-  
+
   if (showMessage) {
     return (
       <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-200">
@@ -79,7 +77,7 @@ export function PermissionGuard({
       </div>
     );
   }
-  
+
   return <>{fallback}</>;
 }
 
@@ -105,7 +103,7 @@ export function PermissionButton({
 }: PermissionButtonProps) {
   const { can } = usePermissions();
   const hasPermission = can(resource, action);
-  
+
   return (
     <button
       onClick={hasPermission ? onClick : undefined}
@@ -140,12 +138,6 @@ export function Show({
 /**
  * Hide content based on permissions
  */
-export function Hide({
-  when,
-  children,
-}: {
-  when: boolean;
-  children: ReactNode;
-}) {
+export function Hide({ when, children }: { when: boolean; children: ReactNode }) {
   return when ? null : <>{children}</>;
 }

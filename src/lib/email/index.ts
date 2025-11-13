@@ -1,2 +1,2 @@
-export * from './email'
-export * from './email-templates'
+export * from './email';
+export * from './email-templates';

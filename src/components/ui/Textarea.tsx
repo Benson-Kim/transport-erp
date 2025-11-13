@@ -3,7 +3,7 @@
  * Multi-line text input with auto-resize option
  */
 
-'use client'
+'use client';
 import { TextareaHTMLAttributes, forwardRef, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize } from '@/types/ui';
@@ -42,17 +42,17 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     ref
   ) => {
     const internalRef = useRef<HTMLTextAreaElement | null>(null);
-    
+
     // Auto-resize functionality
     useEffect(() => {
       if (!autoResize || !internalRef.current) return;
-      
+
       const textarea = internalRef.current;
       textarea.style.height = 'auto';
       const scrollHeight = textarea.scrollHeight;
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
       const maxHeight = lineHeight * maxRows;
-      
+
       textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
     }, [value, autoResize, maxRows]);
 
@@ -86,22 +86,25 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           aria-describedby={error ? `${props.id}-error` : undefined}
           {...props}
         />
-        
+
         <div className="flex items-center justify-between mt-1">
           {error && (
             <div id={`${props.id}-error`} className="text-danger text-xs" role="alert">
               {error}
             </div>
           )}
-          
+
           {showCharacterCount && (
-            <div className={cn(
-              'text-xs ml-auto',
-              maxCharacters && characterCount >= maxCharacters
-                ? 'text-danger'
-                : 'text-neutral-500'
-            )}>
-              {characterCount}{maxCharacters ? `/${maxCharacters}` : ''}
+            <div
+              className={cn(
+                'text-xs ml-auto',
+                maxCharacters && characterCount >= maxCharacters
+                  ? 'text-danger'
+                  : 'text-neutral-500'
+              )}
+            >
+              {characterCount}
+              {maxCharacters ? `/${maxCharacters}` : ''}
             </div>
           )}
         </div>

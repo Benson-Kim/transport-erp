@@ -4,17 +4,13 @@
  */
 
 // Generic sort function
-export function sortData<T>(
-  data: T[],
-  key: keyof T,
-  direction: 'asc' | 'desc' = 'asc'
-): T[] {
+export function sortData<T>(data: T[], key: keyof T, direction: 'asc' | 'desc' = 'asc'): T[] {
   return [...data].sort((a, b) => {
     const aValue = a[key];
     const bValue = b[key];
 
     if (aValue === bValue) return 0;
-    
+
     if (aValue === null || aValue === undefined) return 1;
     if (bValue === null || bValue === undefined) return -1;
 
@@ -36,7 +32,7 @@ export function multiSort<T>(
       if (aValue !== bValue) {
         if (aValue === null || aValue === undefined) return 1;
         if (bValue === null || bValue === undefined) return -1;
-        
+
         const comparison = aValue < bValue ? -1 : 1;
         return direction === 'asc' ? comparison : -comparison;
       }
@@ -46,49 +42,42 @@ export function multiSort<T>(
 }
 
 // Filter data by search query
-export function filterBySearch<T>(
-  data: T[],
-  query: string,
-  fields?: (keyof T)[]
-): T[] {
+export function filterBySearch<T>(data: T[], query: string, fields?: (keyof T)[]): T[] {
   if (!query) return data;
-  
+
   const lowerQuery = query.toLowerCase();
-  
-  return data.filter(item => {
+
+  return data.filter((item) => {
     const searchableFields = fields || (Object.keys(item as any) as (keyof T)[]);
-    
-    return searchableFields.some(field => {
+
+    return searchableFields.some((field) => {
       const value = item[field];
       if (value === null || value === undefined) return false;
-      
+
       return String(value).toLowerCase().includes(lowerQuery);
     });
   });
 }
 
 // Apply multiple filters
-export function applyFilters<T>(
-  data: T[],
-  filters: Partial<Record<keyof T, any>>
-): T[] {
-  return data.filter(item => {
+export function applyFilters<T>(data: T[], filters: Partial<Record<keyof T, any>>): T[] {
+  return data.filter((item) => {
     return Object.entries(filters).every(([key, value]) => {
       if (value === undefined || value === '') return true;
-      
+
       const itemValue = item[key as keyof T];
-      
+
       // Array filter (item value should be in filter array)
       if (Array.isArray(value)) {
         return value.includes(itemValue);
       }
-      
+
       // Range filter
       if (typeof value === 'object' && value !== null && 'min' in value && 'max' in value) {
         const numValue = Number(itemValue);
-        return numValue >= Number(value.min) && numValue <=  Number(value.max);
+        return numValue >= Number(value.min) && numValue <= Number(value.max);
       }
-      
+
       // Exact match
       return itemValue === value;
     });
@@ -111,7 +100,7 @@ export function paginate<T>(
   const totalPages = Math.ceil(totalItems / pageSize);
   const start = (page - 1) * pageSize;
   const end = start + pageSize;
-  
+
   return {
     data: data.slice(start, end),
     totalPages,
@@ -122,18 +111,18 @@ export function paginate<T>(
 }
 
 // Group data by key
-export function groupBy<T>(
-  data: T[],
-  key: keyof T
-): Record<string, T[]> {
-  return data.reduce((groups, item) => {
-    const groupKey = String(item[key]);
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
+export function groupBy<T>(data: T[], key: keyof T): Record<string, T[]> {
+  return data.reduce(
+    (groups, item) => {
+      const groupKey = String(item[key]);
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(item);
+      return groups;
+    },
+    {} as Record<string, T[]>
+  );
 }
 
 // Calculate aggregates
@@ -143,24 +132,24 @@ export function aggregate<T>(
   operation: 'sum' | 'avg' | 'min' | 'max' | 'count'
 ): number {
   if (data.length === 0) return 0;
-  
+
   switch (operation) {
     case 'sum':
       return data.reduce((sum, item) => sum + Number(item[field] || 0), 0);
-    
+
     case 'avg':
       const total = data.reduce((sum, item) => sum + Number(item[field] || 0), 0);
       return total / data.length;
-    
+
     case 'min':
-      return Math.min(...data.map(item => Number(item[field] || 0)));
-    
+      return Math.min(...data.map((item) => Number(item[field] || 0)));
+
     case 'max':
-      return Math.max(...data.map(item => Number(item[field] || 0)));
-    
+      return Math.max(...data.map((item) => Number(item[field] || 0)));
+
     case 'count':
       return data.length;
-    
+
     default:
       return 0;
   }
@@ -175,16 +164,14 @@ export function formatForExport<T>(
     formatter?: (value: any) => string;
   }>
 ): Array<Record<string, string>> {
-  return data.map(row => {
+  return data.map((row) => {
     const exportRow: Record<string, string> = {};
-    
-    columns.forEach(column => {
+
+    columns.forEach((column) => {
       const value = row[column.key];
-      exportRow[column.header] = column.formatter
-        ? column.formatter(value)
-        : String(value ?? '');
+      exportRow[column.header] = column.formatter ? column.formatter(value) : String(value ?? '');
     });
-    
+
     return exportRow;
   });
 }

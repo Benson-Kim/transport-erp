@@ -27,7 +27,6 @@ const createUserSchema = z.object({
   sendWelcomeEmail: z.boolean().default(true),
 });
 
-
 /**
  * User update schema
  */
@@ -194,10 +193,7 @@ export const updateUser = withPermission(
     }
 
     // Prevent demoting super admin unless you are super admin
-    if (
-      currentUser.role === UserRole.SUPER_ADMIN &&
-      session.user.role !== UserRole.SUPER_ADMIN
-    ) {
+    if (currentUser.role === UserRole.SUPER_ADMIN && session.user.role !== UserRole.SUPER_ADMIN) {
       throw new Error('Only super administrators can modify super admin accounts');
     }
 
@@ -209,7 +205,9 @@ export const updateUser = withPermission(
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: (Object.fromEntries(Object.entries(validatedData).filter(([_, v]) => v !== undefined)) as any),
+      data: Object.fromEntries(
+        Object.entries(validatedData).filter(([_, v]) => v !== undefined)
+      ) as any,
       // data: validatedData,
     });
 
@@ -224,10 +222,7 @@ export const updateUser = withPermission(
     });
 
     // Invalidate user sessions if role changed or deactivated
-    if (
-      validatedData.role !== undefined ||
-      validatedData.isActive === false
-    ) {
+    if (validatedData.role !== undefined || validatedData.isActive === false) {
       await prisma.session.deleteMany({
         where: { userId },
       });
@@ -242,60 +237,56 @@ export const updateUser = withPermission(
 /**
  * Delete user (soft delete)
  */
-export const deleteUser = withPermission(
-  'users',
-  'delete',
-  async (userId: string) => {
-    const session = await requireRole([UserRole.SUPER_ADMIN]);
+export const deleteUser = withPermission('users', 'delete', async (userId: string) => {
+  const session = await requireRole([UserRole.SUPER_ADMIN]);
 
-    // Prevent self-deletion
-    if (userId === session.user.id) {
-      throw new Error('You cannot delete your own account');
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Prevent deleting super admin
-    if (user.role === UserRole.SUPER_ADMIN) {
-      throw new Error('Cannot delete super administrator accounts');
-    }
-
-    // Soft delete user
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        deletedAt: new Date(),
-        isActive: false,
-      },
-    });
-
-    // Invalidate all user sessions
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'DELETE',
-      tableName: 'users',
-      recordId: userId,
-      oldValues: { deletedAt: null },
-      newValues: { deletedAt: new Date() },
-    });
-
-    revalidatePath('/settings/users');
-
-    return { success: true };
+  // Prevent self-deletion
+  if (userId === session.user.id) {
+    throw new Error('You cannot delete your own account');
   }
-);
+
+  // Check if user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Prevent deleting super admin
+  if (user.role === UserRole.SUPER_ADMIN) {
+    throw new Error('Cannot delete super administrator accounts');
+  }
+
+  // Soft delete user
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      deletedAt: new Date(),
+      isActive: false,
+    },
+  });
+
+  // Invalidate all user sessions
+  await prisma.session.deleteMany({
+    where: { userId },
+  });
+
+  // Create audit log
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'DELETE',
+    tableName: 'users',
+    recordId: userId,
+    oldValues: { deletedAt: null },
+    newValues: { deletedAt: new Date() },
+  });
+
+  revalidatePath('/settings/users');
+
+  return { success: true };
+});
 
 /**
  * Reset user password
@@ -344,47 +335,43 @@ export const resetUserPassword = withPermission(
 /**
  * Toggle user status
  */
-export const toggleUserStatus = withPermission(
-  'users',
-  'edit',
-  async (userId: string) => {
-    const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+export const toggleUserStatus = withPermission('users', 'edit', async (userId: string) => {
+  const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
 
-    // Get current status
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { isActive: true },
-    });
+  // Get current status
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { isActive: true },
+  });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Toggle status
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: !user.isActive },
-    });
-
-    // Invalidate sessions if deactivated
-    if (!updatedUser.isActive) {
-      await prisma.session.deleteMany({
-        where: { userId },
-      });
-    }
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'UPDATE',
-      tableName: 'users',
-      recordId: userId,
-      oldValues: { isActive: user.isActive },
-      newValues: { isActive: updatedUser.isActive },
-    });
-
-    revalidatePath('/settings/users');
-
-    return { success: true, isActive: updatedUser.isActive };
+  if (!user) {
+    throw new Error('User not found');
   }
-);
+
+  // Toggle status
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: !user.isActive },
+  });
+
+  // Invalidate sessions if deactivated
+  if (!updatedUser.isActive) {
+    await prisma.session.deleteMany({
+      where: { userId },
+    });
+  }
+
+  // Create audit log
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'UPDATE',
+    tableName: 'users',
+    recordId: userId,
+    oldValues: { isActive: user.isActive },
+    newValues: { isActive: updatedUser.isActive },
+  });
+
+  revalidatePath('/settings/users');
+
+  return { success: true, isActive: updatedUser.isActive };
+});

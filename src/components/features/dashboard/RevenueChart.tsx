@@ -24,14 +24,17 @@ import {
   Info,
   BarChart3,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
   Button,
   Tooltip,
   EmptyState,
-  ErrorState, Card, CardHeader, CardBody
+  ErrorState,
+  Card,
+  CardHeader,
+  CardBody,
 } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils/cn';
@@ -58,7 +61,7 @@ export function RevenueChart({
   error = null,
   onRefresh,
   onImportData,
-  showImportOption = false
+  showImportOption = false,
 }: RevenueChartProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -125,17 +128,10 @@ export function RevenueChart({
             {payload.map((entry: any) => (
               <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: entry.stroke }}
-                  />
-                  <span className="text-muted-foreground">
-                    {entry.name}
-                  </span>
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
+                  <span className="text-muted-foreground">{entry.name}</span>
                 </div>
-                <span className="font-medium tabular-nums">
-                  {formatCurrency(entry.value)}
-                </span>
+                <span className="font-medium tabular-nums">{formatCurrency(entry.value)}</span>
               </div>
             ))}
             {payload[0]?.payload && (
@@ -145,7 +141,8 @@ export function RevenueChart({
                   <span className="font-medium tabular-nums">
                     {payload[0].payload.revenue > 0
                       ? ((payload[0].payload.margin / payload[0].payload.revenue) * 100).toFixed(1)
-                      : '0.0'}%
+                      : '0.0'}
+                    %
                   </span>
                 </div>
               </div>
@@ -167,7 +164,7 @@ export function RevenueChart({
 
     try {
       // Simulate export delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       const csv = [
         ['Month', 'Revenue', 'Cost', 'Margin', 'Margin %'],
@@ -176,7 +173,7 @@ export function RevenueChart({
           row.revenue,
           row.cost,
           row.margin,
-          row.revenue > 0 ? ((row.margin / row.revenue) * 100).toFixed(2) + '%' : '0%'
+          row.revenue > 0 ? ((row.margin / row.revenue) * 100).toFixed(2) + '%' : '0%',
         ]),
       ]
         .map((row) => row.join(','))
@@ -195,128 +192,125 @@ export function RevenueChart({
   };
 
   // Header action with stats
-  const headerAction = data.length > 0 ? (
-    <div className="flex items-center gap-4">
-      {/* Stats badges */}
-      <div className="flex items-center gap-3">
-        {/* Revenue Badge */}
+  const headerAction =
+    data.length > 0 ? (
+      <div className="flex items-center gap-4">
+        {/* Stats badges */}
+        <div className="flex items-center gap-3">
+          {/* Revenue Badge */}
+          <Tooltip
+            content={
+              <div className="space-y-1">
+                <div className="font-semibold">Total Revenue</div>
+                <div className="text-xs opacity-90">
+                  Period: {stats.periodStart} - {stats.periodEnd}
+                </div>
+                <div className="text-xs opacity-90">Cost: {formatCurrency(stats.totalCost)}</div>
+              </div>
+            }
+            position="bottom"
+          >
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg cursor-help">
+              <Euro className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-semibold text-purple-900 dark:text-purple-200">
+                {formatCurrency(stats.totalRevenue)}
+              </span>
+            </div>
+          </Tooltip>
+
+          {/* Trend Badge */}
+          <Tooltip
+            content={
+              <div className="space-y-1">
+                <div className="font-semibold">{stats.trend >= 0 ? 'Growth' : 'Decline'} Trend</div>
+                <div className="text-xs opacity-90">Compared to previous month</div>
+                {data.length >= 2 && (
+                  <div className="text-xs opacity-90">
+                    {data[data.length - 2]?.month}:{' '}
+                    {formatCurrency(data[data.length - 2]?.revenue || 0)} →{' '}
+                    {data[data.length - 1]?.month}:{' '}
+                    {formatCurrency(data[data.length - 1]?.revenue || 0)}
+                  </div>
+                )}
+              </div>
+            }
+            position="bottom"
+          >
+            <div
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help',
+                stats.trend >= 0
+                  ? 'bg-green-50 dark:bg-green-900/20'
+                  : 'bg-red-50 dark:bg-red-900/20'
+              )}
+            >
+              {stats.trend >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+              )}
+              <span
+                className={cn(
+                  'text-sm font-semibold',
+                  stats.trend >= 0
+                    ? 'text-green-900 dark:text-green-200'
+                    : 'text-red-900 dark:text-red-200'
+                )}
+              >
+                {Math.abs(stats.trend).toFixed(1)}%
+              </span>
+            </div>
+          </Tooltip>
+        </div>
+
+        <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
+
+        {/* Average Margin */}
         <Tooltip
           content={
             <div className="space-y-1">
-              <div className="font-semibold">Total Revenue</div>
+              <div className="font-semibold">Average Margin</div>
               <div className="text-xs opacity-90">
-                Period: {stats.periodStart} - {stats.periodEnd}
+                Total Margin: {formatCurrency(stats.totalMargin)}
               </div>
-              <div className="text-xs opacity-90">
-                Cost: {formatCurrency(stats.totalCost)}
-              </div>
+              <div className="text-xs opacity-90">Calculated as (Margin / Revenue) × 100</div>
             </div>
           }
           position="bottom"
         >
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg cursor-help">
-            <Euro className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-sm font-semibold text-purple-900 dark:text-purple-200">
-              {formatCurrency(stats.totalRevenue)}
-            </span>
+          <div className="flex items-center gap-1 text-sm cursor-help">
+            <span className="text-muted-foreground">Avg. Margin: </span>
+            <span className="font-semibold">{stats.avgMarginPercent.toFixed(1)}%</span>
+            <Info className="h-3 w-3 text-muted-foreground" />
           </div>
         </Tooltip>
 
-        {/* Trend Badge */}
-        <Tooltip
-          content={
-            <div className="space-y-1">
-              <div className="font-semibold">
-                {stats.trend >= 0 ? 'Growth' : 'Decline'} Trend
-              </div>
-              <div className="text-xs opacity-90">
-                Compared to previous month
-              </div>
-              {data.length >= 2 && (
-                <div className="text-xs opacity-90">
-                  {data[data.length - 2]?.month}: {formatCurrency(data[data.length - 2]?.revenue || 0)} →{' '}
-                  {data[data.length - 1]?.month}: {formatCurrency(data[data.length - 1]?.revenue || 0)}
-                </div>
-              )}
-            </div>
-          }
-          position="bottom"
-        >
-          <div className={cn(
-            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help",
-            stats.trend >= 0
-              ? "bg-green-50 dark:bg-green-900/20"
-              : "bg-red-50 dark:bg-red-900/20"
-          )}>
-            {stats.trend >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-            )}
-            <span className={cn(
-              "text-sm font-semibold",
-              stats.trend >= 0
-                ? "text-green-900 dark:text-green-200"
-                : "text-red-900 dark:text-red-200"
-            )}>
-              {Math.abs(stats.trend).toFixed(1)}%
-            </span>
-          </div>
+        {/* Export button */}
+        <Tooltip content="Download data as CSV file" position="bottom">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleExport}
+            icon={<Download className="h-4 w-4" />}
+            iconPosition="left"
+            loading={isExporting}
+            loadingText="Exporting..."
+          >
+            Export
+          </Button>
         </Tooltip>
       </div>
-
-      <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
-
-      {/* Average Margin */}
-      <Tooltip
-        content={
-          <div className="space-y-1">
-            <div className="font-semibold">Average Margin</div>
-            <div className="text-xs opacity-90">
-              Total Margin: {formatCurrency(stats.totalMargin)}
-            </div>
-            <div className="text-xs opacity-90">
-              Calculated as (Margin / Revenue) × 100
-            </div>
-          </div>
-        }
-        position="bottom"
-      >
-        <div className="flex items-center gap-1 text-sm cursor-help">
-          <span className="text-muted-foreground">Avg. Margin: </span>
-          <span className="font-semibold">{stats.avgMarginPercent.toFixed(1)}%</span>
-          <Info className="h-3 w-3 text-muted-foreground" />
-        </div>
-      </Tooltip>
-
-      {/* Export button */}
-      <Tooltip
-        content="Download data as CSV file"
-        position="bottom"
-      >
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handleExport}
-          icon={<Download className="h-4 w-4" />}
-          iconPosition="left"
-          loading={isExporting}
-          loadingText="Exporting..."
-        >
-          Export
-        </Button>
-      </Tooltip>
-    </div>
-  ) : null;
+    ) : null;
 
   // Handle error state
   if (!loading && error) {
     // Build error state props conditionally
     const errorStateProps: Parameters<typeof ErrorState>[0] = {
       error,
-      title: "Failed to load revenue data",
-      description: "We couldn't fetch your revenue data. Please check your connection and try again.",
-      variant: "full" as const,
+      title: 'Failed to load revenue data',
+      description:
+        "We couldn't fetch your revenue data. Please check your connection and try again.",
+      variant: 'full' as const,
     };
 
     // Only add onRetry if onRefresh exists
@@ -326,10 +320,7 @@ export function RevenueChart({
 
     return (
       <Card variant="elevated" padding="none">
-        <CardHeader
-          title="Revenue Trends"
-          subtitle="Monthly revenue, cost and margin analysis"
-        />
+        <CardHeader title="Revenue Trends" subtitle="Monthly revenue, cost and margin analysis" />
         <CardBody>
           <ErrorState {...errorStateProps} />
         </CardBody>
@@ -366,24 +357,24 @@ export function RevenueChart({
             action={
               showImportOption && onImportData
                 ? {
-                  label: 'Import Data',
-                  onClick: onImportData,
-                  icon: <FileSpreadsheet size={16} />,
-                }
+                    label: 'Import Data',
+                    onClick: onImportData,
+                    icon: <FileSpreadsheet size={16} />,
+                  }
                 : onRefresh
                   ? {
-                    label: 'Refresh Data',
-                    onClick: onRefresh,
-                    icon: <RefreshCw size={16} />,
-                  }
+                      label: 'Refresh Data',
+                      onClick: onRefresh,
+                      icon: <RefreshCw size={16} />,
+                    }
                   : undefined
             }
             secondaryAction={
               showImportOption && onImportData && onRefresh
                 ? {
-                  label: 'Refresh',
-                  onClick: onRefresh,
-                }
+                    label: 'Refresh',
+                    onClick: onRefresh,
+                  }
                 : undefined
             }
           />
@@ -432,10 +423,7 @@ export function RevenueChart({
 
         {/* Chart */}
         <ResponsiveContainer width="100%" height={320}>
-          <AreaChart
-            data={data}
-            margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
-          >
+          <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
             <defs>
               <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={colors.revenue} stopOpacity={0.3} />
@@ -446,11 +434,7 @@ export function RevenueChart({
                 <stop offset="95%" stopColor={colors.margin} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke={colors.grid}
-              vertical={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
             <XAxis
               dataKey="month"
               stroke={colors.text}

@@ -29,10 +29,7 @@ export function FormField({
   return (
     <div className={cn('space-y-2', className)}>
       {label && (
-        <label 
-          htmlFor={id}
-          className="form-label flex items-center gap-1"
-        >
+        <label htmlFor={id} className="form-label flex items-center gap-1">
           {label}
           {required && (
             <span className="text-danger" aria-label="required">
@@ -41,16 +38,16 @@ export function FormField({
           )}
         </label>
       )}
-      
+
       {children}
-      
+
       {error && (
         <div className="flex items-center gap-1 text-danger text-xs" role="alert">
           <AlertCircle size={12} />
           <span>{error}</span>
         </div>
       )}
-      
+
       {helperText && !error && (
         <div className="flex items-center gap-1 text-neutral-500 text-xs">
           <Info size={12} />

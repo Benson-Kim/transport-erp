@@ -3,7 +3,7 @@
 
 import { format } from 'date-fns';
 import { Card, CardBody, Badge } from '@/components/ui';
-import { 
+import {
   Calendar,
   Building2,
   Truck,
@@ -27,12 +27,11 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
   // Calculate totals with VAT
   const costTotalWithVat = Number(service.costAmount) + Number(service.costVatAmount);
   const saleTotalWithVat = Number(service.saleAmount) + Number(service.saleVatAmount);
-  
+
   // Calculate margins
   const margin = Number(service.saleAmount) - Number(service.costAmount);
-  const marginPercent = Number(service.saleAmount) > 0 
-    ? (margin / Number(service.saleAmount)) * 100 
-    : 0;
+  const marginPercent =
+    Number(service.saleAmount) > 0 ? (margin / Number(service.saleAmount)) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -43,16 +42,14 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
             <FileText className="h-5 w-5 mr-2" />
             Service Information
           </h2>
-          
+
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <dt className="text-sm text-muted-foreground flex items-center mb-1">
                 <Calendar className="h-4 w-4 mr-1" />
                 Date
               </dt>
-              <dd className="font-medium">
-                {format(new Date(service.date), 'PPP')}
-              </dd>
+              <dd className="font-medium">{format(new Date(service.date), 'PPP')}</dd>
             </div>
 
             <div>
@@ -61,10 +58,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                 Client
               </dt>
               <dd className="font-medium">
-                <a 
-                  href={`/clients/${service.clientId}`}
-                  className="text-primary hover:underline"
-                >
+                <a href={`/clients/${service.clientId}`} className="text-primary hover:underline">
                   {service.client.name}
                 </a>
               </dd>
@@ -76,7 +70,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                 Supplier
               </dt>
               <dd className="font-medium">
-                <a 
+                <a
                   href={`/suppliers/${service.supplierId}`}
                   className="text-primary hover:underline"
                 >
@@ -142,16 +136,14 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
             <MapPin className="h-5 w-5 mr-2" />
             Location Details
           </h2>
-          
+
           <div className="space-y-4">
             <div>
               <dt className="text-sm text-muted-foreground flex items-center mb-1">
                 <MapPin className="h-4 w-4 mr-1" />
                 Origin / Loading Area
               </dt>
-              <dd className="font-medium bg-neutral-50 p-3 rounded">
-                {service.origin}
-              </dd>
+              <dd className="font-medium bg-neutral-50 p-3 rounded">{service.origin}</dd>
             </div>
 
             <div>
@@ -159,17 +151,13 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                 <MapPin className="h-4 w-4 mr-1" />
                 Destination / Unloading Site
               </dt>
-              <dd className="font-medium bg-neutral-50 p-3 rounded">
-                {service.destination}
-              </dd>
+              <dd className="font-medium bg-neutral-50 p-3 rounded">{service.destination}</dd>
             </div>
 
             {service.distance && service.distance > 0 && (
               <div className="flex items-center justify-between p-3 bg-primary-50 rounded">
                 <span className="text-sm font-medium">Total Distance</span>
-                <span className="font-bold text-primary">
-                  {formatDistance(service.distance)}
-                </span>
+                <span className="font-bold text-primary">{formatDistance(service.distance)}</span>
               </div>
             )}
           </div>
@@ -183,7 +171,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
             <Calculator className="h-5 w-5 mr-2" />
             Pricing Details
           </h2>
-          
+
           <div className="space-y-4">
             {/* Cost Section */}
             <div className="p-4 bg-neutral-50 rounded">
@@ -224,12 +212,12 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
             </div>
 
             {/* Margin Analysis */}
-            <div className={cn(
-              "p-4 rounded-lg border-2",
-              margin >= 0 
-                ? "bg-green-50 border-green-200" 
-                : "bg-red-50 border-red-200"
-            )}>
+            <div
+              className={cn(
+                'p-4 rounded-lg border-2',
+                margin >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+              )}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   {margin >= 0 ? (
@@ -239,40 +227,45 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   )}
                   <h3 className="font-medium">Margin Analysis</h3>
                 </div>
-                <Badge 
-                  variant={margin >= 0 ? "completed" : "cancelled"}
-                  size="sm"
-                >
+                <Badge variant={margin >= 0 ? 'completed' : 'cancelled'} size="sm">
                   {marginPercent.toFixed(1)}%
                 </Badge>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mt-3">
                 <div>
                   <dt className="text-xs text-muted-foreground">Gross Margin</dt>
-                  <dd className={cn(
-                    "font-bold text-lg",
-                    margin >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
+                  <dd
+                    className={cn(
+                      'font-bold text-lg',
+                      margin >= 0 ? 'text-green-600' : 'text-red-600'
+                    )}
+                  >
                     {formatCurrency(margin, service.saleCurrency)}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-muted-foreground">Margin %</dt>
-                  <dd className={cn(
-                    "font-bold text-lg",
-                    marginPercent >= 20 ? "text-green-600" :
-                    marginPercent >= 10 ? "text-yellow-600" : "text-red-600"
-                  )}>
+                  <dd
+                    className={cn(
+                      'font-bold text-lg',
+                      marginPercent >= 20
+                        ? 'text-green-600'
+                        : marginPercent >= 10
+                          ? 'text-yellow-600'
+                          : 'text-red-600'
+                    )}
+                  >
                     {marginPercent.toFixed(2)}%
                   </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-muted-foreground">Markup %</dt>
                   <dd className="font-bold text-lg">
-                    {Number(service.costAmount) > 0 
-                      ? ((margin / Number(service.costAmount)) * 100).toFixed(2) 
-                      : '0.00'}%
+                    {Number(service.costAmount) > 0
+                      ? ((margin / Number(service.costAmount)) * 100).toFixed(2)
+                      : '0.00'}
+                    %
                   </dd>
                 </div>
               </div>
@@ -289,7 +282,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
               <FileText className="h-5 w-5 mr-2" />
               Notes
             </h2>
-            
+
             {service.notes && (
               <div className="mb-4">
                 <dt className="text-sm text-muted-foreground mb-1">Public Notes</dt>
@@ -298,7 +291,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                 </dd>
               </div>
             )}
-            
+
             {service.internalNotes && (
               <div className="print:hidden">
                 <dt className="text-sm text-muted-foreground mb-1">Internal Notes</dt>

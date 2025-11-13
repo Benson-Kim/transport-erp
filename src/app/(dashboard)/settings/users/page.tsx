@@ -20,19 +20,16 @@ export const metadata: Metadata = {
 export default async function UsersPage() {
   // Require admin role
   await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-  
+
   // Fetch users
   const users = await getUsers();
-  
+
   return (
     <div className="container py-6">
-      <PageHeader
-        title="User Management"
-        description="Manage system users, roles, and permissions"
-      >
+      <PageHeader title="User Management" description="Manage system users, roles, and permissions">
         <CreateUserDialog />
       </PageHeader>
-      
+
       <div className="mt-6 grid gap-6">
         {/* Statistics */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -40,23 +37,23 @@ export default async function UsersPage() {
             <div className="text-2xl font-bold">{users.total}</div>
             <p className="text-sm text-muted-foreground">Total Users</p>
           </Card>
-          
+
           <Card className="p-6">
             <div className="text-2xl font-bold">{users.active}</div>
             <p className="text-sm text-muted-foreground">Active Users</p>
           </Card>
-          
+
           <Card className="p-6">
             <div className="text-2xl font-bold">{users.admins}</div>
             <p className="text-sm text-muted-foreground">Administrators</p>
           </Card>
-          
+
           <Card className="p-6">
             <div className="text-2xl font-bold">{users.recentlyActive}</div>
             <p className="text-sm text-muted-foreground">Active Today</p>
           </Card>
         </div>
-        
+
         {/* Users List */}
         <Card>
           <UsersList users={users.data} />

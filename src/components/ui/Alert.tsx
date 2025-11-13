@@ -65,19 +65,19 @@ export function Alert({
 
   // Handle icon rendering
   let iconElement: ReactNode;
-  
+
   if (icon) {
     // If icon is already a React element, use it directly
     if (isValidElement(icon)) {
       iconElement = icon;
-    } 
+    }
     // If icon is a component, create an element from it
     else if (typeof icon === 'function') {
       iconElement = createElement(icon, {
         className: cn('h-5 w-5', styles.iconColor),
         'aria-hidden': true,
       });
-    } 
+    }
     // Otherwise, treat it as a ReactNode
     else {
       iconElement = icon;
@@ -88,39 +88,16 @@ export function Alert({
   }
 
   return (
-    <div
-      role="alert"
-      className={cn(
-        'rounded-lg p-4',
-        styles.container,
-        className
-      )}
-    >
+    <div role="alert" className={cn('rounded-lg p-4', styles.container, className)}>
       <div className="flex">
-        <div className="flex-shrink-0">
-          {iconElement}
-        </div>
-        
+        <div className="flex-shrink-0">{iconElement}</div>
+
         <div className="ml-3 flex-1">
-          {title && (
-            <h3 className={cn('text-sm font-medium', styles.title)}>
-              {title}
-            </h3>
-          )}
-          <div className={cn(
-            'text-sm',
-            title ? 'mt-2' : '',
-            styles.content
-          )}>
-            {children}
-          </div>
-          {action && (
-            <div className="mt-4">
-              {action}
-            </div>
-          )}
+          {title && <h3 className={cn('text-sm font-medium', styles.title)}>{title}</h3>}
+          <div className={cn('text-sm', title ? 'mt-2' : '', styles.content)}>{children}</div>
+          {action && <div className="mt-4">{action}</div>}
         </div>
-        
+
         {dismissible && onDismiss && (
           <div className="ml-auto pl-3">
             <button

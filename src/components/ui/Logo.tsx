@@ -87,13 +87,7 @@ export function Logo({
 
       {/* Logo Text */}
       {showText && (
-        <span
-          className={cn(
-            'font-bold tracking-tight',
-            sizes[size].text,
-            colors[variant]
-          )}
-        >
+        <span className={cn('font-bold tracking-tight', sizes[size].text, colors[variant])}>
           Enterprise
         </span>
       )}
@@ -127,5 +121,5 @@ export function LogoMark({
   size = 'md',
   variant = 'default',
 }: Omit<LogoProps, 'showText' | 'href'>) {
-  return <Logo className={className ?? ""} size={size} variant={variant} showText={false} />;
+  return <Logo className={className ?? ''} size={size} variant={variant} showText={false} />;
 }

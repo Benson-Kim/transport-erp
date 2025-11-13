@@ -31,11 +31,11 @@ interface Handlers {
 
 const icons = {
   view: createElement(Eye, { className: 'h-4 w-4' }),
-  edit: createElement(Edit2, { className: "h-4 w-4" }),
-  copy: createElement(Copy, { className: "h-4 w-4" }),
-  delete: createElement(Trash2, { className: "h-4 w-4" }),
-  complete: createElement(CheckCircle2, { className: "h-4 w-4" }),
-  reopen: createElement(RotateCcw, { className: "h-4 w-4" }),
+  edit: createElement(Edit2, { className: 'h-4 w-4' }),
+  copy: createElement(Copy, { className: 'h-4 w-4' }),
+  delete: createElement(Trash2, { className: 'h-4 w-4' }),
+  complete: createElement(CheckCircle2, { className: 'h-4 w-4' }),
+  reopen: createElement(RotateCcw, { className: 'h-4 w-4' }),
 };
 
 export const SERVICE_STATUS_CONFIG: Record<
@@ -46,7 +46,7 @@ export const SERVICE_STATUS_CONFIG: Record<
       text: string;
       bg: string;
       border: string;
-    }
+    };
     description: string;
     variant: 'active' | 'completed' | 'cancelled' | 'billed' | 'archived' | 'default';
     icon: React.ElementType;
@@ -132,12 +132,14 @@ export const SERVICE_STATUS_CONFIG: Record<
 };
 
 export const getStatusConfig = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s];
-export const getStatusVariant = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.variant ?? 'default';
+export const getStatusVariant = (s: ServiceStatus) =>
+  SERVICE_STATUS_CONFIG[s]?.variant ?? 'default';
 export const getStatusLabel = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.label ?? s;
-export const getStatusDescription = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.description ?? 'Unknown status';
+export const getStatusDescription = (s: ServiceStatus) =>
+  SERVICE_STATUS_CONFIG[s]?.description ?? 'Unknown status';
 export function getStatusIcon(s: ServiceStatus): JSX.Element {
   const IconComponent = SERVICE_STATUS_CONFIG[s]?.icon || AlertCircle;
-  return createElement(IconComponent, { className: "h-3 w-3" });
+  return createElement(IconComponent, { className: 'h-3 w-3' });
 }
 
 /**
@@ -215,7 +217,7 @@ export function buildServiceActionsMenu(
 
   // ---- Deletion options ----
   if (canDelete) {
-    items.push({ id: 'divider', divider: true, });
+    items.push({ id: 'divider', divider: true });
     items.push({
       id: 'delete',
       label: 'Delete Service',

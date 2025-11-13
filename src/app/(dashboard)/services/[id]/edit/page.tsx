@@ -21,7 +21,7 @@ interface EditServicePageProps {
 export default async function EditServicePage({ params }: EditServicePageProps) {
   const { id } = await params;
   const session = await auth();
-  
+
   if (!session?.user) redirect('/login');
 
   // Check permissions
@@ -65,7 +65,8 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
           <div>
             <p className="font-medium">Service {service.serviceNumber} is completed</p>
             <p className="text-sm mt-1">
-              Only administrators can edit completed services. Please contact your administrator if changes are needed.
+              Only administrators can edit completed services. Please contact your administrator if
+              changes are needed.
             </p>
           </div>
         </Alert>
@@ -89,9 +90,7 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
             title={`Edit Service ${service.serviceNumber}`}
             description="Update service details below"
           />
-          <Badge 
-            variant={service.status === ServiceStatus.COMPLETED ? 'completed' : 'active'}
-          >
+          <Badge variant={service.status === ServiceStatus.COMPLETED ? 'completed' : 'active'}>
             {service.status}
           </Badge>
         </div>

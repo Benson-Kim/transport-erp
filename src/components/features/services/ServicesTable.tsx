@@ -101,61 +101,70 @@ export function ServicesTable({
   }, [services]);
 
   // Handle sorting
-  const handleSort = useCallback((column: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+  const handleSort = useCallback(
+    (column: string) => {
+      const params = new URLSearchParams(searchParams.toString());
 
-    if (sortBy === column) {
-      params.set('sortOrder', sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      params.set('sortBy', column);
-      params.set('sortOrder', 'desc');
-    }
+      if (sortBy === column) {
+        params.set('sortOrder', sortOrder === 'asc' ? 'desc' : 'asc');
+      } else {
+        params.set('sortBy', column);
+        params.set('sortOrder', 'desc');
+      }
 
-    startTransition(() => {
-      router.push(`/services?${params.toString()}`);
-    });
-  }, [sortBy, sortOrder, searchParams, router]);
+      startTransition(() => {
+        router.push(`/services?${params.toString()}`);
+      });
+    },
+    [sortBy, sortOrder, searchParams, router]
+  );
 
   // Handle selection
-  const handleSelectAll = useCallback((checked: boolean) => {
-    if (checked) {
-      setSelectedServices(new Set(services.map(s => s.id)));
-    } else {
-      setSelectedServices(new Set());
-    }
-  }, [services]);
-
-  const handleSelectService = useCallback((serviceId: string, index: number, event: React.MouseEvent) => {
-    const newSelected = new Set(selectedServices);
-
-    if (event.shiftKey && lastSelectedIndex !== null) {
-      // Range selection
-      const start = Math.min(lastSelectedIndex, index);
-      const end = Math.max(lastSelectedIndex, index);
-
-      for (let i = start; i <= end; i++) {
-        const service = services[i];
-        if (service) newSelected.add(service.id);
-      }
-    } else if (event.ctrlKey || event.metaKey) {
-      // Toggle selection
-      if (newSelected.has(serviceId)) {
-        newSelected.delete(serviceId);
+  const handleSelectAll = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setSelectedServices(new Set(services.map((s) => s.id)));
       } else {
-        newSelected.add(serviceId);
+        setSelectedServices(new Set());
       }
-    } else {
-      // Single selection
-      if (newSelected.has(serviceId)) {
-        newSelected.delete(serviceId);
-      } else {
-        newSelected.add(serviceId);
-      }
-    }
+    },
+    [services]
+  );
 
-    setSelectedServices(newSelected);
-    setLastSelectedIndex(index);
-  }, [selectedServices, lastSelectedIndex, services]);
+  const handleSelectService = useCallback(
+    (serviceId: string, index: number, event: React.MouseEvent) => {
+      const newSelected = new Set(selectedServices);
+
+      if (event.shiftKey && lastSelectedIndex !== null) {
+        // Range selection
+        const start = Math.min(lastSelectedIndex, index);
+        const end = Math.max(lastSelectedIndex, index);
+
+        for (let i = start; i <= end; i++) {
+          const service = services[i];
+          if (service) newSelected.add(service.id);
+        }
+      } else if (event.ctrlKey || event.metaKey) {
+        // Toggle selection
+        if (newSelected.has(serviceId)) {
+          newSelected.delete(serviceId);
+        } else {
+          newSelected.add(serviceId);
+        }
+      } else {
+        // Single selection
+        if (newSelected.has(serviceId)) {
+          newSelected.delete(serviceId);
+        } else {
+          newSelected.add(serviceId);
+        }
+      }
+
+      setSelectedServices(newSelected);
+      setLastSelectedIndex(index);
+    },
+    [selectedServices, lastSelectedIndex, services]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -257,10 +266,12 @@ export function ServicesTable({
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               <span className="text-muted-foreground">Avg Margin:</span>
-              <span className={cn(
-                "font-semibold",
-                stats.avgMarginPercent >= 0 ? "text-green-600" : "text-red-600"
-              )}>
+              <span
+                className={cn(
+                  'font-semibold',
+                  stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                )}
+              >
                 {formatPercentage(stats.avgMarginPercent)}
               </span>
             </div>
@@ -286,10 +297,7 @@ export function ServicesTable({
 
       {/* Table */}
       <Card className="overflow-hidden">
-        <div
-          ref={tableContainerRef}
-          className="relative overflow-auto max-h-[600px]"
-        >
+        <div ref={tableContainerRef} className="relative overflow-auto max-h-[600px]">
           <table className="w-full">
             <thead className="sticky top-0 z-20">
               <tr className="bg-white dark:bg-neutral-950 border-b">
@@ -297,7 +305,9 @@ export function ServicesTable({
                 <th className="sticky left-0 z-30 bg-white dark:bg-neutral-950 p-3 w-12">
                   <Checkbox
                     checked={selectedServices.size === services.length && services.length > 0}
-                    indeterminate={selectedServices.size > 0 && selectedServices.size < services.length}
+                    indeterminate={
+                      selectedServices.size > 0 && selectedServices.size < services.length
+                    }
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all services"
                   />
@@ -312,31 +322,35 @@ export function ServicesTable({
                   >
                     <span>Service #</span>
                     <div className="flex flex-col -space-y-1">
-                      <ChevronUp className={cn(
-                        "h-3 w-3 transition-colors",
-                        sortBy === 'serviceNumber' && sortOrder === 'asc'
-                          ? "text-primary"
-                          : "text-muted-foreground/30"
-                      )} />
-                      <ChevronDown className={cn(
-                        "h-3 w-3 transition-colors",
-                        sortBy === 'serviceNumber' && sortOrder === 'desc'
-                          ? "text-primary"
-                          : "text-muted-foreground/30"
-                      )} />
+                      <ChevronUp
+                        className={cn(
+                          'h-3 w-3 transition-colors',
+                          sortBy === 'serviceNumber' && sortOrder === 'asc'
+                            ? 'text-primary'
+                            : 'text-muted-foreground/30'
+                        )}
+                      />
+                      <ChevronDown
+                        className={cn(
+                          'h-3 w-3 transition-colors',
+                          sortBy === 'serviceNumber' && sortOrder === 'desc'
+                            ? 'text-primary'
+                            : 'text-muted-foreground/30'
+                        )}
+                      />
                     </div>
                   </button>
                 </th>
 
                 {/* Regular Columns */}
-                {COLUMNS.filter(col => col.key !== 'serviceNumber').map((column) => (
+                {COLUMNS.filter((col) => col.key !== 'serviceNumber').map((column) => (
                   <th
                     key={column.key}
                     className={cn(
-                      "p-3 bg-white dark:bg-neutral-950",
-                      "font-medium text-sm text-muted-foreground",
-                      column.align === 'center' && "text-center",
-                      column.align === 'right' && "text-right",
+                      'p-3 bg-white dark:bg-neutral-950',
+                      'font-medium text-sm text-muted-foreground',
+                      column.align === 'center' && 'text-center',
+                      column.align === 'right' && 'text-right'
                     )}
                     style={{
                       width: column.width,
@@ -348,25 +362,29 @@ export function ServicesTable({
                         onClick={() => handleSort(column.key)}
                         disabled={isPending}
                         className={cn(
-                          "inline-flex items-center gap-1 hover:text-foreground transition-colors w-full",
-                          column.align === 'right' && "justify-end",
-                          column.align === 'center' && "justify-center"
+                          'inline-flex items-center gap-1 hover:text-foreground transition-colors w-full',
+                          column.align === 'right' && 'justify-end',
+                          column.align === 'center' && 'justify-center'
                         )}
                       >
                         <span>{column.label}</span>
                         <div className="flex flex-col -space-y-1">
-                          <ChevronUp className={cn(
-                            "h-3 w-3 transition-colors",
-                            sortBy === column.key && sortOrder === 'asc'
-                              ? "text-primary"
-                              : "text-muted-foreground/30"
-                          )} />
-                          <ChevronDown className={cn(
-                            "h-3 w-3 transition-colors",
-                            sortBy === column.key && sortOrder === 'desc'
-                              ? "text-primary"
-                              : "text-muted-foreground/30"
-                          )} />
+                          <ChevronUp
+                            className={cn(
+                              'h-3 w-3 transition-colors',
+                              sortBy === column.key && sortOrder === 'asc'
+                                ? 'text-primary'
+                                : 'text-muted-foreground/30'
+                            )}
+                          />
+                          <ChevronDown
+                            className={cn(
+                              'h-3 w-3 transition-colors',
+                              sortBy === column.key && sortOrder === 'desc'
+                                ? 'text-primary'
+                                : 'text-muted-foreground/30'
+                            )}
+                          />
                         </div>
                       </button>
                     ) : (

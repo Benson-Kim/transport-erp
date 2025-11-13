@@ -3,7 +3,13 @@
  * Populates the database with sample data for development and testing
  */
 
-import { PrismaClient, UserRole, ServiceStatus, InvoiceStatus, PaymentStatus } from '@/app/generated/prisma';
+import {
+  PrismaClient,
+  UserRole,
+  ServiceStatus,
+  InvoiceStatus,
+  PaymentStatus,
+} from '@/app/generated/prisma';
 import { hash } from 'bcryptjs';
 import { addDays, subDays } from 'date-fns';
 
@@ -12,7 +18,11 @@ const prisma = new PrismaClient();
 /**
  * Generate a sequential number with prefix
  */
-function generateNumber(prefix: string, index: number, year: number = new Date().getFullYear()): string {
+function generateNumber(
+  prefix: string,
+  index: number,
+  year: number = new Date().getFullYear()
+): string {
   return `${prefix}-${year}-${String(index).padStart(5, '0')}`;
 }
 
@@ -362,7 +372,7 @@ async function main() {
 
     const costAmount = randomDecimal(100, 2000);
     const marginPercent = randomDecimal(15, 35);
-    const saleAmount = Math.round((costAmount * (1 + marginPercent / 100)) * 100) / 100;
+    const saleAmount = Math.round(costAmount * (1 + marginPercent / 100) * 100) / 100;
 
     const statuses = [
       ServiceStatus.DRAFT,
@@ -371,8 +381,14 @@ async function main() {
       ServiceStatus.COMPLETED,
     ];
     // bias: earlier services more likely to be completed
-    const status = i < 30 ? statuses[Math.floor(Math.random() * 3)] : statuses[Math.floor(Math.random() * statuses.length)];
-    const completedAt = status === ServiceStatus.COMPLETED ? addDays(serviceDate, Math.floor(Math.random() * 3) + 1) : null;
+    const status =
+      i < 30
+        ? statuses[Math.floor(Math.random() * 3)]
+        : statuses[Math.floor(Math.random() * statuses.length)];
+    const completedAt =
+      status === ServiceStatus.COMPLETED
+        ? addDays(serviceDate, Math.floor(Math.random() * 3) + 1)
+        : null;
 
     serviceCreateInputs.push({
       serviceNumber: generateNumber('SRV', i),
@@ -382,13 +398,18 @@ async function main() {
       createdById: operatorUser.id,
       assignedToId: Math.random() > 0.5 ? managerUser.id : operatorUser.id,
       description: `Transport service from warehouse to ${['Store A', 'Store B', 'Distribution Center', 'Customer Location'][Math.floor(Math.random() * 4)]}`,
-      reference: Math.random() > 0.5 ? `PO-2024-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}` : null,
+      reference:
+        Math.random() > 0.5
+          ? `PO-2024-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
+          : null,
       origin: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla'][Math.floor(Math.random() * 4)],
       destination: ['Bilbao', 'Zaragoza', 'Málaga', 'Lisboa'][Math.floor(Math.random() * 4)],
       distance: Math.floor(Math.random() * 500) + 50,
       vehicleType: ['Truck', 'Van', 'Trailer', 'Container'][Math.floor(Math.random() * 4)],
       vehiclePlate: `${String(Math.floor(Math.random() * 9999)).padStart(4, '0')} ${['ABC', 'DEF', 'GHI', 'JKL'][Math.floor(Math.random() * 4)]}`,
-      driverName: ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez'][Math.floor(Math.random() * 4)],
+      driverName: ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez'][
+        Math.floor(Math.random() * 4)
+      ],
       costAmount,
       saleAmount,
       margin: Math.round((saleAmount - costAmount) * 100) / 100,
@@ -407,46 +428,51 @@ async function main() {
   }
 
   // Insert services and build status history records
-  const createdServices = await prisma.$transaction(async (tx) => {
-    const created = await Promise.all(serviceCreateInputs.map((d) => tx.service.create({ data: d })));
+  const createdServices = await prisma.$transaction(
+    async (tx) => {
+      const created = await Promise.all(
+        serviceCreateInputs.map((d) => tx.service.create({ data: d }))
+      );
 
-    const historyRecords: any[] = [];
-    for (const svc of created) {
-      if (svc.status !== ServiceStatus.DRAFT) {
-        historyRecords.push({
-          serviceId: svc.id,
-          fromStatus: ServiceStatus.DRAFT,
-          toStatus: ServiceStatus.CONFIRMED,
-          changedBy: operatorUser.id,
-          changedAt: addDays(svc.date, 1),
-        });
+      const historyRecords: any[] = [];
+      for (const svc of created) {
+        if (svc.status !== ServiceStatus.DRAFT) {
+          historyRecords.push({
+            serviceId: svc.id,
+            fromStatus: ServiceStatus.DRAFT,
+            toStatus: ServiceStatus.CONFIRMED,
+            changedBy: operatorUser.id,
+            changedAt: addDays(svc.date, 1),
+          });
+        }
+        if (svc.status === ServiceStatus.IN_PROGRESS || svc.status === ServiceStatus.COMPLETED) {
+          historyRecords.push({
+            serviceId: svc.id,
+            fromStatus: ServiceStatus.CONFIRMED,
+            toStatus: ServiceStatus.IN_PROGRESS,
+            changedBy: managerUser.id,
+            changedAt: addDays(svc.date, 2),
+          });
+        }
+        if (svc.status === ServiceStatus.COMPLETED) {
+          historyRecords.push({
+            serviceId: svc.id,
+            fromStatus: ServiceStatus.IN_PROGRESS,
+            toStatus: ServiceStatus.COMPLETED,
+            changedBy: managerUser.id,
+            changedAt: svc.completedAt ?? addDays(svc.date, 3),
+          });
+        }
       }
-      if (svc.status === ServiceStatus.IN_PROGRESS || svc.status === ServiceStatus.COMPLETED) {
-        historyRecords.push({
-          serviceId: svc.id,
-          fromStatus: ServiceStatus.CONFIRMED,
-          toStatus: ServiceStatus.IN_PROGRESS,
-          changedBy: managerUser.id,
-          changedAt: addDays(svc.date, 2),
-        });
-      }
-      if (svc.status === ServiceStatus.COMPLETED) {
-        historyRecords.push({
-          serviceId: svc.id,
-          fromStatus: ServiceStatus.IN_PROGRESS,
-          toStatus: ServiceStatus.COMPLETED,
-          changedBy: managerUser.id,
-          changedAt: svc.completedAt ?? addDays(svc.date, 3),
-        });
-      }
-    }
 
-    if (historyRecords.length > 0) {
-      await tx.serviceStatusHistory.createMany({ data: historyRecords });
-    }
+      if (historyRecords.length > 0) {
+        await tx.serviceStatusHistory.createMany({ data: historyRecords });
+      }
 
-    return created;
-  }, { timeout: 60000 });
+      return created;
+    },
+    { timeout: 60000 }
+  );
 
   console.log(`Created ${createdServices.length} services.`);
 
@@ -474,9 +500,12 @@ async function main() {
     });
   }
 
-  const createdLoadingOrders = loadingOrderInputs.length > 0
-    ? await prisma.$transaction(loadingOrderInputs.map((d) => prisma.loadingOrder.create({ data: d })))
-    : [];
+  const createdLoadingOrders =
+    loadingOrderInputs.length > 0
+      ? await prisma.$transaction(
+          loadingOrderInputs.map((d) => prisma.loadingOrder.create({ data: d }))
+        )
+      : [];
 
   console.log(`Created ${createdLoadingOrders.length} loading orders.`);
 
@@ -486,7 +515,9 @@ async function main() {
   const invoiceResults: any[] = [];
 
   // Build list of candidate services for invoicing (completed)
-  const invoiceCandidateServices = createdServices.filter((s) => s.status === ServiceStatus.COMPLETED);
+  const invoiceCandidateServices = createdServices.filter(
+    (s) => s.status === ServiceStatus.COMPLETED
+  );
 
   // We'll create up to 15 invoices
   for (let i = 1; i <= 15; i++) {
@@ -691,15 +722,29 @@ async function main() {
     }),
   ]);
 
-
   /* ---------- Audit Logs ---------- */
   console.log('Creating some audit logs...');
   // Reference a couple of existing records safely
   const auditActions = [
     { action: 'LOGIN', userId: adminUser.id, tableName: 'users', recordId: adminUser.id },
-    { action: 'CREATE', userId: operatorUser.id, tableName: 'services', recordId: createdServices[0]?.id },
-    { action: 'UPDATE', userId: managerUser.id, tableName: 'services', recordId: createdServices[1]?.id },
-    { action: 'CREATE', userId: accountantUser.id, tableName: 'invoices', recordId: invoiceResults[0]?.id },
+    {
+      action: 'CREATE',
+      userId: operatorUser.id,
+      tableName: 'services',
+      recordId: createdServices[0]?.id,
+    },
+    {
+      action: 'UPDATE',
+      userId: managerUser.id,
+      tableName: 'services',
+      recordId: createdServices[1]?.id,
+    },
+    {
+      action: 'CREATE',
+      userId: accountantUser.id,
+      tableName: 'invoices',
+      recordId: invoiceResults[0]?.id,
+    },
   ];
 
   for (const audit of auditActions) {
@@ -716,7 +761,6 @@ async function main() {
       },
     });
   }
-
 
   console.log('Database seed completed successfully!');
 

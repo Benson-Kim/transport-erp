@@ -7,12 +7,7 @@
 
 import { unstable_cache } from 'next/cache';
 import { ServiceStatus } from '@/app/generated/prisma';
-import {
-  startOfMonth,
-  endOfMonth,
-  subMonths,
-  subDays,
-} from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 import {
   calculatePercentageChange,
   calculateDateRange,
@@ -80,7 +75,10 @@ export const getDashboardData = unstable_cache(
     // Calculate date range
     const { startDate, endDate } = calculateDateRange(dateRange);
     const previousPeriod = {
-      startDate: subDays(startDate, Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))),
+      startDate: subDays(
+        startDate,
+        Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+      ),
       endDate: startDate,
     };
 
@@ -198,10 +196,14 @@ export const getDashboardData = unstable_cache(
     ]);
 
     // Calculate stats
-    const currentActive = currentServices.find(s => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
-    const currentCompleted = currentServices.find(s => s.status === ServiceStatus.COMPLETED)?._count || 0;
-    const previousActive = previousServices.find(s => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
-    const previousCompleted = previousServices.find(s => s.status === ServiceStatus.COMPLETED)?._count || 0;
+    const currentActive =
+      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
+    const currentCompleted =
+      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count || 0;
+    const previousActive =
+      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
+    const previousCompleted =
+      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count || 0;
 
     const stats = {
       activeServices: currentActive,

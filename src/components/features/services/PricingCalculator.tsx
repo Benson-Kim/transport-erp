@@ -1,5 +1,5 @@
 // components/features/services/PricingCalculator.tsx
-'use client'
+'use client';
 import { Controller, UseFormReturn } from 'react-hook-form';
 import { Input, Select, FormField, Tooltip } from '@/components/ui';
 import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
@@ -15,23 +15,23 @@ interface PricingCalculatorProps {
 
 // Currency options with icons
 const CURRENCY_OPTIONS: Option[] = [
-  { 
-    value: 'EUR', 
+  {
+    value: 'EUR',
     label: 'EUR - Euro',
     icon: '€',
-    description: 'European Union'
+    description: 'European Union',
   },
-  { 
-    value: 'USD', 
+  {
+    value: 'USD',
     label: 'USD - US Dollar',
     icon: '$',
-    description: 'United States'
+    description: 'United States',
   },
-  { 
-    value: 'GBP', 
+  {
+    value: 'GBP',
     label: 'GBP - British Pound',
     icon: '£',
-    description: 'United Kingdom'
+    description: 'United Kingdom',
   },
 ];
 
@@ -44,17 +44,18 @@ const VAT_RATE_OPTIONS: Option[] = [
 
 // Helper to get currency symbol
 const getCurrencySymbol = (currency: string) => {
-  const curr = CURRENCY_OPTIONS.find(c => c.value === currency);
+  const curr = CURRENCY_OPTIONS.find((c) => c.value === currency);
   return curr?.icon || '€';
 };
 
-export function PricingCalculator({ 
-  form, 
-  margin, 
-  marginPercent 
-}: PricingCalculatorProps) {
-  const { control, watch, setValue, formState: {errors: _errors } } = form;
-  
+export function PricingCalculator({ form, margin, marginPercent }: PricingCalculatorProps) {
+  const {
+    control,
+    watch,
+    setValue,
+    formState: { errors: _errors },
+  } = form;
+
   // Watch all relevant fields
   const costAmount = watch('costAmount') || 0;
   const saleAmount = watch('saleAmount') || 0;
@@ -62,29 +63,29 @@ export function PricingCalculator({
   const saleCurrency = watch('saleCurrency') || 'EUR';
   const costVatRate = watch('costVatRate') || 21;
   const saleVatRate = watch('saleVatRate') || 21;
-  
+
   // Legacy fields for backward compatibility (optional)
   const kilometers = watch('distance');
   const pricePerKm = watch('pricePerKm');
   const extras = watch('extras') || 0;
-  
+
   // Get currency symbols
   const costCurrencySymbol = getCurrencySymbol(costCurrency);
   const saleCurrencySymbol = getCurrencySymbol(saleCurrency);
-  
+
   // Calculate VAT amounts
   const costVatAmount = costAmount * (costVatRate / 100);
   const costTotalWithVat = costAmount + costVatAmount;
   const saleVatAmount = saleAmount * (saleVatRate / 100);
   const saleTotalWithVat = saleAmount + saleVatAmount;
-  
+
   // Auto-calculate cost from legacy fields if they exist
   const isAutoCalculated = !!(kilometers && pricePerKm);
-  
+
   // Handle auto-calculation
   const handleAutoCalculation = () => {
     if (kilometers && pricePerKm) {
-      const calculated = (kilometers * pricePerKm) + extras;
+      const calculated = kilometers * pricePerKm + extras;
       setValue('costAmount', calculated, { shouldValidate: true });
     }
   };
@@ -99,12 +100,10 @@ export function PricingCalculator({
             Quick Calculator (Optional)
           </h4>
           {isAutoCalculated && (
-            <span className="text-xs text-muted-foreground">
-              Auto-calculating cost
-            </span>
+            <span className="text-xs text-muted-foreground">Auto-calculating cost</span>
           )}
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           {/* Kilometers */}
           <Controller
@@ -170,12 +169,13 @@ export function PricingCalculator({
               </FormField>
             )}
           />
-          
+
           {/* Calculated Result */}
           {isAutoCalculated && (
             <div className="flex items-end">
               <div className="w-full px-3 py-2 bg-white border rounded-lg font-mono text-sm">
-                = {costCurrencySymbol}{((kilometers * pricePerKm) + extras).toFixed(2)}
+                = {costCurrencySymbol}
+                {(kilometers * pricePerKm + extras).toFixed(2)}
               </div>
             </div>
           )}
@@ -194,11 +194,7 @@ export function PricingCalculator({
             control={control}
             name="costAmount"
             render={({ field, fieldState }) => (
-              <FormField 
-                label="Cost Amount" 
-                required
-                error={fieldState.error?.message ?? ""}
-              >
+              <FormField label="Cost Amount" required error={fieldState.error?.message ?? ''}>
                 <Input
                   {...field}
                   type="number"
@@ -209,7 +205,7 @@ export function PricingCalculator({
                   prefix={costCurrencySymbol}
                   disabled={isAutoCalculated}
                   className={isAutoCalculated ? 'bg-neutral-50' : ''}
-                 error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
@@ -220,14 +216,14 @@ export function PricingCalculator({
             control={control}
             name="costCurrency"
             render={({ field, fieldState }) => (
-              <FormField label="Currency" error={fieldState.error?.message ?? ""}>
+              <FormField label="Currency" error={fieldState.error?.message ?? ''}>
                 <Select
                   options={CURRENCY_OPTIONS}
                   value={field.value}
                   onChange={(e) => field.onChange(e.target.value)}
                   placeholder="Select currency"
                   searchable={false}
-                  error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
@@ -238,27 +234,34 @@ export function PricingCalculator({
             control={control}
             name="costVatRate"
             render={({ field, fieldState }) => (
-              <FormField label="VAT Rate" error={fieldState.error?.message ?? ""}>
+              <FormField label="VAT Rate" error={fieldState.error?.message ?? ''}>
                 <Select
                   options={VAT_RATE_OPTIONS}
                   value={String(field.value)}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   placeholder="Select VAT rate"
                   searchable={false}
-                  error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
           />
         </div>
-        
+
         {/* Cost Summary */}
         <div className="mt-2 p-2 bg-neutral-50 rounded text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
-            <span>Net: {costCurrencySymbol}{costAmount.toFixed(2)}</span>
-            <span>+ VAT ({costVatRate}%): {costCurrencySymbol}{costVatAmount.toFixed(2)}</span>
+            <span>
+              Net: {costCurrencySymbol}
+              {costAmount.toFixed(2)}
+            </span>
+            <span>
+              + VAT ({costVatRate}%): {costCurrencySymbol}
+              {costVatAmount.toFixed(2)}
+            </span>
             <span className="font-medium text-neutral-900">
-              = Total: {costCurrencySymbol}{costTotalWithVat.toFixed(2)}
+              = Total: {costCurrencySymbol}
+              {costTotalWithVat.toFixed(2)}
             </span>
           </div>
         </div>
@@ -276,11 +279,7 @@ export function PricingCalculator({
             control={control}
             name="saleAmount"
             render={({ field, fieldState }) => (
-              <FormField 
-                label="Sale Amount" 
-                required
-                error={fieldState.error?.message ?? ""}
-              >
+              <FormField label="Sale Amount" required error={fieldState.error?.message ?? ''}>
                 <Input
                   {...field}
                   type="number"
@@ -289,7 +288,7 @@ export function PricingCalculator({
                   value={field.value || ''}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   prefix={saleCurrencySymbol}
-                  error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
@@ -300,14 +299,14 @@ export function PricingCalculator({
             control={control}
             name="saleCurrency"
             render={({ field, fieldState }) => (
-              <FormField label="Currency" error={fieldState.error?.message ?? ""}>
+              <FormField label="Currency" error={fieldState.error?.message ?? ''}>
                 <Select
                   options={CURRENCY_OPTIONS}
                   value={field.value}
                   onChange={(e) => field.onChange(e.target.value)}
                   placeholder="Select currency"
                   searchable={false}
-                  error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
@@ -318,27 +317,34 @@ export function PricingCalculator({
             control={control}
             name="saleVatRate"
             render={({ field, fieldState }) => (
-              <FormField label="VAT Rate" error={fieldState.error?.message ?? ""}>
+              <FormField label="VAT Rate" error={fieldState.error?.message ?? ''}>
                 <Select
                   options={VAT_RATE_OPTIONS}
                   value={String(field.value)}
                   onChange={(e) => field.onChange(Number(e.target.value))}
                   placeholder="Select VAT rate"
                   searchable={false}
-                  error={fieldState.error?.message ?? ""}
+                  error={fieldState.error?.message ?? ''}
                 />
               </FormField>
             )}
           />
         </div>
-        
+
         {/* Sale Summary */}
         <div className="mt-2 p-2 bg-neutral-50 rounded text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
-            <span>Net: {saleCurrencySymbol}{saleAmount.toFixed(2)}</span>
-            <span>+ VAT ({saleVatRate}%): {saleCurrencySymbol}{saleVatAmount.toFixed(2)}</span>
+            <span>
+              Net: {saleCurrencySymbol}
+              {saleAmount.toFixed(2)}
+            </span>
+            <span>
+              + VAT ({saleVatRate}%): {saleCurrencySymbol}
+              {saleVatAmount.toFixed(2)}
+            </span>
             <span className="font-medium text-neutral-900">
-              = Total: {saleCurrencySymbol}{saleTotalWithVat.toFixed(2)}
+              = Total: {saleCurrencySymbol}
+              {saleTotalWithVat.toFixed(2)}
             </span>
           </div>
         </div>
@@ -354,23 +360,24 @@ export function PricingCalculator({
           )}
           Margin Analysis
         </h4>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Gross Margin */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">
-              Gross Margin
-            </label>
-            <div className={cn(
-              "px-3 py-2 border rounded-lg bg-white font-medium text-center",
-              margin >= 0 ? "text-green-600 border-green-200" : "text-red-600 border-red-200"
-            )}>
+            <label className="block text-xs text-muted-foreground mb-1">Gross Margin</label>
+            <div
+              className={cn(
+                'px-3 py-2 border rounded-lg bg-white font-medium text-center',
+                margin >= 0 ? 'text-green-600 border-green-200' : 'text-red-600 border-red-200'
+              )}
+            >
               {costCurrency === saleCurrency ? (
                 `${costCurrencySymbol}${margin.toFixed(2)}`
               ) : (
                 <Tooltip content="Different currencies - convert for accurate margin">
                   <span className="flex items-center justify-center">
-                    ~{saleCurrencySymbol}{margin.toFixed(2)}
+                    ~{saleCurrencySymbol}
+                    {margin.toFixed(2)}
                     <Info className="h-3 w-3 ml-1" />
                   </span>
                 </Tooltip>
@@ -386,12 +393,16 @@ export function PricingCalculator({
                 <Info className="h-3 w-3 ml-1" />
               </Tooltip>
             </label>
-            <div className={cn(
-              "px-3 py-2 border rounded-lg bg-white font-medium text-center",
-              marginPercent >= 20 ? "text-green-600 border-green-200" : 
-              marginPercent >= 10 ? "text-yellow-600 border-yellow-200" : 
-              "text-red-600 border-red-200"
-            )}>
+            <div
+              className={cn(
+                'px-3 py-2 border rounded-lg bg-white font-medium text-center',
+                marginPercent >= 20
+                  ? 'text-green-600 border-green-200'
+                  : marginPercent >= 10
+                    ? 'text-yellow-600 border-yellow-200'
+                    : 'text-red-600 border-red-200'
+              )}
+            >
               {marginPercent.toFixed(2)}%
             </div>
           </div>
@@ -417,10 +428,12 @@ export function PricingCalculator({
                 <Info className="h-3 w-3 ml-1" />
               </Tooltip>
             </label>
-            <div className={cn(
-              "px-3 py-2 border rounded-lg bg-white text-center",
-              margin > 0 ? "text-green-600" : margin < 0 ? "text-red-600" : ""
-            )}>
+            <div
+              className={cn(
+                'px-3 py-2 border rounded-lg bg-white text-center',
+                margin > 0 ? 'text-green-600' : margin < 0 ? 'text-red-600' : ''
+              )}
+            >
               {costAmount > 0 ? (margin / costAmount).toFixed(2) : '0.00'}x
             </div>
           </div>
@@ -436,25 +449,35 @@ export function PricingCalculator({
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div>
                 <span className="text-yellow-600">20% margin:</span>
-                <span className="font-medium ml-1">{saleCurrencySymbol}{(costAmount / 0.8).toFixed(2)}</span>
+                <span className="font-medium ml-1">
+                  {saleCurrencySymbol}
+                  {(costAmount / 0.8).toFixed(2)}
+                </span>
               </div>
               <div>
                 <span className="text-yellow-600">30% margin:</span>
-                <span className="font-medium ml-1">{saleCurrencySymbol}{(costAmount / 0.7).toFixed(2)}</span>
+                <span className="font-medium ml-1">
+                  {saleCurrencySymbol}
+                  {(costAmount / 0.7).toFixed(2)}
+                </span>
               </div>
               <div>
                 <span className="text-yellow-600">40% margin:</span>
-                <span className="font-medium ml-1">{saleCurrencySymbol}{(costAmount / 0.6).toFixed(2)}</span>
+                <span className="font-medium ml-1">
+                  {saleCurrencySymbol}
+                  {(costAmount / 0.6).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Warning for different currencies */}
         {costCurrency !== saleCurrency && (
           <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
             <Info className="h-3 w-3 inline mr-1" />
-            Cost and sale are in different currencies. Margin calculation may not be accurate without currency conversion.
+            Cost and sale are in different currencies. Margin calculation may not be accurate
+            without currency conversion.
           </div>
         )}
       </div>
@@ -463,16 +486,12 @@ export function PricingCalculator({
       <Controller
         control={control}
         name="sale"
-        render={({ field }) => (
-          <input type="hidden" {...field} value={saleAmount} />
-        )}
+        render={({ field }) => <input type="hidden" {...field} value={saleAmount} />}
       />
       <Controller
         control={control}
         name="totalCost"
-        render={({ field }) => (
-          <input type="hidden" {...field} value={costAmount} />
-        )}
+        render={({ field }) => <input type="hidden" {...field} value={costAmount} />}
       />
     </div>
   );

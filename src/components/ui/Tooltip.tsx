@@ -3,7 +3,7 @@
  * Hoverable tooltip with positioning
  */
 
-'use client'
+'use client';
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils/cn';
@@ -27,7 +27,6 @@ export function Tooltip({
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
 
   const calculatePosition = () => {
     if (!triggerRef.current) return { x: 0, y: 0 };
@@ -100,35 +99,37 @@ export function Tooltip({
       >
         {children}
       </div>
-      
-      {isVisible && content && createPortal(
-        <div
-          role="tooltip"
-          className={cn(
-            'fixed z-50 px-2 py-1 text-xs font-medium text-white bg-neutral-900 rounded',
-            'pointer-events-none whitespace-nowrap',
-            'animate-in fade-in-0 zoom-in-95 duration-100',
-            positionClasses[position],
-            className
-          )}
-          style={{
-            left: `${coords.x}px`,
-            top: `${coords.y}px`,
-          }}
-        >
-          {content}
+
+      {isVisible &&
+        content &&
+        createPortal(
           <div
+            role="tooltip"
             className={cn(
-              'absolute w-2 h-2 bg-neutral-900 transform rotate-45',
-              position === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2',
-              position === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2',
-              position === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2',
-              position === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2'
+              'fixed z-50 px-2 py-1 text-xs font-medium text-white bg-neutral-900 rounded',
+              'pointer-events-none whitespace-nowrap',
+              'animate-in fade-in-0 zoom-in-95 duration-100',
+              positionClasses[position],
+              className
             )}
-          />
-        </div>,
-        document.body
-      )}
+            style={{
+              left: `${coords.x}px`,
+              top: `${coords.y}px`,
+            }}
+          >
+            {content}
+            <div
+              className={cn(
+                'absolute w-2 h-2 bg-neutral-900 transform rotate-45',
+                position === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2',
+                position === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2',
+                position === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2',
+                position === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2'
+              )}
+            />
+          </div>,
+          document.body
+        )}
     </>
   );
 }

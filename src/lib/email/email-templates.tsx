@@ -105,46 +105,41 @@ export function VerificationEmailTemplate({
               style={logo}
             />
             <Heading style={heading}>Verify your email address</Heading>
-            
+
             <Text style={paragraph}>Hi {name},</Text>
-            
+
             <Text style={paragraph}>
-              Thanks for signing up for Enterprise Dashboard! Please verify your email address
-              by clicking the button below:
+              Thanks for signing up for Enterprise Dashboard! Please verify your email address by
+              clicking the button below:
             </Text>
-            
+
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button
-                style={buttonStyle}
-                href={verificationUrl}
-              >
+              <Button style={buttonStyle} href={verificationUrl}>
                 Verify Email Address
               </Button>
             </Section>
-            
-            <Text style={paragraph}>
-              Or copy and paste this URL into your browser:
-            </Text>
+
+            <Text style={paragraph}>Or copy and paste this URL into your browser:</Text>
             <Link
               href={verificationUrl}
               style={{ color: '#3b82f6', fontSize: '14px', wordBreak: 'break-all' }}
             >
               {verificationUrl}
             </Link>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               This verification link will expire in {expiresIn}.
             </Text>
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
-              If you didn't create an account with Enterprise Dashboard, you can safely
-              ignore this email.
+              If you didn't create an account with Enterprise Dashboard, you can safely ignore this
+              email.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
             </Text>
@@ -187,39 +182,34 @@ export function PasswordResetEmailTemplate({
               style={logo}
             />
             <Heading style={heading}>Reset your password</Heading>
-            
+
             <Text style={paragraph}>Hi {name},</Text>
-            
+
             <Text style={paragraph}>
-              We received a request to reset your password for your Enterprise Dashboard
-              account. Click the button below to create a new password:
+              We received a request to reset your password for your Enterprise Dashboard account.
+              Click the button below to create a new password:
             </Text>
-            
+
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button
-                style={buttonStyle}
-                href={resetUrl}
-              >
+              <Button style={buttonStyle} href={resetUrl}>
                 Reset Password
               </Button>
             </Section>
-            
-            <Text style={paragraph}>
-              Or copy and paste this URL into your browser:
-            </Text>
+
+            <Text style={paragraph}>Or copy and paste this URL into your browser:</Text>
             <Link
               href={resetUrl}
               style={{ color: '#3b82f6', fontSize: '14px', wordBreak: 'break-all' }}
             >
               {resetUrl}
             </Link>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               This password reset link will expire in {expiresIn}.
             </Text>
-            
+
             {(ipAddress || userAgent) && (
               <>
                 <Text style={{ ...paragraph, fontSize: '14px', fontWeight: 'bold' }}>
@@ -237,14 +227,14 @@ export function PasswordResetEmailTemplate({
                 )}
               </>
             )}
-            
+
             <Text style={{ ...paragraph, fontSize: '14px', color: '#ef4444' }}>
-              If you didn't request a password reset, please contact our support team
-              immediately as someone may be trying to access your account.
+              If you didn't request a password reset, please contact our support team immediately as
+              someone may be trying to access your account.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
             </Text>
@@ -284,17 +274,15 @@ export function WelcomeEmailTemplate({
               style={logo}
             />
             <Heading style={heading}>Welcome to Enterprise Dashboard! 🎉</Heading>
-            
+
             <Text style={paragraph}>Hi {name},</Text>
-            
+
             <Text style={paragraph}>
               Your account has been successfully created. We're excited to have you on board!
             </Text>
-            
-            <Text style={paragraph}>
-              With Enterprise Dashboard, you can:
-            </Text>
-            
+
+            <Text style={paragraph}>With Enterprise Dashboard, you can:</Text>
+
             <ul style={{ paddingLeft: '20px' }}>
               {features.map((feature, index) => (
                 <li key={index} style={{ ...paragraph, margin: '8px 0' }}>
@@ -302,33 +290,31 @@ export function WelcomeEmailTemplate({
                 </li>
               ))}
             </ul>
-            
+
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button
-                style={buttonStyle}
-                href={loginUrl}
-              >
+              <Button style={buttonStyle} href={loginUrl}>
                 Get Started
               </Button>
             </Section>
-            
+
             <Text style={paragraph}>
               <strong>Your login details:</strong>
             </Text>
-            <Text style={{ ...paragraph, margin: '5px 0' }}>
-              Email: {email}
-            </Text>
-            
+            <Text style={{ ...paragraph, margin: '5px 0' }}>Email: {email}</Text>
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               Need help getting started? Check out our{' '}
-              <Link href={`${process.env['NEXT_PUBLIC_APP_URL']}/help`} style={{ color: '#3b82f6' }}>
+              <Link
+                href={`${process.env['NEXT_PUBLIC_APP_URL']}/help`}
+                style={{ color: '#3b82f6' }}
+              >
                 Help Center
               </Link>{' '}
               or reply to this email.
             </Text>
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               Follow us on{' '}
               <Link href="https://twitter.com/enterprise" style={{ color: '#3b82f6' }}>
@@ -340,9 +326,9 @@ export function WelcomeEmailTemplate({
               </Link>{' '}
               for updates and tips.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
             </Text>
@@ -386,7 +372,9 @@ export function InvoiceEmailTemplate({
   return (
     <Html>
       <Head />
-      <Preview>Invoice {invoiceNumber} - {totalAmount} {currency}</Preview>
+      <Preview>
+        Invoice {invoiceNumber} - {totalAmount} {currency}
+      </Preview>
       <Tailwind>
         <Body style={main}>
           <Container style={container}>
@@ -398,13 +386,13 @@ export function InvoiceEmailTemplate({
               style={logo}
             />
             <Heading style={heading}>Invoice {invoiceNumber}</Heading>
-            
+
             <Text style={paragraph}>Dear {recipientName},</Text>
-            
+
             <Text style={paragraph}>
               Please find attached invoice {invoiceNumber} for your recent services.
             </Text>
-            
+
             <Section
               style={{
                 backgroundColor: '#f9fafb',
@@ -418,17 +406,13 @@ export function InvoiceEmailTemplate({
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Invoice Number:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>
-                    {invoiceNumber}
-                  </Text>
+                  <Text style={{ ...paragraph, margin: '5px 0' }}>{invoiceNumber}</Text>
                 </Column>
                 <Column>
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Invoice Date:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>
-                    {invoiceDate}
-                  </Text>
+                  <Text style={{ ...paragraph, margin: '5px 0' }}>{invoiceDate}</Text>
                 </Column>
               </Row>
               <Row style={{ marginTop: '15px' }}>
@@ -436,21 +420,21 @@ export function InvoiceEmailTemplate({
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Due Date:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>
-                    {dueDate}
-                  </Text>
+                  <Text style={{ ...paragraph, margin: '5px 0' }}>{dueDate}</Text>
                 </Column>
                 <Column>
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Total Amount:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}>
+                  <Text
+                    style={{ ...paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}
+                  >
                     {totalAmount} {currency}
                   </Text>
                 </Column>
               </Row>
             </Section>
-            
+
             {items.length > 0 && (
               <>
                 <Text style={{ ...paragraph, fontWeight: 'bold', marginTop: '20px' }}>
@@ -462,9 +446,7 @@ export function InvoiceEmailTemplate({
                       <th style={{ padding: '8px', textAlign: 'left', fontSize: '14px' }}>
                         Description
                       </th>
-                      <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>
-                        Qty
-                      </th>
+                      <th style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>Qty</th>
                       <th style={{ padding: '8px', textAlign: 'right', fontSize: '14px' }}>
                         Unit Price
                       </th>
@@ -476,9 +458,7 @@ export function InvoiceEmailTemplate({
                   <tbody>
                     {items.map((item, index) => (
                       <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '8px', fontSize: '14px' }}>
-                          {item.description}
-                        </td>
+                        <td style={{ padding: '8px', fontSize: '14px' }}>{item.description}</td>
                         <td style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>
                           {item.quantity}
                         </td>
@@ -494,14 +474,11 @@ export function InvoiceEmailTemplate({
                 </table>
               </>
             )}
-            
+
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
               <Row>
                 <Column>
-                  <Button
-                    style={{ ...buttonStyle, marginRight: '10px' }}
-                    href={viewUrl}
-                  >
+                  <Button style={{ ...buttonStyle, marginRight: '10px' }} href={viewUrl}>
                     View Invoice Online
                   </Button>
                 </Column>
@@ -519,19 +496,19 @@ export function InvoiceEmailTemplate({
                 </Column>
               </Row>
             </Section>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               Payment terms: Payment due within 30 days of invoice date.
             </Text>
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               For questions about this invoice, please contact our billing department.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
               <br />
@@ -583,13 +560,13 @@ export function LoadingOrderEmailTemplate({
               style={logo}
             />
             <Heading style={heading}>Loading Order {orderNumber}</Heading>
-            
+
             <Text style={paragraph}>Dear {recipientName},</Text>
-            
+
             <Text style={paragraph}>
               Your loading order {orderNumber} has been generated and is ready for review.
             </Text>
-            
+
             <Section
               style={{
                 backgroundColor: '#f9fafb',
@@ -601,17 +578,11 @@ export function LoadingOrderEmailTemplate({
               <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                 Order Details:
               </Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>
-                Order Number: {orderNumber}
-              </Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>
-                Date: {orderDate}
-              </Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>
-                Services: {services.length}
-              </Text>
+              <Text style={{ ...paragraph, margin: '5px 0' }}>Order Number: {orderNumber}</Text>
+              <Text style={{ ...paragraph, margin: '5px 0' }}>Date: {orderDate}</Text>
+              <Text style={{ ...paragraph, margin: '5px 0' }}>Services: {services.length}</Text>
             </Section>
-            
+
             {services.length > 0 && (
               <>
                 <Text style={{ ...paragraph, fontWeight: 'bold', marginTop: '20px' }}>
@@ -629,9 +600,7 @@ export function LoadingOrderEmailTemplate({
                     <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                       {service.serviceNumber}
                     </Text>
-                    <Text style={{ ...paragraph, margin: '5px 0' }}>
-                      {service.description}
-                    </Text>
+                    <Text style={{ ...paragraph, margin: '5px 0' }}>{service.description}</Text>
                     <Text style={{ ...paragraph, margin: '5px 0', fontSize: '14px' }}>
                       Route: {service.origin} → {service.destination}
                     </Text>
@@ -639,14 +608,11 @@ export function LoadingOrderEmailTemplate({
                 ))}
               </>
             )}
-            
+
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
               <Row>
                 <Column>
-                  <Button
-                    style={{ ...buttonStyle, marginRight: '10px' }}
-                    href={viewUrl}
-                  >
+                  <Button style={{ ...buttonStyle, marginRight: '10px' }} href={viewUrl}>
                     View Order Online
                   </Button>
                 </Column>
@@ -664,15 +630,15 @@ export function LoadingOrderEmailTemplate({
                 </Column>
               </Row>
             </Section>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               For questions about this loading order, please contact our operations team.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
             </Text>
@@ -729,7 +695,7 @@ export function NotificationEmailTemplate({
               alt="Enterprise Dashboard"
               style={logo}
             />
-            
+
             <Section
               style={{
                 borderLeft: `4px solid ${typeColors[type]}`,
@@ -741,11 +707,11 @@ export function NotificationEmailTemplate({
                 {typeEmojis[type]} {title}
               </Heading>
             </Section>
-            
+
             <Text style={paragraph}>Hi {recipientName},</Text>
-            
+
             <Text style={paragraph}>{message}</Text>
-            
+
             {actionUrl && actionLabel && (
               <Section style={{ textAlign: 'center', margin: '32px 0' }}>
                 <Button
@@ -759,13 +725,13 @@ export function NotificationEmailTemplate({
                 </Button>
               </Section>
             )}
-            
+
             <Hr style={hr} />
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               This is an automated notification from Enterprise Dashboard.
             </Text>
-            
+
             <Text style={{ ...paragraph, fontSize: '14px' }}>
               To manage your notification preferences, visit your{' '}
               <Link
@@ -776,9 +742,9 @@ export function NotificationEmailTemplate({
               </Link>
               .
             </Text>
-            
+
             <Hr style={hr} />
-            
+
             <Text style={footer}>
               Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
             </Text>

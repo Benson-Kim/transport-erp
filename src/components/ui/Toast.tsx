@@ -3,7 +3,7 @@
  * Notification toast with auto-dismiss and animations
  */
 
-'use client'
+'use client';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
@@ -60,14 +60,13 @@ export function Toast({
   const { icon: Icon, className, iconColor } = variants[variant];
 
   useEffect(() => {
-  requestAnimationFrame(() => setIsVisible(true));
+    requestAnimationFrame(() => setIsVisible(true));
 
-  if (duration <= 0) return undefined;
+    if (duration <= 0) return undefined;
 
-  const timer = setTimeout(() => handleClose(), duration);
-  return () => clearTimeout(timer);
-}, [duration]);
-
+    const timer = setTimeout(() => handleClose(), duration);
+    return () => clearTimeout(timer);
+  }, [duration]);
 
   const handleClose = () => {
     setIsLeaving(true);
@@ -89,16 +88,10 @@ export function Toast({
     >
       <div className="flex items-start gap-3 p-4">
         <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', iconColor)} />
-        
+
         <div className="flex-1">
-          <h4 className="text-sm font-medium text-neutral-900">
-            {title}
-          </h4>
-          {description && (
-            <p className="mt-1 text-sm text-neutral-500">
-              {description}
-            </p>
-          )}
+          <h4 className="text-sm font-medium text-neutral-900">{title}</h4>
+          {description && <p className="mt-1 text-sm text-neutral-500">{description}</p>}
           {action && (
             <button
               onClick={action.onClick}
@@ -108,7 +101,7 @@ export function Toast({
             </button>
           )}
         </div>
-        
+
         <button
           onClick={handleClose}
           className="flex-shrink-0 rounded-lg p-1 hover:bg-neutral-100 transition-colors"
@@ -136,20 +129,11 @@ const positionClasses = {
   'bottom-left': 'bottom-4 left-4',
 };
 
-export function ToastContainer({
-  toasts,
-  position = 'top-right',
-  onClose,
-}: ToastContainerProps) {
+export function ToastContainer({ toasts, position = 'top-right', onClose }: ToastContainerProps) {
   if (toasts.length === 0) return null;
 
   return createPortal(
-    <div
-      className={cn(
-        'fixed z-50 pointer-events-none',
-        positionClasses[position]
-      )}
-    >
+    <div className={cn('fixed z-50 pointer-events-none', positionClasses[position])}>
       <div className="flex flex-col gap-2">
         {toasts.map((toast) => (
           <Toast key={toast.id} {...toast} onClose={onClose} />

@@ -45,7 +45,7 @@ export function useTable<T>({
       const bValue = (b as any)[state.sortKey!];
 
       if (aValue === bValue) return 0;
-      
+
       const comparison = aValue < bValue ? -1 : 1;
       return state.sortDirection === 'asc' ? comparison : -comparison;
     });
@@ -59,12 +59,12 @@ export function useTable<T>({
 
     // Apply search query
     if (state.searchQuery) {
-      result = result.filter(item => {
+      result = result.filter((item) => {
         const searchableText = Object.values(item as any)
-          .filter(value => typeof value === 'string' || typeof value === 'number')
+          .filter((value) => typeof value === 'string' || typeof value === 'number')
           .join(' ')
           .toLowerCase();
-        
+
         return searchableText.includes(state.searchQuery.toLowerCase());
       });
     }
@@ -72,7 +72,7 @@ export function useTable<T>({
     // Apply filters
     Object.entries(state.filters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
-        result = result.filter(item => (item as any)[key] === value);
+        result = result.filter((item) => (item as any)[key] === value);
       }
     });
 
@@ -90,24 +90,23 @@ export function useTable<T>({
 
   // Actions
   const setPage = useCallback((page: number) => {
-    setState(prev => ({ ...prev, page }));
+    setState((prev) => ({ ...prev, page }));
   }, []);
 
   const setPageSize = useCallback((pageSize: number) => {
-    setState(prev => ({ ...prev, pageSize, page: 1 }));
+    setState((prev) => ({ ...prev, pageSize, page: 1 }));
   }, []);
 
   const setSort = useCallback((key: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       sortKey: key,
-      sortDirection:
-        prev.sortKey === key && prev.sortDirection === 'asc' ? 'desc' : 'asc',
+      sortDirection: prev.sortKey === key && prev.sortDirection === 'asc' ? 'desc' : 'asc',
     }));
   }, []);
 
   const setFilter = useCallback((key: string, value: any) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       filters: { ...prev.filters, [key]: value },
       page: 1,
@@ -115,11 +114,11 @@ export function useTable<T>({
   }, []);
 
   const setSearchQuery = useCallback((query: string) => {
-    setState(prev => ({ ...prev, searchQuery: query, page: 1 }));
+    setState((prev) => ({ ...prev, searchQuery: query, page: 1 }));
   }, []);
 
   const clearFilters = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       filters: {},
       searchQuery: '',
@@ -143,10 +142,10 @@ export function useTable<T>({
     data: paginatedData,
     totalItems: filteredData.length,
     totalPages,
-    
+
     // State
     ...state,
-    
+
     // Actions
     setPage,
     setPageSize,

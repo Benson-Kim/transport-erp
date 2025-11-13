@@ -3,7 +3,7 @@
  * Native and custom dropdown with advanced features
  */
 
-'use client'
+'use client';
 import { SelectHTMLAttributes, forwardRef, useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronDown, X, Check, Search } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -54,45 +54,52 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    const selectedOption = options.find(opt => opt.value === value);
+    const selectedOption = options.find((opt) => opt.value === value);
     const filteredOptions = searchTerm
-      ? options.filter(opt => 
-          opt.label.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+      ? options.filter((opt) => opt.label.toLowerCase().includes(searchTerm.toLowerCase()))
       : options;
 
     // Group options if groups are defined
-    const groupedOptions = filteredOptions.reduce((acc, option) => {
-      const group = option.group || 'default';
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(option);
-      return acc;
-    }, {} as Record<string, Option[]>);
+    const groupedOptions = filteredOptions.reduce(
+      (acc, option) => {
+        const group = option.group || 'default';
+        if (!acc[group]) acc[group] = [];
+        acc[group].push(option);
+        return acc;
+      },
+      {} as Record<string, Option[]>
+    );
 
-    const handleSelect = useCallback((option: Option) => {
-      if (option.disabled) return;
-      
-      // Create synthetic event
-      const event = {
-        target: { value: option.value },
-      } as React.ChangeEvent<HTMLSelectElement>;
-      
-      onChange?.(event);
-      setIsOpen(false);
-      setSearchTerm('');
-    }, [onChange]);
+    const handleSelect = useCallback(
+      (option: Option) => {
+        if (option.disabled) return;
 
-    const handleClear = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onClear?.();
-      
-      // Create synthetic event with empty value
-      const event = {
-        target: { value: '' },
-      } as React.ChangeEvent<HTMLSelectElement>;
-      
-      onChange?.(event);
-    }, [onChange, onClear]);
+        // Create synthetic event
+        const event = {
+          target: { value: option.value },
+        } as React.ChangeEvent<HTMLSelectElement>;
+
+        onChange?.(event);
+        setIsOpen(false);
+        setSearchTerm('');
+      },
+      [onChange]
+    );
+
+    const handleClear = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onClear?.();
+
+        // Create synthetic event with empty value
+        const event = {
+          target: { value: '' },
+        } as React.ChangeEvent<HTMLSelectElement>;
+
+        onChange?.(event);
+      },
+      [onChange, onClear]
+    );
 
     // Handle keyboard navigation
     useEffect(() => {
@@ -145,23 +152,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             value={value}
             onChange={onChange}
             disabled={disabled}
-            className={cn(
-              'input',
-              sizeClasses[size],
-              error && 'input-error',
-              className
-            )}
+            className={cn('input', sizeClasses[size], error && 'input-error', className)}
             aria-invalid={!!error}
             aria-describedby={error ? `${props.id}-error` : undefined}
             {...props}
           >
             <option value="">{placeholder}</option>
-            {options.map(option => (
-              <option 
-                key={option.value} 
-                value={option.value}
-                disabled={option.disabled}
-              >
+            {options.map((option) => (
+              <option key={option.value} value={option.value} disabled={option.disabled}>
                 {option.label}
               </option>
             ))}
@@ -179,41 +177,40 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="relative w-full" ref={dropdownRef}>
         <div
-  onClick={() => !disabled && setIsOpen(!isOpen)}
-  role="button"
-  tabIndex={0}
-  aria-expanded={isOpen}
-  aria-haspopup="listbox"
-  className={cn(
-    'input flex items-center justify-between cursor-pointer',
-    sizeClasses[size],
-    error && 'input-error',
-    disabled && 'input-disabled cursor-not-allowed',
-    className
-  )}
->
-  <span className={cn('truncate', !selectedOption && 'text-neutral-400')}>
-    {selectedOption ? selectedOption.label : placeholder}
-  </span>
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          role="button"
+          tabIndex={0}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          className={cn(
+            'input flex items-center justify-between cursor-pointer',
+            sizeClasses[size],
+            error && 'input-error',
+            disabled && 'input-disabled cursor-not-allowed',
+            className
+          )}
+        >
+          <span className={cn('truncate', !selectedOption && 'text-neutral-400')}>
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
 
-  <div className="flex items-center gap-1">
-    {clearable && value && !disabled && (
-      <button
-        type="button"
-        onClick={handleClear}
-        className="p-1 hover:bg-neutral-100 rounded transition-colors"
-        aria-label="Clear selection"
-      >
-        <X size={16} className="text-neutral-500" />
-      </button>
-    )}
-    <ChevronDown
-      size={16}
-      className={cn('text-neutral-500 transition-transform', isOpen && 'rotate-180')}
-    />
-  </div>
-</div>
-
+          <div className="flex items-center gap-1">
+            {clearable && value && !disabled && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="p-1 hover:bg-neutral-100 rounded transition-colors"
+                aria-label="Clear selection"
+              >
+                <X size={16} className="text-neutral-500" />
+              </button>
+            )}
+            <ChevronDown
+              size={16}
+              className={cn('text-neutral-500 transition-transform', isOpen && 'rotate-180')}
+            />
+          </div>
+        </div>
 
         {error && (
           <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">
@@ -222,14 +219,19 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
 
         {isOpen && (
-          <div className={cn(
-            'absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-md shadow-lg',
-            'max-h-60 overflow-auto'
-          )}>
+          <div
+            className={cn(
+              'absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-md shadow-lg',
+              'max-h-60 overflow-auto'
+            )}
+          >
             {searchable && (
               <div className="p-2 border-b border-neutral-200">
                 <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                  />
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -255,7 +257,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                         {group}
                       </div>
                     )}
-                    {groupOptions.map(option => (
+                    {groupOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
