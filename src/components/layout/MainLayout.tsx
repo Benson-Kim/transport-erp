@@ -6,35 +6,16 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { useMediaQuery } from '@/hooks';
 import { Sidebar, MobileMenu, TopBar } from '@/components/layout';
-
-interface LayoutContextValue {
-    isSidebarOpen: boolean;
-    isSidebarCollapsed: boolean;
-    toggleSidebar: () => void;
-    toggleSidebarCollapse: () => void;
-    closeSidebar: () => void;
-}
+import { LayoutContextValue, MainLayoutProps } from '@/types/nav';
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
 export const useLayout = () => {
-    const context = useContext(LayoutContext);
-    if (!context) {
-        throw new Error('useLayout must be used within LayoutProvider');
-    }
-    return context;
+    const ctx = useContext(LayoutContext);
+    if (!ctx) throw new Error('useLayout must be used within LayoutProvider');
+    return ctx;
 };
 
-interface MainLayoutProps {
-    children: React.ReactNode;
-    user: {
-        name: string;
-        email: string;
-        role: string;
-        avatar?: string;
-    };
-    companyName: string;
-}
 
 export function MainLayout({ children, user, companyName }: MainLayoutProps) {
     const pathname = usePathname();
@@ -62,7 +43,7 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
     }, [isTablet]);
 
     const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen);
+        setIsSidebarOpen(isSidebarOpen => !isSidebarOpen);
     };
 
     const toggleSidebarCollapse = () => {
@@ -87,7 +68,7 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
 
     return (
         <LayoutContext.Provider value={contextValue}>
-            <div className="min-h-screen bg-background">
+            <div className="min-h-screen bg-[var(--neutral-50)]">
                 {/* Desktop Sidebar - Always visible */}
                 {isDesktop && (
                     <Sidebar
@@ -120,13 +101,10 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
                 {/* Main Content Area */}
                 <div
                     className={cn(
-                        "min-h-screen transition-all duration-300",
-                        // Desktop: Fixed margin for sidebar
-                        isDesktop && "xl:ml-60",
-                        // Tablet: Dynamic margin based on collapsed state
-                        isTablet && (isSidebarCollapsed ? "md:ml-[60px]" : "md:ml-60"),
-                        // Mobile: Full width
-                        isMobile && "w-full"
+                        'min-h-screen transition-all duration-300',
+                        isDesktop && 'xl:ml-[var(--sidebar-desktop)]',
+                        isTablet && (isSidebarCollapsed ? 'md:ml-[var(--sidebar-collapsed)]' : 'md:ml-[var(--sidebar-tablet)]'),
+                        isMobile && 'w-full',
                     )}
                 >
                     {/* Top Bar */}
@@ -137,10 +115,8 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
                     />
 
                     {/* Page Content */}
-                    <main className="px-4 py-6 md:px-6 lg:px-8">
-                        <div className="mx-auto max-w-[1400px]">
-                            {children}
-                        </div>
+                    <main className="px-[var(--space-4)] py-[var(--space-6)] md:px-[var(--space-6)] lg:px-[var(--space-8)]">
+                        <div className="mx-auto max-w-[1400px]">{children}</div>
                     </main>
                 </div>
             </div>

@@ -100,34 +100,38 @@ const config: Config = {
         white: designTokens.colors.neutral.white,
       },
       fontFamily: {
-        sans: [designTokens.fonts.sans],
-        mono: [designTokens.fonts.mono],
+        ...Object.fromEntries(
+          Object.entries(designTokens.fonts).map(([k, v]) => [k, v])
+        ),
       },
       spacing: {
-        "0": designTokens.spacing["0"],
-        "1": designTokens.spacing["1"],
-        "2": designTokens.spacing["2"],
-        "3": designTokens.spacing["3"],
-        "4": designTokens.spacing["4"],
-        "6": designTokens.spacing["6"],
-        "8": designTokens.spacing["8"],
-        "12": designTokens.spacing["12"],
+        ...Object.fromEntries(
+          Object.entries(designTokens.spacing).map(([k, v]) => [k, v])
+        ),
       },
       borderRadius: {
-        none: designTokens.radii.none,
-        sm: designTokens.radii.sm,
-        md: designTokens.radii.md,
-        lg: designTokens.radii.lg,
-        xl: designTokens.radii.xl,
-        full: designTokens.radii.full,
+        ...Object.fromEntries(
+          Object.entries(designTokens.radii).map(([k, v]) => [k, v])
+        ),
       },
       boxShadow: {
-        sm: designTokens.shadows.sm,
-        md: designTokens.shadows.md,
-        lg: designTokens.shadows.lg,
-        xl: designTokens.shadows.xl,
-        card: designTokens.shadows.card,
-        modal: designTokens.shadows.modal,
+        ...Object.fromEntries(
+          Object.entries(designTokens.shadows).map(([k, v]) => [k, v])
+        ),
+      },
+      width: {
+        'icon-sm': '1.25rem', //20px
+        'icon-md': '1.5rem', //24px
+        "sidebar-desktop": "var(--sidebar-desktop)",
+        "sidebar-tablet": "var(--sidebar-tablet)",
+        "sidebar-collapsed": "var(--sidebar-collapsed)",
+      },
+      height: {
+        'icon-sm': '1.25rem', //20px
+        'icon-md': '1.5rem', //24px
+        header: "var(--header-height)",
+        logo: "var(--logo-size)",
+        avatar: "var(--avatar-size)",
       },
       transitionDuration: {
         100: "100ms",

@@ -71,9 +71,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && icon && iconPosition === 'left' && (
           <span className="icon" aria-hidden="true">{icon}</span>
         )}
-        <span className="button-text">
-          {loading && loadingText ? loadingText : children}
-        </span>
+        {loading && loadingText ? loadingText : children}
         {!loading && icon && iconPosition === 'right' && (
           <span className="icon" aria-hidden="true">{icon}</span>
         )}

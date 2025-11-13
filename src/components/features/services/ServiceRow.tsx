@@ -26,6 +26,7 @@ import {
     DropdownMenu,
     Tooltip,
     Checkbox,
+    Amount,
 } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { ServiceData } from '@/types/service';
@@ -274,7 +275,7 @@ export const ServiceRow = memo(function ServiceRow({
                 <td className="p-3 text-right">
                     <Tooltip content="Sale price">
                         <span className="text-sm font-medium tabular-nums">
-                            {formatCurrency(service.saleAmount)}
+                            <Amount value={service.saleAmount} />
                         </span>
                     </Tooltip>
                 </td>
@@ -282,12 +283,7 @@ export const ServiceRow = memo(function ServiceRow({
                 {/* Margin */}
                 <td className="p-3 text-right">
                     <div className="flex flex-col items-end gap-0.5">
-                        <span className={cn(
-                            "text-sm font-medium tabular-nums",
-                            service.margin >= 0 ? "text-green-600" : "text-red-600"
-                        )}>
-                            {formatCurrency(service.margin)}
-                        </span>
+                        <span> <Amount value={service.margin} /> </span>
                         <span className={cn(
                             "text-xs tabular-nums",
                             marginPercent >= 0 ? "text-green-600/70" : "text-red-600/70"
@@ -343,19 +339,22 @@ export const ServiceRow = memo(function ServiceRow({
                                 <dl className="space-y-1 text-sm">
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Cost:</dt>
-                                        <dd>{formatCurrency(service.costAmount)}</dd>
+                                        <dd> {formatCurrency(service.costAmount)} </dd>
+
                                     </div>
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Sale:</dt>
-                                        <dd>{formatCurrency(service.saleAmount)}</dd>
+                                        <dd> <Amount value={service.saleAmount} /></dd>
                                     </div>
                                     <div className="flex justify-between">
                                         <dt className="text-muted-foreground">Margin:</dt>
-                                        <dd className={cn(
-                                            "font-medium",
-                                            service.margin >= 0 ? "text-green-600" : "text-red-600"
-                                        )}>
-                                            {formatCurrency(service.margin)} ({formatPercentage(marginPercent)})
+                                        <dd> <Amount value={service.margin} />
+                                            <span className={cn(
+                                                "font-medium",
+                                                service.margin >= 0 ? "text-green-600" : "text-red-600"
+                                            )}>
+                                                ({formatPercentage(marginPercent)})
+                                            </span>
                                         </dd>
                                     </div>
                                 </dl>

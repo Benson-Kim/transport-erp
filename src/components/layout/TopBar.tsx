@@ -5,29 +5,26 @@ import { useRouter } from 'next/navigation';
 import { Menu, User, LogOut, ChevronDown, Settings, HelpCircle } from 'lucide-react';
 import { Button, DropdownMenu } from '@/components/ui';
 import { useLayout } from './MainLayout';
-
-interface TopBarProps {
-    user: {
-        name: string;
-        email: string;
-        role: string;
-        avatar?: string;
-    };
-    companyName: string;
-    showHamburger: boolean;
-}
+import { signOut } from 'next-auth/react';
+import { TopBarProps } from '@/types/nav';
 
 export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
     const router = useRouter();
     const { toggleSidebar, toggleSidebarCollapse } = useLayout();
+
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 767;
 
-    const handleLogout = () => {
-        // Handle logout logic
-        router.push('/login');
+    const handleLogout = async () => {
+        try {
+            await signOut({ redirect: false });
+            router.replace('/login');
+        } catch (err) {
+            console.error('Logout failed:', err);
+            router.replace('/login');
+        }
     };
 
-    const userMenuItems = [
+    const items = [
         {
             id: 'profile',
             label: 'Profile',
@@ -56,21 +53,20 @@ export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
         },
     ];
 
-    // On mobile, include logout in dropdown
-    const mobileMenuItems = userMenuItems;
+    const mobileItems = items;
 
-    // On desktop/tablet, remove logout from dropdown
-    const desktopMenuItems = userMenuItems.filter(item => item.id !== 'logout');
+    const desktopItems = items.filter(i => i.id !== 'logout');
 
     return (
-        <header className="sticky top-0 z-30 h-16 border-b bg-background">
+        <header className="sticky top-0 z-30 layout-header border-b border-neutral-200 bg-neutral">
             <div className="flex h-full items-center justify-between px-4 md:px-6">
-                {/* Left Side */}
+                {/* Left */}
                 <div className="flex items-center gap-3">
                     {showHamburger && (
                         <button
+                            type="button"
                             onClick={isMobile ? toggleSidebar : toggleSidebarCollapse}
-                            className="p-2 rounded-lg hover:bg-accent md:hidden xl:hidden"
+                            className="rounded-md p-2 hover:bg-neutral-50 md:hidden xl:hidden"
                         >
                             <Menu className="h-5 w-5" />
                         </button>
@@ -93,14 +89,14 @@ export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
                                 variant="ghost"
                                 size="sm"
                                 className="gap-2"
+                                icon={<ChevronDown className="h-5 w-5 hidden md:inline-block" />}
+                                iconPosition='right'
                             >
-                                <div className="h-7 w-7 rounded-full bg-primary" />
                                 <span className="hidden md:inline-block">{user.name}</span>
-                                <ChevronDown className="h-4 w-4 hidden md:inline-block" />
                             </Button>
                         }
                         align="right"
-                        items={isMobile ? mobileMenuItems as any : desktopMenuItems as any}
+                        items={isMobile ? mobileItems as any : desktopItems as any}
                     />
 
                     {/* Logout Button - Desktop/Tablet only */}
@@ -110,8 +106,8 @@ export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
                             size="sm"
                             onClick={handleLogout}
                             className="gap-2"
+                            icon={<LogOut className="h-4 w-4" />}
                         >
-                            <LogOut className="h-4 w-4" />
                             <span className="hidden md:inline-block">Logout</span>
                         </Button>
                     )}

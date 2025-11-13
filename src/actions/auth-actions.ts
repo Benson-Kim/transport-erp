@@ -48,13 +48,13 @@ export async function getClientInfo() {
  */
 export async function signInWithCredentials(data: LoginFormData) {
   try {
-    const validatedData = loginSchema.parse(data);
+    const { email, password, rememberMe } = loginSchema.parse(data);;
     const { ip, userAgent } = await getClientInfo();
     
     const result = await signIn('credentials', {
-      email: validatedData.email,
-      password: validatedData.password,
-      rememberMe: validatedData.rememberMe,
+      email,
+      password,
+      rememberMe,
       ip,
       userAgent,
       redirect: false,

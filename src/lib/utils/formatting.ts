@@ -3,11 +3,11 @@
  */
 
 export function formatCurrency(amount: number, currency: string = 'EUR'): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-EU', {
     style: 'currency',
     currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -16,5 +16,5 @@ export function formatPercentage(value: number): string {
 }
 
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
+  return new Intl.NumberFormat('en-EU').format(value);
 }

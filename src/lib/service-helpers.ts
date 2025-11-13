@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { ServiceData } from '@/types/service';
 import { createElement, JSX } from 'react';
+import { designTokens } from './design-tokens';
 
 interface Handlers {
   onView: () => void;
@@ -41,99 +42,99 @@ export const SERVICE_STATUS_CONFIG: Record<
   ServiceStatus,
   {
     label: string;
-    color: string;
-    bgColor: string;
-    borderColor: string;
+    colors: {
+      text: string;
+      bg: string;
+      border: string;
+    }
     description: string;
-    variant: 'active' | 'completed' | 'cancelled' | 'billed' | 'default';
+    variant: 'active' | 'completed' | 'cancelled' | 'billed' | 'archived' | 'default';
     icon: React.ElementType;
   }
 > = {
   [ServiceStatus.DRAFT]: {
     label: 'Draft',
-    color: 'secondary',
-    bgColor: 'bg-gray-100 dark:bg-gray-900/20',
-    borderColor: 'border-gray-300 dark:border-gray-700',
+    colors: {
+      bg: designTokens.colors.neutral[100],
+      text: designTokens.colors.neutral[600],
+      border: designTokens.colors.neutral[300],
+    },
     description: 'Service is being prepared',
     variant: 'default',
     icon: Clock,
   },
   [ServiceStatus.CONFIRMED]: {
     label: 'Confirmed',
-    color: 'warning',
-    bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-    borderColor: 'border-blue-300 dark:border-blue-700',
+    colors: {
+      bg: designTokens.colors.status.active.bg,
+      text: designTokens.colors.status.active.text,
+      border: designTokens.colors.status.active.border,
+    },
     description: 'Service has been confirmed',
     variant: 'active',
     icon: AlertCircle,
   },
   [ServiceStatus.IN_PROGRESS]: {
     label: 'In Progress',
-    color: 'warning',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
-    borderColor: 'border-yellow-300 dark:border-yellow-700',
+    colors: {
+      bg: designTokens.colors.feedback.warning.bg,
+      text: designTokens.colors.feedback.warning.text,
+      border: designTokens.colors.feedback.warning.border,
+    },
     description: 'Service is currently in progress',
     variant: 'active',
     icon: Truck,
   },
   [ServiceStatus.COMPLETED]: {
     label: 'Completed',
-    color: 'success',
-    bgColor: 'bg-green-100 dark:bg-green-900/20',
-    borderColor: 'border-green-300 dark:border-green-700',
+    colors: {
+      bg: designTokens.colors.status.completed.bg,
+      text: designTokens.colors.status.completed.text,
+      border: designTokens.colors.status.completed.border,
+    },
     description: 'Service has been completed',
     variant: 'completed',
     icon: CheckCircle,
   },
   [ServiceStatus.CANCELLED]: {
     label: 'Cancelled',
-    color: 'danger',
-    bgColor: 'bg-red-100 dark:bg-red-900/20',
-    borderColor: 'border-red-300 dark:border-red-700',
+    colors: {
+      bg: designTokens.colors.status.cancelled.bg,
+      text: designTokens.colors.status.cancelled.text,
+      border: designTokens.colors.status.cancelled.border,
+    },
     description: 'Service was cancelled',
     variant: 'cancelled',
     icon: XCircle,
   },
   [ServiceStatus.INVOICED]: {
     label: 'Invoiced',
-    color: 'neutral',
-    bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-    borderColor: 'border-purple-300 dark:border-purple-700',
+    colors: {
+      bg: designTokens.colors.status.billed.bg,
+      text: designTokens.colors.status.billed.text,
+      border: designTokens.colors.status.billed.border,
+    },
     description: 'Service has been invoiced',
     variant: 'billed',
     icon: FileText,
   },
   [ServiceStatus.ARCHIVED]: {
     label: 'Archived',
-    color: 'neutral',
-    bgColor: 'bg-gray-200 dark:bg-gray-800/20',
-    borderColor: 'border-gray-400 dark:border-gray-600',
+    colors: {
+      bg: designTokens.colors.neutral[200],
+      text: designTokens.colors.neutral[600],
+      border: designTokens.colors.neutral[400],
+    },
     description: 'Service has been archived',
-    variant: 'billed',
+    variant: 'archived',
     icon: Archive,
   },
 };
 
-
-
-export const getStatusColor = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.color ?? 'secondary';
-
-export const getStatusBackgroundColor = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.bgColor ?? 'bg-gray-100';
-
-export const getStatusBorderColor = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.borderColor ?? 'border-gray-300';
-
-export const getStatusLabel = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.label ?? s;
-
-export const getStatusDescription = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.description ?? 'Unknown status';
-
-export const getStatusVariant = (s: ServiceStatus) =>
-  SERVICE_STATUS_CONFIG[s]?.variant ?? 'default';
-
+export const getStatusConfig = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s];
+export const getStatusVariant = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.variant ?? 'default';
+export const getStatusLabel = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.label ?? s;
+export const getStatusDescription = (s: ServiceStatus) => SERVICE_STATUS_CONFIG[s]?.description ?? 'Unknown status';
 export function getStatusIcon(s: ServiceStatus): JSX.Element {
   const IconComponent = SERVICE_STATUS_CONFIG[s]?.icon || AlertCircle;
   return createElement(IconComponent, { className: "h-3 w-3" });

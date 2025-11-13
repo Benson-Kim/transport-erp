@@ -1,4 +1,5 @@
 // components/layout/navigation-config.ts
+import { NavItem } from '@/types/nav';
 import {
     LayoutDashboard,
     Truck,
@@ -12,16 +13,6 @@ import {
     FileCheck,
 } from 'lucide-react';
 
-export interface NavItem {
-    id: string;
-    label: string;
-    href: string;
-    icon: React.ElementType;
-    children?: NavItem[];
-    badge?: number;
-    permissions?: string[];
-}
-
 export const navigation: NavItem[] = [
     {
         id: 'dashboard',
@@ -34,7 +25,7 @@ export const navigation: NavItem[] = [
         label: 'Services',
         href: '/services',
         icon: Truck,
-        badge: 5, // You can make this dynamic
+        // badge: 5,
     },
     {
         id: 'clients',

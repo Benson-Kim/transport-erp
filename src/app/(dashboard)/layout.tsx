@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAuth();
-  const companyName = "Acme Corp";
+  const companyName = "Transport ERP";
 
   const userForLayout = {
     name: session.user.name,

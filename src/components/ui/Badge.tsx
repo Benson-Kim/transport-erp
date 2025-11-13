@@ -7,7 +7,7 @@ import { ReactNode } from 'react';
 import { cn } from '@/lib/utils/cn';
 
 export interface BadgeProps {
-  variant?: 'active' | 'completed' | 'cancelled' | 'billed' | 'default';
+  variant?: 'active' | 'completed' | 'cancelled' | 'billed' | 'archived' | 'default';
   size?: 'sm' | 'md' | 'lg';
   dot?: boolean;
   pulse?: boolean;
@@ -21,12 +21,13 @@ const variants = {
   completed: 'badge-completed',
   cancelled: 'badge-cancelled',
   billed: 'badge-billed',
+  archived: 'bg-neutral-100 text-neutral-700 border-neutral-300',
   default: 'bg-neutral-100 text-neutral-700 border-neutral-300',
 };
 
 const sizes = {
   sm: 'h-5 px-2 text-xs gap-1',
-  md: 'h-6 px-3 text-xs gap-1.5',
+  md: 'h-6 px-3 gap-1.5',
   lg: 'h-7 px-4 text-sm gap-2',
 };
 

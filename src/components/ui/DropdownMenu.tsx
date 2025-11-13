@@ -21,8 +21,6 @@ export type DropdownMenuItem =
     divider: true;
   };
 
-
-
 export interface DropdownMenuProps {
   trigger: ReactNode;
   items: DropdownMenuItem[];
