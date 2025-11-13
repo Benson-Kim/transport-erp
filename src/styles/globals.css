@@ -191,6 +191,11 @@
     box-shadow: var(--shadow-card);
   }
 
+  /* Text */
+  .text-sm { font-size: 0.75rem; line-height: 1rem; color: var(--neutral-500); }
+  .text-xs { font-size: 0.6875rem; line-height: 0.875rem; color: var(--neutral-400); }
+ 
+
   /* Buttons */
   .button {
     @apply cursor-pointer inline-flex items-center justify-center select-none whitespace-nowrap;
@@ -200,10 +205,12 @@
     transition: transform var(--transition-normal) ease, background-color var(--transition-normal) ease;
     font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; letter-spacing: 0.01em;
   }
+  .button-text { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; letter-spacing: 0.01em; }
+ 
   .button:disabled { @apply opacity-60 cursor-not-allowed; }
 
   .button-primary {
-    color: white; background-color: var(--primary);
+    color: var(--neutral-white); background-color: var(--primary);
   }
   .button-primary:hover { background-color: var(--primary-hover); transform: scale(1.02); }
   .button-primary:active { background-color: var(--primary-pressed); transform: scale(0.98); }
@@ -265,6 +272,9 @@
   .table {
     @apply w-full border-collapse;
   }
+  .table-header { @apply uppercase tracking-wider font-semibold text-neutral-500; font-size: 0.75rem; line-height: 1rem; }
+  .table-cell { font-size: 0.875rem; line-height: 1.25rem; color: var(--neutral-900); }
+
   .table th {
     font-size: 0.75rem; line-height: 1rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
     color: var(--neutral-500); height: 2.25rem; /* 36px */
@@ -366,12 +376,6 @@
 /* Utilities layer: tiny helpers       */
 /* ---------------------------------- */
 @layer utilities {
-  .button-text { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; letter-spacing: 0.01em; }
-  .text-sm { font-size: 0.75rem; line-height: 1rem; color: var(--neutral-500); }
-  .text-xs { font-size: 0.6875rem; line-height: 0.875rem; color: var(--neutral-400); }
-  .table-header { @apply uppercase tracking-wider font-semibold text-neutral-500; font-size: 0.75rem; line-height: 1rem; }
-  .table-cell { font-size: 0.875rem; line-height: 1.25rem; color: var(--neutral-900); }
-
   /* Responsive typography adjustments */
   @media (max-width: 1279px) {
     h1 { font-size: 1.375rem; line-height: 1.875rem; } /* 22/30 */
