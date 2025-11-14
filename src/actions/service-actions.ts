@@ -10,9 +10,10 @@ import { requireAuth } from '@/lib/auth';
 import { requirePermission } from '@/lib/rbac';
 import { ServiceStatus, DocumentType, Prisma } from '@/app/generated/prisma';
 
-import { ServiceFilters, ServiceFormData, serviceSchema } from '@/lib/validations/service-schema';
+import { ServiceFormData, serviceSchema } from '@/lib/validations/service-schema';
 import prisma from '@/lib/prisma/prisma';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
+import { ServiceFiltersAPI } from '@/types/service';
 
 /**
  * Get a single service by ID
@@ -57,7 +58,7 @@ export async function getService(serviceId: string) {
 /**
  * Get services with filters
  */
-export async function getServices(filters: ServiceFilters) {
+export async function getServices(filters: ServiceFiltersAPI) {
   await requirePermission('services', 'view');
 
   const where: any = {
@@ -83,7 +84,7 @@ export async function getServices(filters: ServiceFilters) {
   }
 
   if (filters.status) {
-    where.status = filters.status as ServiceStatus;
+    where.status = filters.status;
   }
 
   if (filters.clientId) {
@@ -688,7 +689,7 @@ export async function sendServiceEmail(serviceId: string) {
  */
 export async function bulkUpdateServices(
   serviceIds: string[],
-  updates: Partial<{ status: ServiceStatus }>
+  updates: { status?: ServiceStatus }
 ) {
   const session = await requireAuth();
   await requirePermission('services', 'edit');

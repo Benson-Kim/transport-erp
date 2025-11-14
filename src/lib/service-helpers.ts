@@ -230,3 +230,23 @@ export function buildServiceActionsMenu(
 
   return items;
 }
+
+export const STATUS_URL_MAP: Record<string, ServiceStatus | undefined> = {
+  draft: ServiceStatus.DRAFT,
+  confirmed: ServiceStatus.CONFIRMED,
+  in_progress: ServiceStatus.IN_PROGRESS,
+  completed: ServiceStatus.COMPLETED,
+  cancelled: ServiceStatus.CANCELLED,
+  invoiced: ServiceStatus.INVOICED,
+  archived: ServiceStatus.ARCHIVED,
+};
+
+export const STATUS_LABEL_MAP: Record<ServiceStatus, string> = {
+  [ServiceStatus.DRAFT]: 'Draft',
+  [ServiceStatus.CONFIRMED]: 'Confirmed',
+  [ServiceStatus.IN_PROGRESS]: 'In Progress',
+  [ServiceStatus.COMPLETED]: 'Completed',
+  [ServiceStatus.CANCELLED]: 'Cancelled',
+  [ServiceStatus.INVOICED]: 'Invoiced',
+  [ServiceStatus.ARCHIVED]: 'Archived',
+};

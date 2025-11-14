@@ -7,9 +7,8 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
-import { LoginForm } from '@/components/features/auth/login-form';
-import { OAuthButtons } from '@/components/features/auth/oauth-buttons';
 import { Logo } from '@/components/ui/Logo';
+import { LoginForm, OAuthButtons } from '@/components/features/auth';
 
 export const metadata: Metadata = {
   title: 'Sign In | Enterprise Dashboard',
@@ -77,7 +76,7 @@ export default async function LoginPage() {
           </div>
         </div>
 
-        {/* Footer
+        {/* Footer 
         <div className="text-center text-xs text-neutral-500 dark:text-neutral-400">
           By signing in, you agree to our{' '}
           <Link
@@ -93,7 +92,7 @@ export default async function LoginPage() {
           >
             Privacy Policy
           </Link>
-        </div> */}
+        </div>*/}
       </div>
     </div>
   );

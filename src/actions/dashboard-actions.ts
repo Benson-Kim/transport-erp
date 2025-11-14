@@ -15,51 +15,9 @@ import {
   aggregateRevenueByMonth,
 } from '@/lib/utils/dashboard-helpers';
 import prisma from '@/lib/prisma/prisma';
+import { DashboardData, DashboardDateRange } from '@/types/dashboard';
 
-export interface DashboardDateRange {
-  from?: string;
-  to?: string;
-  preset?: string;
-}
 
-interface DashboardData {
-  stats: {
-    activeServices: number;
-    activeServicesChange: number;
-    completedServices: number;
-    completedServicesChange: number;
-    totalRevenue: number;
-    totalRevenueChange: number;
-    averageMargin: number;
-    averageMarginAmount: number;
-    averageMarginChange: number;
-    totalServices: number;
-  };
-  servicesChart: Array<{
-    month: string;
-    completed: number;
-    inProgress: number;
-    cancelled: number;
-    total: number;
-  }>;
-  revenueChart: Array<{
-    month: string;
-    revenue: number;
-    cost: number;
-    margin: number;
-  }>;
-  recentServices: Array<{
-    id: string;
-    serviceNumber: string;
-    date: string;
-    clientName: string;
-    origin: string;
-    destination: string;
-    status: ServiceStatus;
-    amount: number;
-    currency: string;
-  }>;
-}
 
 /**
  * Get dashboard data with caching

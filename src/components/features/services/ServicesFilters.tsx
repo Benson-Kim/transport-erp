@@ -50,41 +50,9 @@ import {
   bulkDeleteServices,
   generateBulkLoadingOrders,
 } from '@/actions/service-actions';
-import { getStatusLabel, SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
+import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
+import { ServicesFiltersProps } from '@/types/service';
 
-interface ClientData {
-  id: string;
-  name: string;
-  clientCode: string;
-}
-
-interface SupplierData {
-  id: string;
-  name: string;
-  supplierCode: string;
-}
-
-interface ServicesFiltersProps {
-  clients: ClientData[];
-  suppliers: SupplierData[];
-  currentFilters: {
-    search: string;
-    dateFrom: string;
-    dateTo: string;
-    status: string;
-    clientId: string;
-    supplierId: string;
-    driver: string;
-  };
-  activeCount: number;
-  totalCount?: number;
-  filteredCount?: number;
-  selectedServices?: string[];
-  onSelectionChange?: (ids: string[]) => void;
-  onBulkAction?: (action: 'update' | 'delete' | 'loadingOrder', data?: any) => Promise<void>;
-  onSaveFilter?: (name: string, filters: any) => void;
-  savedFilters?: Array<{ id: string; name: string; filters: any }>;
-}
 
 export function ServicesFilters({
   clients,
@@ -104,8 +72,6 @@ export function ServicesFilters({
   const [isPending, startTransition] = useTransition();
   const [isExporting, setIsExporting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  // const [saveFilterName, setSaveFilterName] = useState('');
-  // const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [bulkActionLoading, setBulkActionLoading] = useState<string | null>(null);
 
@@ -221,26 +187,26 @@ export function ServicesFilters({
     () => [
       {
         label: 'Active',
-        value: 'active',
+        url: 'confirmed',
         icon: Zap,
         color: 'text-blue-600 dark:text-blue-400',
-        statuses: [ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS],
+        statuses: ['confirmed', 'in_progress'],
         count: 0, // Would be populated from actual data
       },
       {
         label: 'Pending',
-        value: 'pending',
+        url: 'draft',
         icon: Clock,
         color: 'text-yellow-600 dark:text-yellow-400',
-        statuses: [ServiceStatus.DRAFT],
+        statuses: ['draft'],
         count: 0,
       },
       {
         label: 'Complete',
-        value: 'complete',
+        url: 'completed',
         icon: CheckCircle,
         color: 'text-green-600 dark:text-green-400',
-        statuses: [ServiceStatus.COMPLETED, ServiceStatus.INVOICED],
+        statuses: ['completed', 'invoiced'],
         count: 0,
       },
     ],
@@ -403,11 +369,14 @@ export function ServicesFilters({
       });
     }
     if (currentFilters.status) {
-      filters.push({
-        key: 'status',
-        label: getStatusLabel(currentFilters.status as ServiceStatus),
-        icon: <ServiceStatusBadge status={currentFilters.status as ServiceStatus} size="sm" />,
-      });
+      const enumVal = STATUS_URL_MAP[currentFilters.status];
+      if (enumVal !== undefined) {
+        filters.push({
+          key: 'status',
+          label: getStatusLabel(enumVal),
+          icon: <ServiceStatusBadge status={enumVal} size="sm" />,
+        });
+      }
     }
     if (currentFilters.clientId) {
       const client = clients.find((c) => c.id === currentFilters.clientId);
@@ -505,11 +474,15 @@ export function ServicesFilters({
                   ),
                   disabled: true,
                 },
-                ...Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => ({
-                  id: `status-${status}`,
-                  label: <ServiceStatusBadge status={status as ServiceStatus} size="sm" showIcon />,
-                  onClick: () => handleBulkAction('updateStatus', { status }),
-                })),
+                ...Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => {
+                  const enumVal = status as ServiceStatus;
+                  return {
+                    id: `status-${status}`,
+                    label: <ServiceStatusBadge status={enumVal} size="sm" showIcon />,
+                    onClick: () =>
+                      handleBulkAction('updateStatus', { status: enumVal }),
+                  };
+                }),
 
                 { id: 'divider-1', divider: true },
                 {
@@ -594,9 +567,9 @@ export function ServicesFilters({
             {/* Status Quick Filters */}
             <div className="flex items-center gap-2">
               {quickStatusGroups.map((group) => {
-                const isActive = group.statuses.some((s) => s === currentFilters.status);
+                const isActive = group.statuses.includes(currentFilters.status);
                 return (
-                  <Tooltip key={group.value} content={`Filter by ${group.label} services`}>
+                  <Tooltip key={group.url} content={`Filter by ${group.label} services`}>
                     <Button
                       variant={isActive ? 'primary' : 'ghost'}
                       size="sm"
@@ -630,15 +603,15 @@ export function ServicesFilters({
                     All Status
                   </Button>
                 }
-                items={Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => ({
-                  id: status,
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <ServiceStatusBadge status={status as ServiceStatus} size="sm" />
-                    </div>
-                  ),
-                  onClick: () => updateFilter('status', status),
-                }))}
+                items={Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => {
+                  const enumVal = status as ServiceStatus;
+                  const urlValue = Object.entries(STATUS_URL_MAP).find(([, v]) => v === enumVal)?.[0];
+                  return {
+                    id: status,
+                    label: <ServiceStatusBadge status={enumVal} size="sm" />,
+                    onClick: () => updateFilter('status', urlValue ?? ''),
+                  }
+                })}
               />
             </div>
 

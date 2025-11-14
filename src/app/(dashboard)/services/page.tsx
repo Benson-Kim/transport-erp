@@ -15,28 +15,14 @@ import {
   ServicesHeader,
   ServicesMobileView,
 } from '@/components/features/services';
-import { ServiceStatus } from '@/app/generated/prisma';
+import { ServicesPageProps } from '@/types/service';
+import { STATUS_URL_MAP } from '@/lib/service-helpers';
 
 export const metadata: Metadata = {
   title: 'Services | Enterprise Dashboard',
   description: 'Manage transport and logistics services',
 };
 
-interface ServicesPageProps {
-  searchParams: {
-    search?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    status?: string;
-    clientId?: string;
-    supplierId?: string;
-    driver?: string;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-    page?: string;
-    pageSize?: string;
-  };
-}
 
 export default async function ServicesPage({ searchParams }: ServicesPageProps) {
   // Check authentication
@@ -51,7 +37,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     search: params.search || '',
     dateFrom: params.dateFrom || '',
     dateTo: params.dateTo || '',
-    status: (params.status as ServiceStatus) || '',
+    status: params.status || '',
     clientId: params.clientId || '',
     supplierId: params.supplierId || '',
     driver: params.driver || '',
@@ -61,9 +47,13 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     pageSize: Number(params.pageSize) || 50,
   };
 
-  // Fetch data in parallel
+  const s_filters = {
+    ...filters,
+    status: params.status ? STATUS_URL_MAP[params.status] : undefined,
+  };
+
   const [servicesData, filtersData] = await Promise.all([
-    getServices(filters),
+    getServices(s_filters),
     getClientsAndSuppliers(),
   ]);
 
