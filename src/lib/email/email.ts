@@ -3,7 +3,6 @@
  * Handles all email sending functionality with multiple provider support
  */
 
-import { z } from 'zod';
 import nodemailer from 'nodemailer';
 import { Transporter } from 'nodemailer';
 import { render } from '@react-email/components';
@@ -16,138 +15,9 @@ import {
   LoadingOrderEmailTemplate,
   NotificationEmailTemplate,
 } from './email-templates';
+import { EmailConfig, emailConfigSchema } from '../validations/mail-schema';
+import { EmailOptions, InvoiceEmailData, LoadingOrderEmailData, NotificationEmailData, PasswordResetEmailData, VerificationEmailData, WelcomeEmailData } from '@/types/mail';
 
-/**
- * Email configuration schema
- */
-const emailConfigSchema = z.object({
-  from: z.email(),
-  replyTo: z.email().optional(),
-  provider: z.enum(['smtp', 'sendgrid', 'resend', 'aws-ses']),
-  smtp: z
-    .object({
-      host: z.string(),
-      port: z.number(),
-      secure: z.boolean(),
-      auth: z.object({
-        user: z.string(),
-        pass: z.string(),
-      }),
-    })
-    .optional(),
-  sendgrid: z
-    .object({
-      apiKey: z.string(),
-    })
-    .optional(),
-  resend: z
-    .object({
-      apiKey: z.string(),
-    })
-    .optional(),
-  awsSes: z
-    .object({
-      region: z.string(),
-      accessKeyId: z.string(),
-      secretAccessKey: z.string(),
-    })
-    .optional(),
-});
-
-type EmailConfig = z.infer<typeof emailConfigSchema>;
-
-/**
- * Email options interface
- */
-export interface EmailOptions {
-  to: string | string[];
-  subject: string;
-  html?: string | undefined;
-  text?: string | undefined;
-  attachments?:
-    | Array<{
-        filename: string;
-        content?: Buffer | string | undefined;
-        path?: string | undefined;
-        contentType?: string | undefined;
-      }>
-    | undefined;
-  cc?: string | string[] | undefined;
-  bcc?: string | string[] | undefined;
-  replyTo?: string | undefined;
-  headers?: Record<string, string> | undefined;
-  priority?: 'high' | 'normal' | 'low' | undefined;
-  tags?: string[] | undefined;
-  metadata?: Record<string, any> | undefined;
-}
-
-/**
- * Email template data interfaces
- */
-export interface VerificationEmailData {
-  name: string;
-  email: string;
-  verificationUrl: string;
-  expiresIn: string;
-}
-
-export interface PasswordResetEmailData {
-  name: string;
-  email: string;
-  resetUrl: string;
-  expiresIn: string;
-  ipAddress?: string;
-  userAgent?: string;
-}
-
-export interface WelcomeEmailData {
-  name: string;
-  email: string;
-  loginUrl: string;
-  features: string[];
-}
-
-export interface InvoiceEmailData {
-  recipientName: string;
-  recipientEmail: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  totalAmount: string;
-  currency: string;
-  viewUrl: string;
-  downloadUrl: string;
-  items: Array<{
-    description: string;
-    quantity: number;
-    unitPrice: string;
-    total: string;
-  }>;
-}
-
-export interface LoadingOrderEmailData {
-  recipientName: string;
-  recipientEmail: string;
-  orderNumber: string;
-  orderDate: string;
-  services: Array<{
-    serviceNumber: string;
-    description: string;
-    origin: string;
-    destination: string;
-  }>;
-  viewUrl: string;
-  downloadUrl: string;
-}
-
-export interface NotificationEmailData {
-  recipientName: string;
-  title: string;
-  message: string;
-  actionUrl?: string;
-  actionLabel?: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}
 
 /**
  * Email Service Class
