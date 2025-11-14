@@ -755,11 +755,11 @@ export function ServicesFilters({
             <Badge
               key={filter.key}
               variant="active"
-              size="sm"
-              className="gap-1 pl-2 pr-1"
+              // size="sm"
+              className="gap-1 py-2.5 px-2"
               icon={filter.icon}
             >
-              <span>{filter.label}</span>
+              {/* <span>{filter.label}</span> */}
               <button
                 onClick={() => {
                   if (filter.key === 'date') {
