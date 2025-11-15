@@ -44,3 +44,28 @@ export interface DashboardData {
         currency: string;
     }>;
 }
+
+export interface StatsData {
+    activeServices: number;
+    activeServicesChange: number;
+    completedServices: number;
+    completedServicesChange: number;
+    totalRevenue: number;
+    totalRevenueChange: number;
+    averageMargin: number;
+    averageMarginAmount: number;
+    averageMarginChange: number;
+    totalServices: number;
+    period?: {
+        start: string;
+        end: string;
+    };
+}
+
+export interface StatsCardsProps {
+    stats: StatsData;
+    loading?: boolean;
+    error?: Error | null;
+    onRefresh?: () => void;
+    compact?: boolean;
+}

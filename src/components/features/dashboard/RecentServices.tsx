@@ -318,12 +318,12 @@ export function RecentServices({
   // Calculate pagination
   const paginationConfig = showPagination
     ? {
-        page: currentPage,
-        pageSize: selectedPageSize,
-        total: services.length,
-        onPageChange: setCurrentPage,
-        onPageSizeChange: setSelectedPageSize,
-      }
+      page: currentPage,
+      pageSize: selectedPageSize,
+      total: services.length,
+      onPageChange: setCurrentPage,
+      onPageSizeChange: setSelectedPageSize,
+    }
     : undefined;
 
   // Header action
@@ -488,13 +488,13 @@ export function RecentServices({
           {/* Filters */}
           <div className="flex items-center justify-between">
             {/* Status Tabs */}
-            <div className="flex gap-2 border-b">
+            <div className="flex gap-2">
               {(['all', 'active', 'completed'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedTab(tab)}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
+                    'cursor-pointer px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
                     selectedTab === tab
                       ? 'text-primary border-primary'
                       : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -507,13 +507,13 @@ export function RecentServices({
                       ? services.length
                       : tab === 'active'
                         ? services.filter((s) =>
-                            (
-                              [
-                                ServiceStatus.CONFIRMED,
-                                ServiceStatus.IN_PROGRESS,
-                              ] as ServiceStatus[]
-                            ).includes(s.status)
-                          ).length
+                          (
+                            [
+                              ServiceStatus.CONFIRMED,
+                              ServiceStatus.IN_PROGRESS,
+                            ] as ServiceStatus[]
+                          ).includes(s.status)
+                        ).length
                         : services.filter((s) => s.status === ServiceStatus.COMPLETED).length}
                     )
                   </span>
@@ -581,22 +581,22 @@ export function RecentServices({
                 action={
                   onCreateNew
                     ? {
-                        label: 'Create Service',
-                        onClick: onCreateNew,
-                        icon: <Plus size={16} />,
-                      }
+                      label: 'Create Service',
+                      onClick: onCreateNew,
+                      icon: <Plus size={16} />,
+                    }
                     : {
-                        label: 'Refresh',
-                        onClick: handleRefresh,
-                        icon: <RefreshCw size={16} />,
-                      }
+                      label: 'Refresh',
+                      onClick: handleRefresh,
+                      icon: <RefreshCw size={16} />,
+                    }
                 }
                 secondaryAction={
                   onImport
                     ? {
-                        label: 'Import Services',
-                        onClick: onImport,
-                      }
+                      label: 'Import Services',
+                      onClick: onImport,
+                    }
                     : undefined
                 }
               />
