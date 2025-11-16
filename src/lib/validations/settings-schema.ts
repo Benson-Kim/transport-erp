@@ -48,7 +48,7 @@ export const createUserSchema = z.object({
         .min(2, 'Name must be at least 2 characters')
         .max(100, 'Name must be less than 100 characters').trim(),
     email: z.email('Invalid email address').toLowerCase().trim(),
-    role: UserRole,
+    role: z.enum(UserRole),
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
     status: z.enum(['active', 'inactive']).default('active'),
@@ -68,7 +68,7 @@ export const updateUserSchema = z.object({
         .min(2, 'Name must be at least 2 characters')
         .max(100, 'Name must be less than 100 characters').trim(),
     email: z.email('Invalid email address').toLowerCase().trim(),
-    role: UserRole,
+    role: z.enum(UserRole),
     status: z.enum(['active', 'inactive']),
     department: z.string()
         .max(100, 'Department must be less than 100 characters')
