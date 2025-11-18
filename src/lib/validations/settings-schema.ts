@@ -20,8 +20,11 @@ export const companySettingsSchema = z.object({
     email: z.email('Invalid email address')
         .toLowerCase(),
     phone: z.string()
-        .regex(/^\+?[1-9]\d{7,14}$/, 'Invalid phone number')
-        .trim(),
+        .trim()
+        .transform((val) => val.replace(/\s+/g, ''))
+        .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
+            message: 'Invalid phone number',
+        }),
     website: z.union([
         z.url('Invalid website URL'),
         z.literal(''),
