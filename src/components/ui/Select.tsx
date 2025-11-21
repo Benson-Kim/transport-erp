@@ -4,15 +4,16 @@
  */
 
 'use client';
-import { SelectHTMLAttributes, forwardRef, useState, useRef, useEffect, useCallback } from 'react';
+import { SelectHTMLAttributes, forwardRef, useState, useRef, useEffect, useCallback, ReactNode } from 'react';
 import { ChevronDown, X, Check, Search } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize, Option } from '@/types/ui';
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'prefix'> {
   options: Option[];
   size?: ComponentSize;
   error?: string;
+  prefix?: ReactNode;
   clearable?: boolean;
   searchable?: boolean;
   loading?: boolean;
@@ -34,6 +35,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       options,
       size = 'md',
       error,
+      prefix,
       clearable = false,
       searchable = false,
       loading = false,
@@ -146,29 +148,39 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     // Native select fallback
     if (!renderCustom) {
       return (
-        <div className="relative w-full">
-          <select
-            ref={ref}
-            value={value}
-            onChange={onChange}
-            disabled={disabled}
-            className={cn('input', sizeClasses[size], error && 'input-error', className)}
-            aria-invalid={!!error}
-            aria-describedby={error ? `${props.id}-error` : undefined}
-            {...props}
+        <div className="relative w-full ">
+          <div
+            className={cn('relative flex items-center', disabled && 'opacity-60 cursor-not-allowed')}
           >
-            <option value="">{placeholder}</option>
-            {options.map((option) => (
-              <option key={option.value} value={option.value} disabled={option.disabled}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          {error && (
-            <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">
-              {error}
-            </div>
-          )}
+            {prefix && (
+              <div className="absolute  left-3 flex items-center pointer-events-none">
+                <span className="text-neutral-500 text-sm">{prefix}</span>
+              </div>
+            )}
+            <select
+              ref={ref}
+              value={value}
+              onChange={onChange}
+              disabled={disabled}
+              className={cn('input', sizeClasses[size], error && 'input-error', prefix && 'pl-10', className)}
+
+              aria-invalid={!!error}
+              aria-describedby={error ? `${props.id}-error` : undefined}
+              {...props}
+            >
+              <option value="">{placeholder}</option>
+              {options.map((option) => (
+                <option key={option.value} value={option.value} disabled={option.disabled}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {error && (
+              <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">
+                {error}
+              </div>
+            )}
+          </div>
         </div>
       );
     }

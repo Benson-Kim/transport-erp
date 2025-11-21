@@ -42,7 +42,7 @@ export default async function CompanySettingsPage() {
     const companyData = result.success ? result.data : null;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 -mt-2">
             <PageHeader
                 title="Company Information"
                 description="Manage your company details and branding"

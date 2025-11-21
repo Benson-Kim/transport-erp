@@ -38,7 +38,7 @@ export const companySettingsSchema = z.object({
         .optional(),
     logo: z.union([
         z.string().startsWith('data:image/', 'Invalid image format'),
-        z.string().url('Invalid image URL'),
+        z.url('Invalid image URL'),
         z.undefined(),
     ]).optional(),
 });
@@ -58,6 +58,8 @@ export const createUserSchema = z.object({
     department: z.string()
         .max(100, 'Department must be less than 100 characters')
         .optional(),
+    phone: z.string().max(20).optional().nullable(),
+    sendWelcomeEmail: z.boolean().default(true),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ['confirmPassword'],
@@ -72,11 +74,17 @@ export const updateUserSchema = z.object({
         .max(100, 'Name must be less than 100 characters').trim(),
     email: z.email('Invalid email address').toLowerCase().trim(),
     role: z.enum(UserRole),
+    password: passwordSchema.optional().or(z.literal('')),
+    confirmPassword: z.string().optional().or(z.literal('')),
     status: z.enum(['active', 'inactive']),
     department: z.string()
         .max(100, 'Department must be less than 100 characters')
         .optional()
         .nullable(),
+    phone: z.string().max(20, 'Phone too long').optional().nullable(),
+}).refine((data) => !data.password || data.password.trim() === '' || data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
 });
 
 /**

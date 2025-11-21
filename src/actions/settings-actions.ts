@@ -12,7 +12,7 @@ import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { requirePermission } from '@/lib/rbac';
 import { requireAuth } from '@/lib/auth';
 import { AuditAction } from '@/app/generated/prisma';
-import { uploadToStorage } from '@/lib/utils/export';
+import { uploadToStorage } from '@/lib/storage/utils';
 
 /**
  * Update company settings
@@ -27,8 +27,8 @@ export async function updateCompanySettings(data: CompanySettings) {
         // Save logo to storage if provided
         let logoUrl = validated.logo;
         if (validated.logo && validated.logo.startsWith('data:')) {
-            // TODO: Upload to S3/storage and get URL
-            logoUrl = await uploadToStorage(validated.logo, 'logos');
+            console.log(validated.logo)
+            // logoUrl = await uploadToStorage(validated.logo, 'logos');
         }
 
         let company = await prisma.company.findFirst({
@@ -104,6 +104,48 @@ export async function updateCompanySettings(data: CompanySettings) {
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to update settings'
+        };
+    }
+}
+
+/**
+ * Get company settings
+ */
+export async function getCompanySettings() {
+    try {
+        await requirePermission('settings', 'view')
+
+        const company = await prisma.company.findFirst({
+            where: {
+                code: 'DEFAULT',
+                deletedAt: null
+            },
+        });
+
+        if (!company) {
+            return { success: true, data: null };
+        }
+
+        // Transform to match CompanySettings interface
+        const settings: CompanySettings = {
+            companyName: company.legalName,
+            address: company.addressLine1 + (company.addressLine2 ? '\n' + company.addressLine2 : ''),
+            vatNumber: company.vatNumber,
+            email: company.email,
+            phone: company.phone,
+            website: company.website || '',
+            bankAccount: company.iban || '',
+            bankDetails: company.bankName || '',
+            logo: company.logoUrl || undefined,
+        };
+
+        return { success: true, data: settings };
+    } catch (error) {
+        console.error('Get company settings error:', error);
+        return {
+            success: false,
+            data: null,
+            error: error instanceof Error ? error.message : 'Failed to fetch settings'
         };
     }
 }

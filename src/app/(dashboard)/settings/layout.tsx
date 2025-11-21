@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { cn } from '@/lib/utils/cn';
 import { canAccessRoute } from '@/lib/permissions';
 import { Activity, Building2, Database, Lock, Settings, Shield, User, Users } from 'lucide-react';
+import { PageHeader } from '@/components/ui';
 
 interface NavItem {
     label: string;
@@ -175,11 +176,15 @@ export default async function SettingsLayout({ children }: { children: ReactNode
     }
 
     return (
-        <div className="container mx-auto py-6">
-            <h1 className="text-2xl font-bold mb-6">Settings</h1>
-            <div className="flex flex-col md:flex-row gap-8">
+        <div className="mx-auto">
+
+            {/* <h1 className="text-2xl font-bold mb-6">Settings</h1> */}
+            <PageHeader
+                title="Settings" className='mb-4'
+            />
+            <div className="flex flex-col md:flex-row gap-6">
                 <SettingsSidebar userRole={userRole} pathname={pathname} />
-                <main className="flex-1 min-w-0">
+                <main className="flex-1 min-w-0 -mt-12">
                     <Suspense fallback={<div className="skeleton h-96 w-full" />}>
                         {children}
                     </Suspense>

@@ -1,64 +1,78 @@
-/**
- * User Management Page
- * Admin interface for managing system users
- */
-
+// /app/(dashboard)/settings/users/page.tsx
 import { Metadata } from 'next';
-import { requireRole } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
 import { UserRole } from '@/app/generated/prisma';
-import { getUsers } from '@/actions/user-actions';
-import { UsersList } from '@/components/features/users/users-list';
-import { CreateUserDialog } from '@/components/features/users/create-user-dialog';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { Card } from '@/components/ui/Card';
+import { hasPermission, RESOURCES, ACTIONS } from '@/lib/permissions';
+import { PageHeader } from '@/components/ui';
+import prisma from '@/lib/prisma/prisma';
+import { UserManagement } from '@/components/features/settings/UserManagement';
 
 export const metadata: Metadata = {
-  title: 'User Management | Settings',
-  description: 'Manage system users and their permissions',
+  title: 'User Management | Transport Management System',
+  description: 'Manage system users and permissions',
 };
 
+/**
+ * User management page (admin only)
+ */
 export default async function UsersPage() {
-  // Require admin role
-  await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+  const session = await auth();
 
-  // Fetch users
-  const users = await getUsers();
+  if (!session) {
+    redirect('/login');
+  }
+
+  const userRole = session.user?.role ?? UserRole.VIEWER;
+
+  // Check permission using centralized system
+  if (!hasPermission(userRole, RESOURCES.USERS, ACTIONS.VIEW)) {
+    redirect('/settings/profile');
+  }
+
+  // Fetch all users with stats (excluding soft deleted)
+  const users = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      avatar: true,
+      phone: true,
+      department: true,
+      lastLoginAt: true,
+      createdAt: true,
+      emailVerified: true,
+      _count: {
+        select: {
+          services: true,
+          auditLogs: true,
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
 
   return (
-    <div className="container py-6">
-      <PageHeader title="User Management" description="Manage system users, roles, and permissions">
-        <CreateUserDialog />
+    <div className="space-y-6 -mt-2">
+      <PageHeader
+        title="User Management"
+        description="Manage users, roles, and permissions"
+      >
+
       </PageHeader>
 
-      <div className="mt-6 grid gap-6">
-        {/* Statistics */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card className="p-6">
-            <div className="text-2xl font-bold">{users.total}</div>
-            <p className="text-sm text-muted-foreground">Total Users</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="text-2xl font-bold">{users.active}</div>
-            <p className="text-sm text-muted-foreground">Active Users</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="text-2xl font-bold">{users.admins}</div>
-            <p className="text-sm text-muted-foreground">Administrators</p>
-          </Card>
-
-          <Card className="p-6">
-            <div className="text-2xl font-bold">{users.recentlyActive}</div>
-            <p className="text-sm text-muted-foreground">Active Today</p>
-          </Card>
-        </div>
-
-        {/* Users List */}
-        <Card>
-          <UsersList users={users.data} />
-        </Card>
-      </div>
+      <UserManagement
+        users={users}
+        currentUserId={session.user.id}
+        currentUserRole={userRole}
+      />
     </div>
   );
 }
