@@ -4,9 +4,11 @@
 import { revalidatePath } from 'next/cache';
 import {
     type CompanySettings,
+    type NumberSequencesInput,
     type GeneralSettingsInput,
     type SystemSettings,
     companySettingsSchema,
+    numberSequencesSchema,
     generalSettingsSchema,
     DEFAULT_SYSTEM_SETTINGS,
 } from '@/lib/validations/settings-schema';
@@ -324,14 +326,29 @@ async function updateSetting<T>(
 export async function getSystemSettings(): Promise<SystemSettings> {
     await requirePermission('settings', 'view');
 
-    const [general] = await Promise.all([
+    const [numberSequences, general] = await Promise.all([
+        getSetting<NumberSequencesInput>
+            (SettingKey.NUMBER_SEQUENCES, DEFAULT_SYSTEM_SETTINGS.numberSequences),
         getSetting<GeneralSettingsInput>
             (SettingKey.GENERAL, DEFAULT_SYSTEM_SETTINGS.general),
     ]);
 
     return {
+        numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...numberSequences },
         general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...general },
     };
+}
+
+
+
+
+export async function updateNumberSequences(data: unknown): Promise<ActionResult> {
+    return updateSetting(
+        SettingKey.NUMBER_SEQUENCES,
+        data,
+        numberSequencesSchema,
+        'Document number formatting and sequences'
+    );
 }
 
 export async function updateGeneral(data: unknown): Promise<ActionResult> {

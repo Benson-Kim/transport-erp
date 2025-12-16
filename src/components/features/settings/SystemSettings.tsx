@@ -5,17 +5,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
 import type { Tab } from '@/components/ui/Tabs';
 
-import { Settings, AlertCircle, } from 'lucide-react';
+import { Hash, Settings, AlertCircle, } from 'lucide-react';
 import { DEFAULT_SYSTEM_SETTINGS, type SystemSettings, systemSettingsSchema } from '@/lib/validations/settings-schema';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     getSystemSettings,
-    updateGeneral
+    updateGeneral,
+    updateNumberSequences,
 } from '@/actions/settings-actions';
 import { toast } from '@/lib/toast';
 
+import SequenceSettings from './SystemSettings/Sequence';
 import GeneralSettings from './SystemSettings/General';
+
 
 type SettingsSection = keyof SystemSettings;
 
@@ -24,7 +27,7 @@ export function SystemSettingsContent() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState('email');
+    const [activeTab, setActiveTab] = useState('general');
 
     const methods = useForm<SystemSettings>({
         resolver: zodResolver(systemSettingsSchema),
@@ -41,6 +44,7 @@ export function SystemSettingsContent() {
             setError(null);
             const data = await getSystemSettings();
             const mergedData = {
+                numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...data.numberSequences },
                 general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
             };
             methods.reset(mergedData);
@@ -61,6 +65,7 @@ export function SystemSettingsContent() {
             let result;
 
             const actionMap: Record<SettingsSection, () => Promise<{ success: boolean; error?: string }>> = {
+                numberSequences: () => updateNumberSequences(values.numberSequences),
                 general: () => updateGeneral(values.general),
             };
 
@@ -83,6 +88,22 @@ export function SystemSettingsContent() {
 
     // Define tabs with their content
     const tabs: Tab[] = useMemo(() => [
+        {
+            id: 'sequences',
+            label: 'Number Sequences',
+            icon: <Hash className="h-4 w-4" />,
+            content: (
+                <TabContent
+                    title="Number Sequences"
+                    description="Configure document numbering formats and sequences"
+                    section="numberSequences"
+                    onSave={() => handleSaveSection('numberSequences')}
+                    isSaving={saving === 'numberSequences'}
+                >
+                    <SequenceSettings />
+                </TabContent>
+            ),
+        },
         {
             id: 'general',
             label: 'General',

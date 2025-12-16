@@ -131,6 +131,46 @@ export const passwordChangeSchema = z.object({
     path: ['confirmPassword'],
 });
 
+/**
+ * System settings schema
+ */
+
+
+/**
+ * Validation for number format strings
+ */
+const numberFormatSchema = z
+    .string()
+    .min(1, 'Format is required')
+    .refine(
+        (value) => /N{3,5}/.test(value),
+        { message: 'Format must contain a number token (NNN, NNNN, or NNNNN)' }
+    )
+    .refine(
+        (value) => {
+            // Check for valid tokens only (no invalid patterns)
+            const validTokens = ['YYYY', 'YY', 'MM', 'DD', 'NNNNN', 'NNNN', 'NNN'];
+            const tokenPattern = /[A-Z]{2,5}/g;
+            const matches = value.match(tokenPattern) || [];
+
+            return matches.every(match =>
+                validTokens.includes(match) ||
+                // Allow custom prefixes (letters that aren't tokens)
+                !['YY', 'MM', 'DD', 'NN'].some(token => match.includes(token))
+            );
+        },
+        { message: 'Format contains invalid tokens. Use YYYY, YY, MM, DD, NNN, NNNN, or NNNNN' }
+    );
+
+// Number sequences schema
+export const numberSequencesSchema = z.object({
+    serviceFormat: numberFormatSchema,
+    invoiceFormat: numberFormatSchema,
+    loadingOrderFormat: numberFormatSchema,
+    paymentNumberFormat: numberFormatSchema,
+    sequenceReset: z.enum(['yearly', 'monthly', 'never', 'manual']),
+});
+
 export const generalSettingsSchema = z.object({
     defaultCurrency: z.enum(['EUR', 'USD', 'GBP']),
     dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY']),
@@ -157,7 +197,9 @@ export const generalSettingsSchema = z.object({
         .max(120, 'Maximum 120 months')
 })
 
+// Combined system settings schema
 export const systemSettingsSchema = z.object({
+    numberSequences: numberSequencesSchema,
     general: generalSettingsSchema,
 });
 
@@ -180,7 +222,13 @@ export const auditLogFilterSchema = z.object({
 });
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
-
+    numberSequences: {
+        serviceFormat: 'SRV-YYYY-NNNNN',
+        invoiceFormat: 'INV-YYYY-NNNNN',
+        loadingOrderFormat: 'LO-YYYY-NNNNN',
+        paymentNumberFormat: 'PAY-YYYY-NNNNN',
+        sequenceReset: 'yearly',
+    },
     general: {
         defaultCurrency: 'EUR',
         dateFormat: 'DD/MM/YYYY',
@@ -199,6 +247,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
 /** Type exports from schemas */
 export type SystemSettings = z.infer<typeof systemSettingsSchema>;
+export type NumberSequencesInput = z.infer<typeof numberSequencesSchema>;
 export type GeneralSettingsInput = z.infer<typeof generalSettingsSchema>
 
 export type CompanySettings = z.infer<typeof companySettingsSchema>;
