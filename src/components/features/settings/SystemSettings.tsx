@@ -5,12 +5,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
 import type { Tab } from '@/components/ui/Tabs';
 
-import { FileText, Hash, Settings, AlertCircle, } from 'lucide-react';
+import { Mail, FileText, Database, Hash, Settings, AlertCircle, } from 'lucide-react';
 import { DEFAULT_SYSTEM_SETTINGS, type SystemSettings, systemSettingsSchema } from '@/lib/validations/settings-schema';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     getSystemSettings,
+    runManualBackup,
+    saveEmailSettings,
+    testEmailConfiguration,
+    updateBackup,
     updateGeneral,
     updateNumberSequences,
     updatePDF
@@ -20,6 +24,8 @@ import { toast } from '@/lib/toast';
 import SequenceSettings from './SystemSettings/Sequence';
 import GeneralSettings from './SystemSettings/General';
 import PDFSettings from './SystemSettings/PDF';
+import BackupSettings from './SystemSettings/Backup';
+import EmailConfiguration from './SystemSettings/EmailConfig';
 
 type SettingsSection = keyof SystemSettings;
 
@@ -28,7 +34,7 @@ export function SystemSettingsContent() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState('general');
+    const [activeTab, setActiveTab] = useState('email');
 
     const methods = useForm<SystemSettings>({
         resolver: zodResolver(systemSettingsSchema),
@@ -45,7 +51,9 @@ export function SystemSettingsContent() {
             setError(null);
             const data = await getSystemSettings();
             const mergedData = {
+                email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...data.email },
                 pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...data.pdf },
+                backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...data.backup },
                 numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...data.numberSequences },
                 general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
             };
@@ -67,7 +75,9 @@ export function SystemSettingsContent() {
             let result;
 
             const actionMap: Record<SettingsSection, () => Promise<{ success: boolean; error?: string }>> = {
+                email: () => saveEmailSettings(values.email),
                 pdf: () => updatePDF(values.pdf),
+                backup: () => updateBackup(values.backup),
                 numberSequences: () => updateNumberSequences(values.numberSequences),
                 general: () => updateGeneral(values.general),
             };
@@ -87,8 +97,66 @@ export function SystemSettingsContent() {
         }
     }
 
+    async function handleTestEmail() {
+        try {
+            const email = methods.getValues('email.fromEmail');
+            const result = await testEmailConfiguration(email);
+
+            if (result.success) {
+                toast.success(result.data!);
+            } else {
+                toast.error(result.error!);
+            }
+        } catch (error) {
+            toast.error('Failed to send test email');
+        }
+    }
+
+    async function handleManualBackup() {
+        try {
+            setSaving('backup');
+            const result = await runManualBackup();
+
+            if (result.success) {
+                toast.success(`Backup completed at ${new Date(result.data!.createdAt).toLocaleString()}`);
+            } else {
+                toast.error(result.error!);
+            }
+        } catch (error) {
+            toast.error('Failed to trigger backup');
+        } finally {
+            setSaving(null);
+        }
+    }
+
     // Define tabs with their content
     const tabs: Tab[] = useMemo(() => [
+        {
+            id: 'email',
+            label: 'Email',
+            icon: <Mail className="h-4 w-4" />,
+            content: (
+                <TabContent
+                    title="Email Configuration"
+                    description="Configure email provider and sender settings for system notifications"
+                    section="email"
+                    onSave={() => handleSaveSection('email')}
+                    isSaving={saving === 'email'}
+                    actions={
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleTestEmail}
+                            disabled={saving === 'email' || saving === 'email-test'}
+                        >
+                            {saving === 'email-test' ? 'Sending...' : 'Send Test Email'}
+                        </Button>
+                    }
+                >
+                    <EmailConfiguration />
+                </TabContent>
+            ),
+        },
         {
             id: 'pdf',
             label: 'PDF',
@@ -102,6 +170,32 @@ export function SystemSettingsContent() {
                     isSaving={saving === 'pdf'}
                 >
                     <PDFSettings />
+                </TabContent>
+            ),
+        },
+        {
+            id: 'backup',
+            label: 'Backup',
+            icon: <Database className="h-4 w-4" />,
+            content: (
+                <TabContent
+                    title="Backup Settings"
+                    description="Configure automatic backup schedule and storage"
+                    section="backup"
+                    onSave={() => handleSaveSection('backup')}
+                    isSaving={saving === 'backup'}
+                    actions={
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={handleManualBackup}
+                            disabled={saving === 'backup' || saving === 'backup-manual'}
+                        >
+                            {saving === 'backup-manual' ? 'Running Backup...' : 'Run Manual Backup'}
+                        </Button>
+                    }
+                >
+                    <BackupSettings />
                 </TabContent>
             ),
         },

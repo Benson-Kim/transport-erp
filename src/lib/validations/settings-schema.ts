@@ -134,7 +134,47 @@ export const passwordChangeSchema = z.object({
 /**
  * System settings schema
  */
+export const emailProviderSchema = z.enum(['resend', 'smtp', 'sendgrid', 'ses'])
 
+export const emailConfigSchema = z.object({
+    provider: emailProviderSchema,
+    apiKey: z.string().optional(),
+    host: z.string().optional(),
+    port: z.number().int().min(1).max(65535).optional(),
+    user: z.string().optional(),
+    password: z.string().optional(),
+    secure: z.boolean().default(true).optional(),
+    fromName: z.string()
+        .min(1, 'From name is required')
+        .max(100, 'From name must be less than 100 characters'),
+    fromEmail: z.email('Invalid email address')
+        .toLowerCase(),
+}).superRefine((data, ctx) => {
+    // Validate SMTP settings if SMTP is selected
+    if (data.provider === 'smtp') {
+        if (!data.host) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'SMTP host is required when using SMTP',
+                path: ['host'],
+            });
+        }
+        if (!data.port) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'SMTP port is required when using SMTP',
+                path: ['port'],
+            });
+        }
+    };
+    if (['resend', 'sendgrid', 'ses'].includes(data.provider) && !data.apiKey) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `API key is required for ${data.provider}`,
+            path: ['apiKey'],
+        });
+    }
+});
 
 export const pdfSettingsSchema = z.object({
     paperSize: z.enum(['A4', 'Letter', 'Legal']),
@@ -143,6 +183,19 @@ export const pdfSettingsSchema = z.object({
     footerText: z.string().max(200).optional(),
 });
 
+// Backup settings schema
+export const backupSettingsSchema = z.object({
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'never']),
+    time: z.string()
+        .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)'),
+    retentionDays: z.number()
+        .int()
+        .min(1, 'Retention must be at least 1 day')
+        .max(365, 'Retention cannot exceed 365 days'),
+    storageLocation: z.string()
+        .min(1, 'Backup location is required'),
+    enabled: z.boolean(),
+});
 
 /**
  * Validation for number format strings
@@ -207,7 +260,9 @@ export const generalSettingsSchema = z.object({
 
 // Combined system settings schema
 export const systemSettingsSchema = z.object({
+    email: emailConfigSchema,
     pdf: pdfSettingsSchema,
+    backup: backupSettingsSchema,
     numberSequences: numberSequencesSchema,
     general: generalSettingsSchema,
 });
@@ -231,11 +286,24 @@ export const auditLogFilterSchema = z.object({
 });
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+    email: {
+        provider: 'resend',
+        apiKey: '',
+        fromName: '',
+        fromEmail: '',
+    },
     pdf: {
         paperSize: 'A4',
         includeLogo: true,
         logoPosition: 'left',
         footerText: '',
+    },
+    backup: {
+        frequency: 'daily',
+        time: '02:00',
+        retentionDays: 30,
+        storageLocation: '',
+        enabled: true,
     },
     numberSequences: {
         serviceFormat: 'SRV-YYYY-NNNNN',
@@ -262,7 +330,9 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
 /** Type exports from schemas */
 export type SystemSettings = z.infer<typeof systemSettingsSchema>;
+export type EmailConfigInput = z.infer<typeof emailConfigSchema>;
 export type PDFSettingsInput = z.infer<typeof pdfSettingsSchema>;
+export type BackupSettingsInput = z.infer<typeof backupSettingsSchema>;
 export type NumberSequencesInput = z.infer<typeof numberSequencesSchema>;
 export type GeneralSettingsInput = z.infer<typeof generalSettingsSchema>
 
