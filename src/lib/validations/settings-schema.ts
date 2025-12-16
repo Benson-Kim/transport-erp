@@ -131,109 +131,39 @@ export const passwordChangeSchema = z.object({
     path: ['confirmPassword'],
 });
 
-/**
- * System settings schema
- */
-export const systemSettingsSchema = z.object({
-    emailProvider: z.enum(['resend', 'smtp', 'sendgrid', 'ses']).default('resend'),
-    emailApiKey: z.string().optional(),
-    smtpHost: z.string().optional(),
-    smtpPort: z.number().int().min(1).max(65535).optional(),
-    smtpUser: z.string().optional(),
-    smtpPassword: z.string().optional(),
-    smtpSecure: z.boolean().default(true).optional(),
-    fromName: z.string()
-        .min(1, 'From name is required')
-        .max(100, 'From name must be less than 100 characters'),
-    fromEmail: z.email('Invalid email address')
-        .toLowerCase(),
-    pdfPaperSize: z.enum(['A4', 'Letter', 'Legal']).default('A4'),
-    pdfIncludeLogo: z.boolean().default(true),
-    pdfLogoPosition: z.enum(['left', 'center', 'right']).default('left'),
-    pdfFooterText: z.string().max(200).optional(),
-    backupFrequency: z.enum(['daily', 'weekly', 'monthly', 'never']).default('daily'),
-    backupTime: z.string()
-        .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)'),
-    backupRetention: z.number()
-        .int()
-        .min(1, 'Retention must be at least 1 day')
-        .max(365, 'Retention cannot exceed 365 days')
-        .default(30),
-    backupLocation: z.string()
-        .min(1, 'Backup location is required'),
-    serviceNumberFormat: z.string()
-        .min(1, 'Service number format is required')
-        .default('SRV-YYYY-NNNNN'),
-    invoiceNumberFormat: z.string()
-        .min(1, 'Invoice number format is required')
-        .default('INV-YYYY-NNNNN'),
-    loadingOrderNumberFormat: z.string()
-        .min(1, 'Loading order format is required')
-        .default('LO-YYYY-NNNNN'),
-    paymentNumberFormat: z.string()
-        .min(1, 'Payment number format is required')
-        .default('PAY-YYYY-NNNNN'),
-    sequenceReset: z.enum(['yearly', 'monthly', 'never', 'manual']).default('yearly'),
-    defaultCurrency: z.enum(['EUR', 'USD', 'GBP']).default('EUR'),
-    dateFormat: z.enum([
-        'DD/MM/YYYY',
-        'MM/DD/YYYY',
-        'YYYY-MM-DD',
-        'DD.MM.YYYY'
-    ]).default('DD/MM/YYYY'),
-    timeFormat: z.enum(['24', '12']).default('24'),
+export const generalSettingsSchema = z.object({
+    defaultCurrency: z.enum(['EUR', 'USD', 'GBP']),
+    dateFormat: z.enum(['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', 'DD.MM.YYYY']),
+    timeFormat: z.enum(['24', '12']),
     defaultVatRate: z.number()
         .min(0, 'VAT rate cannot be negative')
-        .max(100, 'VAT rate cannot exceed 100%')
-        .default(21),
+        .max(100, 'VAT rate cannot exceed 100%'),
     defaultIrpfRate: z.number()
         .min(0, 'IRPF rate cannot be negative')
-        .max(100, 'IRPF rate cannot exceed 100%')
-        .default(15),
+        .max(100, 'IRPF rate cannot exceed 100%'),
     itemsPerPage: z.number()
         .int()
         .min(10, 'Minimum 10 items per page')
-        .max(100, 'Maximum 100 items per page')
-        .default(50),
+        .max(100, 'Maximum 100 items per page'),
 
     // Feature toggles
-    enableTwoFactor: z.boolean().default(false),
-    enableNotifications: z.boolean().default(true),
-    enableAutoBackup: z.boolean().default(true),
-    requireClientVat: z.boolean().default(false),
+    enableTwoFactor: z.boolean(),
+    enableNotifications: z.boolean(),
+    enableAutoBackup: z.boolean(),
+    requireClientVat: z.boolean(),
     autoArchiveMonths: z.number()
         .int()
         .min(0, 'Cannot be negative')
         .max(120, 'Maximum 120 months')
-        .default(12),
-}).superRefine((data, ctx) => {
-    // Validate SMTP settings if SMTP is selected
-    if (data.emailProvider === 'smtp') {
-        if (!data.smtpHost) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'SMTP host is required when using SMTP',
-                path: ['smtpHost'],
-            });
-        }
-        if (!data.smtpPort) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: 'SMTP port is required when using SMTP',
-                path: ['smtpPort'],
-            });
-        }
-    }
+})
 
-    // Validate API key for providers that need it
-    if (['resend', 'sendgrid', 'ses'].includes(data.emailProvider) && !data.emailApiKey) {
-        ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `API key is required for ${data.emailProvider}`,
-            path: ['emailApiKey'],
-        });
-    }
+export const systemSettingsSchema = z.object({
+    general: generalSettingsSchema,
 });
+
+
+
+
 
 /**
  * Audit log filter schema
@@ -249,10 +179,31 @@ export const auditLogFilterSchema = z.object({
     search: z.string().optional(),
 });
 
+export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+
+    general: {
+        defaultCurrency: 'EUR',
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '24',
+        defaultVatRate: 21,
+        defaultIrpfRate: 15,
+        itemsPerPage: 50,
+        enableTwoFactor: false,
+        enableNotifications: true,
+        enableAutoBackup: true,
+        requireClientVat: false,
+        autoArchiveMonths: 12,
+    },
+};
+
+
+/** Type exports from schemas */
+export type SystemSettings = z.infer<typeof systemSettingsSchema>;
+export type GeneralSettingsInput = z.infer<typeof generalSettingsSchema>
+
 export type CompanySettings = z.infer<typeof companySettingsSchema>;
 export type CreateUser = z.infer<typeof createUserSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
 export type PasswordChange = z.infer<typeof passwordChangeSchema>;
-export type SystemSettings = z.infer<typeof systemSettingsSchema>;
 export type AuditLogFilter = z.infer<typeof auditLogFilterSchema>;
