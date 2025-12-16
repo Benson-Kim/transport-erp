@@ -136,6 +136,14 @@ export const passwordChangeSchema = z.object({
  */
 
 
+export const pdfSettingsSchema = z.object({
+    paperSize: z.enum(['A4', 'Letter', 'Legal']),
+    includeLogo: z.boolean(),
+    logoPosition: z.enum(['left', 'center', 'right']),
+    footerText: z.string().max(200).optional(),
+});
+
+
 /**
  * Validation for number format strings
  */
@@ -199,6 +207,7 @@ export const generalSettingsSchema = z.object({
 
 // Combined system settings schema
 export const systemSettingsSchema = z.object({
+    pdf: pdfSettingsSchema,
     numberSequences: numberSequencesSchema,
     general: generalSettingsSchema,
 });
@@ -222,6 +231,12 @@ export const auditLogFilterSchema = z.object({
 });
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
+    pdf: {
+        paperSize: 'A4',
+        includeLogo: true,
+        logoPosition: 'left',
+        footerText: '',
+    },
     numberSequences: {
         serviceFormat: 'SRV-YYYY-NNNNN',
         invoiceFormat: 'INV-YYYY-NNNNN',
@@ -247,6 +262,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
 /** Type exports from schemas */
 export type SystemSettings = z.infer<typeof systemSettingsSchema>;
+export type PDFSettingsInput = z.infer<typeof pdfSettingsSchema>;
 export type NumberSequencesInput = z.infer<typeof numberSequencesSchema>;
 export type GeneralSettingsInput = z.infer<typeof generalSettingsSchema>
 

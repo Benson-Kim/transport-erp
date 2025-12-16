@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
 import type { Tab } from '@/components/ui/Tabs';
 
-import { Hash, Settings, AlertCircle, } from 'lucide-react';
+import { FileText, Hash, Settings, AlertCircle, } from 'lucide-react';
 import { DEFAULT_SYSTEM_SETTINGS, type SystemSettings, systemSettingsSchema } from '@/lib/validations/settings-schema';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,12 +13,13 @@ import {
     getSystemSettings,
     updateGeneral,
     updateNumberSequences,
+    updatePDF
 } from '@/actions/settings-actions';
 import { toast } from '@/lib/toast';
 
 import SequenceSettings from './SystemSettings/Sequence';
 import GeneralSettings from './SystemSettings/General';
-
+import PDFSettings from './SystemSettings/PDF';
 
 type SettingsSection = keyof SystemSettings;
 
@@ -44,6 +45,7 @@ export function SystemSettingsContent() {
             setError(null);
             const data = await getSystemSettings();
             const mergedData = {
+                pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...data.pdf },
                 numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...data.numberSequences },
                 general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
             };
@@ -65,6 +67,7 @@ export function SystemSettingsContent() {
             let result;
 
             const actionMap: Record<SettingsSection, () => Promise<{ success: boolean; error?: string }>> = {
+                pdf: () => updatePDF(values.pdf),
                 numberSequences: () => updateNumberSequences(values.numberSequences),
                 general: () => updateGeneral(values.general),
             };
@@ -84,10 +87,24 @@ export function SystemSettingsContent() {
         }
     }
 
-
-
     // Define tabs with their content
     const tabs: Tab[] = useMemo(() => [
+        {
+            id: 'pdf',
+            label: 'PDF',
+            icon: <FileText className="h-4 w-4" />,
+            content: (
+                <TabContent
+                    title="PDF Settings"
+                    description="Configure PDF document generation settings"
+                    section="pdf"
+                    onSave={() => handleSaveSection('pdf')}
+                    isSaving={saving === 'pdf'}
+                >
+                    <PDFSettings />
+                </TabContent>
+            ),
+        },
         {
             id: 'sequences',
             label: 'Number Sequences',

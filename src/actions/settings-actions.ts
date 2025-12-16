@@ -4,10 +4,12 @@
 import { revalidatePath } from 'next/cache';
 import {
     type CompanySettings,
+    type PDFSettingsInput,
     type NumberSequencesInput,
     type GeneralSettingsInput,
     type SystemSettings,
     companySettingsSchema,
+    pdfSettingsSchema,
     numberSequencesSchema,
     generalSettingsSchema,
     DEFAULT_SYSTEM_SETTINGS,
@@ -326,7 +328,9 @@ async function updateSetting<T>(
 export async function getSystemSettings(): Promise<SystemSettings> {
     await requirePermission('settings', 'view');
 
-    const [numberSequences, general] = await Promise.all([
+    const [pdf, numberSequences, general] = await Promise.all([
+        getSetting<PDFSettingsInput>
+            (SettingKey.PDF, DEFAULT_SYSTEM_SETTINGS.pdf),
         getSetting<NumberSequencesInput>
             (SettingKey.NUMBER_SEQUENCES, DEFAULT_SYSTEM_SETTINGS.numberSequences),
         getSetting<GeneralSettingsInput>
@@ -334,12 +338,21 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     ]);
 
     return {
+        pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
         numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...numberSequences },
         general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...general },
     };
 }
 
 
+export async function updatePDF(data: unknown): Promise<ActionResult> {
+    return updateSetting(
+        SettingKey.PDF,
+        data,
+        pdfSettingsSchema,
+        'PDF generation settings'
+    );
+}
 
 
 export async function updateNumberSequences(data: unknown): Promise<ActionResult> {
@@ -359,3 +372,4 @@ export async function updateGeneral(data: unknown): Promise<ActionResult> {
         'General application settings'
     );
 }
+
