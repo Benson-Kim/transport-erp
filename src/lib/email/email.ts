@@ -16,8 +16,15 @@ import {
   NotificationEmailTemplate,
 } from './email-templates';
 import { EmailConfig, emailConfigSchema } from '../validations/mail-schema';
-import { EmailOptions, InvoiceEmailData, LoadingOrderEmailData, NotificationEmailData, PasswordResetEmailData, VerificationEmailData, WelcomeEmailData } from '@/types/mail';
-
+import {
+  EmailOptions,
+  InvoiceEmailData,
+  LoadingOrderEmailData,
+  NotificationEmailData,
+  PasswordResetEmailData,
+  VerificationEmailData,
+  WelcomeEmailData,
+} from '@/types/mail';
 
 /**
  * Email Service Class

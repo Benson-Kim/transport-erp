@@ -49,7 +49,6 @@ export default function BackupSettings() {
 
   async function loadLastBackup() {
     try {
-
       const result = await getLastBackupTime();
       const timestamp = result?.timestamp ?? null;
       setLastBackup(timestamp);
@@ -98,12 +97,16 @@ export default function BackupSettings() {
   const nextBackup = getNextBackupTime();
 
   // Storage size estimation
-  const retentionDaysNum = Number(retentionDays) || 0
-  const estimatedSize = retentionDaysNum * (
-    frequency === 'daily' ? 1.0 : 
-    frequency === 'weekly' ? 0.14: 
-    frequency === 'monthly' ? 0.03: 
-     0);
+  const retentionDaysNum = Number(retentionDays) || 0;
+  const estimatedSize =
+    retentionDaysNum *
+    (frequency === 'daily'
+      ? 1.0
+      : frequency === 'weekly'
+        ? 0.14
+        : frequency === 'monthly'
+          ? 0.03
+          : 0);
 
   return (
     <div className="space-y-6">
@@ -299,13 +302,15 @@ export default function BackupSettings() {
               <strong>Storage Estimate:</strong> Based on your settings, you'll need approximately{' '}
               <strong>{estimatedSize.toFixed(1)} GB</strong> of storage space for {retentionDays}{' '}
               days of backups.
-               <span className="block text-xs text-neutral-600 mt-1">
-                (Calculation: {retentionDaysNum} days x {
-                    frequency === 'daily' ? '1.0 backup/day' : 
-                    frequency === 'weekly' ? '~0.14 backups/day' : 
-                    '~0.03 backups/day'
-                })
-            </span>
+              <span className="block text-xs text-neutral-600 mt-1">
+                (Calculation: {retentionDaysNum} days x{' '}
+                {frequency === 'daily'
+                  ? '1.0 backup/day'
+                  : frequency === 'weekly'
+                    ? '~0.14 backups/day'
+                    : '~0.03 backups/day'}
+                )
+              </span>
             </div>
           </Alert>
         )}

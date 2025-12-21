@@ -118,10 +118,10 @@ export default function EmailConfiguration() {
           name="email.apiKey"
           render={({ field }) => (
             <FormField
-                    label="AWS SES Credentials (JSON)"
-                    error={errors.email?.apiKey?.message ?? ''}
-                    required
-                    helperText='Format: {"accessKeyId": "AKIA...", "secretAccessKey": "...", "region": "us-east-1"}'
+              label="AWS SES Credentials (JSON)"
+              error={errors.email?.apiKey?.message ?? ''}
+              required
+              helperText='Format: {"accessKeyId": "AKIA...", "secretAccessKey": "...", "region": "us-east-1"}'
             >
               <div className="relative">
                 <Input
@@ -140,7 +140,8 @@ export default function EmailConfiguration() {
                 </button>
               </div>
               <p className="text-xs text-neutral-500 mt-1">
-                 Note: Credentials will be stored securely. Ensure your IAM user has SES send permissions.
+                Note: Credentials will be stored securely. Ensure your IAM user has SES send
+                permissions.
               </p>
             </FormField>
           )}

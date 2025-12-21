@@ -15,12 +15,10 @@ import { hashPassword } from '@/lib/auth/auth-helpers';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { createUserSchema, updateUserSchema } from '@/lib/validations/settings-schema';
 
-
 /**
  * Get all users with statistics
  */
 export const getUsers = withPermission('users', 'view', async () => {
-
   const [users, total, active, admins, recentlyActive] = await Promise.all([
     prisma.user.findMany({
       where: { deletedAt: null },
@@ -352,7 +350,6 @@ export const toggleUserStatus = withPermission('users', 'edit', async (userId: s
   return { success: true, isActive: updatedUser.isActive };
 });
 
-
 /**
  * Bulk deactivate users
  */
@@ -376,9 +373,7 @@ export async function bulkDeactivateUsers(userIds: string[]) {
     })
   );
 
-  const successCount = results.filter(r =>
-    r.status === 'fulfilled' && r.value.success
-  ).length;
+  const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
 
   await createAuditLog({
     userId: session.user.id,
@@ -388,7 +383,7 @@ export async function bulkDeactivateUsers(userIds: string[]) {
     metadata: {
       action: 'bulk_deactivate',
       userIds,
-      successCount
+      successCount,
     },
   });
 
@@ -412,7 +407,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
 
   if (usersWithServices.length > 0) {
     throw new Error(
-      `Cannot delete users with services: ${usersWithServices.map(u => u.name).join(', ')}`
+      `Cannot delete users with services: ${usersWithServices.map((u) => u.name).join(', ')}`
     );
   }
 
@@ -435,7 +430,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
     metadata: {
       action: 'bulk_delete',
       userIds,
-      count: results.count
+      count: results.count,
     },
   });
 

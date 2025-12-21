@@ -6,20 +6,20 @@ import { useEscapeKey } from '@/hooks';
 
 export type DropdownMenuItem =
   | {
-    id: string;
-    label: ReactNode;
-    icon?: ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-    danger?: boolean;
-    tooltip?: string;
-    submenu?: DropdownMenuItem[];
-    divider?: false;
-  }
+      id: string;
+      label: ReactNode;
+      icon?: ReactNode;
+      onClick?: () => void;
+      disabled?: boolean;
+      danger?: boolean;
+      tooltip?: string;
+      submenu?: DropdownMenuItem[];
+      divider?: false;
+    }
   | {
-    id: string;
-    divider: true;
-  };
+      id: string;
+      divider: true;
+    };
 
 export interface DropdownMenuProps {
   trigger: ReactNode;
@@ -34,14 +34,14 @@ export function DropdownMenu({
   items,
   align = 'left',
   position = 'bottom',
-  className
+  className,
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [submenuOpenId, setSubmenuOpenId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [menuPosition, setMenuPosition] = useState<{
     vertical: 'top' | 'bottom' | 'center';
-    horizontal?: 'left' | 'right'
+    horizontal?: 'left' | 'right';
   }>({ vertical: 'bottom' });
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -66,14 +66,14 @@ export function DropdownMenu({
         const triggerMidpoint = triggerRect.top + triggerRect.height / 2;
         const halfMenuHeight = menuHeight / 2;
 
-        if (triggerMidpoint - halfMenuHeight > 0 &&
-          triggerMidpoint + halfMenuHeight < viewportHeight) {
+        if (
+          triggerMidpoint - halfMenuHeight > 0 &&
+          triggerMidpoint + halfMenuHeight < viewportHeight
+        ) {
           vertical = 'center';
-        }
-        else if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+        } else if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
           vertical = 'top';
-        }
-        else {
+        } else {
           vertical = 'bottom';
         }
 

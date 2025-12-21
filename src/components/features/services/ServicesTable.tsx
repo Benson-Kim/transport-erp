@@ -1,5 +1,3 @@
-
-
 // components/features/services/ServicesTable.tsx
 'use client';
 
@@ -172,7 +170,9 @@ export function ServicesTable({
         <div className="flex items-center gap-1.5">
           <Truck className="h-3 w-3 text-muted-foreground" />
           <span className="text-sm">
-            {service.driverName || <span className="text-muted-foreground italic">Not assigned</span>}
+            {service.driverName || (
+              <span className="text-muted-foreground italic">Not assigned</span>
+            )}
           </span>
         </div>
       ),
@@ -181,7 +181,9 @@ export function ServicesTable({
       key: 'vehiclePlate',
       header: 'Registration',
       width: '100px',
-      accessor: (service) => <span className="text-sm font-mono">{service.vehiclePlate || '-'}</span>,
+      accessor: (service) => (
+        <span className="text-sm font-mono">{service.vehiclePlate || '-'}</span>
+      ),
     },
     {
       key: 'cost',
@@ -191,7 +193,9 @@ export function ServicesTable({
       width: '100px',
       accessor: (service) => (
         <Tooltip content="Service cost">
-          <span className="text-sm font-medium tabular-nums">{formatCurrency(service.costAmount)}</span>
+          <span className="text-sm font-medium tabular-nums">
+            {formatCurrency(service.costAmount)}
+          </span>
         </Tooltip>
       ),
     },
@@ -216,11 +220,17 @@ export function ServicesTable({
       align: 'right',
       width: '120px',
       accessor: (service) => {
-        const marginPercent = service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
+        const marginPercent =
+          service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
         return (
           <div className="flex flex-col items-end gap-0.5">
             <Amount value={service.margin} />
-            <span className={cn('text-xs tabular-nums', marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70')}>
+            <span
+              className={cn(
+                'text-xs tabular-nums',
+                marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70'
+              )}
+            >
               {formatPercentage(marginPercent)}
             </span>
           </div>
@@ -336,7 +346,12 @@ export function ServicesTable({
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               <span className="text-muted-foreground">Avg Margin:</span>
-              <span className={cn('font-semibold', stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600')}>
+              <span
+                className={cn(
+                  'font-semibold',
+                  stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                )}
+              >
                 {formatPercentage(stats.avgMarginPercent)}
               </span>
             </div>
@@ -386,7 +401,9 @@ export function ServicesTable({
             <div className="py-12">
               <Truck size={48} className="mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-center text-lg font-medium">No services found</h3>
-              <p className="text-center text-sm text-muted-foreground mt-1">Try adjusting your filters or create a new service</p>
+              <p className="text-center text-sm text-muted-foreground mt-1">
+                Try adjusting your filters or create a new service
+              </p>
               <div className="flex justify-center mt-4">
                 <Button onClick={() => router.push('/services/new')} icon={<Plus size={16} />}>
                   Create Service

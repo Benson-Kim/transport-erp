@@ -4,12 +4,21 @@
  */
 
 'use client';
-import { SelectHTMLAttributes, forwardRef, useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import {
+  SelectHTMLAttributes,
+  forwardRef,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react';
 import { ChevronDown, X, Check, Search } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { ComponentSize, Option } from '@/types/ui';
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'prefix'> {
+export interface SelectProps
+  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'prefix'> {
   options: Option[];
   size?: ComponentSize;
   error?: string;
@@ -150,7 +159,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       return (
         <div className="relative w-full ">
           <div
-            className={cn('relative flex items-center', disabled && 'opacity-60 cursor-not-allowed')}
+            className={cn(
+              'relative flex items-center',
+              disabled && 'opacity-60 cursor-not-allowed'
+            )}
           >
             {prefix && (
               <div className="absolute  left-3 flex items-center pointer-events-none">
@@ -162,8 +174,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               value={value}
               onChange={onChange}
               disabled={disabled}
-              className={cn('input', sizeClasses[size], error && 'input-error', prefix && 'pl-10', className)}
-
+              className={cn(
+                'input',
+                sizeClasses[size],
+                error && 'input-error',
+                prefix && 'pl-10',
+                className
+              )}
               aria-invalid={!!error}
               aria-describedby={error ? `${props.id}-error` : undefined}
               {...props}

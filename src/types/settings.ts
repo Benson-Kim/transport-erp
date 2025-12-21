@@ -24,17 +24,17 @@ export type TimeFormat = '24' | '12';
 
 /** Action result type */
 export interface ActionResult<T = void> {
-    success: boolean;
-    data?: T;
-    error?: string;
+  success: boolean;
+  data?: T;
+  error?: string;
 }
 
 /** Setting key enum for type safety */
 export enum SettingKey {
-    EMAIL = 'email_config',
-    PDF = 'pdf_settings',
-    BACKUP = 'backup_settings',
-    NUMBER_SEQUENCES = 'number_sequences',
-    GENERAL = 'general_settings',
-    LAST_BACKUP = 'last_backup_timestamp',
+  EMAIL = 'email_config',
+  PDF = 'pdf_settings',
+  BACKUP = 'backup_settings',
+  NUMBER_SEQUENCES = 'number_sequences',
+  GENERAL = 'general_settings',
+  LAST_BACKUP = 'last_backup_timestamp',
 }

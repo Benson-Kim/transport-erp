@@ -64,15 +64,9 @@ export default async function UsersPage() {
       <PageHeader
         title="User Management"
         description="Manage users, roles, and permissions"
-      >
+      ></PageHeader>
 
-      </PageHeader>
-
-      <UserManagement
-        users={users}
-        currentUserId={session.user.id}
-        currentUserRole={userRole}
-      />
+      <UserManagement users={users} currentUserId={session.user.id} currentUserRole={userRole} />
     </div>
   );
 }

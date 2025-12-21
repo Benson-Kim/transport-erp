@@ -7,22 +7,20 @@ import { UserRole } from '@/app/generated/prisma';
 import { auth } from '@/lib/auth';
 
 export const metadata: Metadata = {
-    title: 'System Settings',
-    description: 'Manage system configuration and preferences',
+  title: 'System Settings',
+  description: 'Manage system configuration and preferences',
 };
 
 export default async function SystemSettingsPage() {
-    const session = await auth();
-    if (!session?.user) redirect('/login');
+  const session = await auth();
+  if (!session?.user) redirect('/login');
 
-    // Check admin permission
-    if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
-        redirect('/dashboard');
-    }
+  // Check admin permission
+  if (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN) {
+    redirect('/dashboard');
+  }
 
-    const settings = await getSystemSettings();
+  const settings = await getSystemSettings();
 
-    return (
-        <SystemSettingsContent initialSettings={settings} />
-    );
+  return <SystemSettingsContent initialSettings={settings} />;
 }

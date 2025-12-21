@@ -17,8 +17,6 @@ import {
 import prisma from '@/lib/prisma/prisma';
 import { DashboardData, DashboardDateRange } from '@/types/dashboard';
 
-
-
 /**
  * Get dashboard data with caching
  */

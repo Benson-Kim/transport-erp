@@ -318,12 +318,12 @@ export function RecentServices({
   // Calculate pagination
   const paginationConfig = showPagination
     ? {
-      page: currentPage,
-      pageSize: selectedPageSize,
-      total: services.length,
-      onPageChange: setCurrentPage,
-      onPageSizeChange: setSelectedPageSize,
-    }
+        page: currentPage,
+        pageSize: selectedPageSize,
+        total: services.length,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: setSelectedPageSize,
+      }
     : undefined;
 
   // Header action
@@ -507,13 +507,13 @@ export function RecentServices({
                       ? services.length
                       : tab === 'active'
                         ? services.filter((s) =>
-                          (
-                            [
-                              ServiceStatus.CONFIRMED,
-                              ServiceStatus.IN_PROGRESS,
-                            ] as ServiceStatus[]
-                          ).includes(s.status)
-                        ).length
+                            (
+                              [
+                                ServiceStatus.CONFIRMED,
+                                ServiceStatus.IN_PROGRESS,
+                              ] as ServiceStatus[]
+                            ).includes(s.status)
+                          ).length
                         : services.filter((s) => s.status === ServiceStatus.COMPLETED).length}
                     )
                   </span>
@@ -581,22 +581,22 @@ export function RecentServices({
                 action={
                   onCreateNew
                     ? {
-                      label: 'Create Service',
-                      onClick: onCreateNew,
-                      icon: <Plus size={16} />,
-                    }
+                        label: 'Create Service',
+                        onClick: onCreateNew,
+                        icon: <Plus size={16} />,
+                      }
                     : {
-                      label: 'Refresh',
-                      onClick: handleRefresh,
-                      icon: <RefreshCw size={16} />,
-                    }
+                        label: 'Refresh',
+                        onClick: handleRefresh,
+                        icon: <RefreshCw size={16} />,
+                      }
                 }
                 secondaryAction={
                   onImport
                     ? {
-                      label: 'Import Services',
-                      onClick: onImport,
-                    }
+                        label: 'Import Services',
+                        onClick: onImport,
+                      }
                     : undefined
                 }
               />

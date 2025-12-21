@@ -53,7 +53,6 @@ import {
 import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
 import { ServicesFiltersProps } from '@/types/service';
 
-
 export function ServicesFilters({
   clients,
   suppliers,
@@ -479,8 +478,7 @@ export function ServicesFilters({
                   return {
                     id: `status-${status}`,
                     label: <ServiceStatusBadge status={enumVal} size="sm" showIcon />,
-                    onClick: () =>
-                      handleBulkAction('updateStatus', { status: enumVal }),
+                    onClick: () => handleBulkAction('updateStatus', { status: enumVal }),
                   };
                 }),
 
@@ -605,12 +603,14 @@ export function ServicesFilters({
                 }
                 items={Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => {
                   const enumVal = status as ServiceStatus;
-                  const urlValue = Object.entries(STATUS_URL_MAP).find(([, v]) => v === enumVal)?.[0];
+                  const urlValue = Object.entries(STATUS_URL_MAP).find(
+                    ([, v]) => v === enumVal
+                  )?.[0];
                   return {
                     id: status,
                     label: <ServiceStatusBadge status={enumVal} size="sm" />,
                     onClick: () => updateFilter('status', urlValue ?? ''),
-                  }
+                  };
                 })}
               />
             </div>

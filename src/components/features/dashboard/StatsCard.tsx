@@ -24,8 +24,6 @@ import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/form
 import Link from 'next/link';
 import { StatsCardsProps, StatsData } from '@/types/dashboard';
 
-
-
 export function StatsCards({
   stats,
   loading = false,
@@ -277,8 +275,6 @@ export function StatsCards({
               >
                 <card.icon className="h-24 w-24" />
               </div>
-
-
             </Card>
           </Link>
         </Tooltip>
@@ -325,9 +321,9 @@ export function MiniStats({ stats }: { stats: StatsData }) {
                 >
                   {/* {item.change >= 0 ? '↑' : '↓'} */}
                   {item.change >= 0 ? (
-                    <ArrowUp className='h-3 w-3' />
+                    <ArrowUp className="h-3 w-3" />
                   ) : (
-                    <ArrowDown className='h-3 w-3' />
+                    <ArrowDown className="h-3 w-3" />
                   )}
                 </span>
               )}

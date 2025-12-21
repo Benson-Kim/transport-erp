@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   description: 'Manage transport and logistics services',
 };
 
-
 export default async function ServicesPage({ searchParams }: ServicesPageProps) {
   // Check authentication
 
