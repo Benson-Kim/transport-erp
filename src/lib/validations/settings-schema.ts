@@ -140,7 +140,11 @@ export const emailConfigSchema = z.object({
     provider: emailProviderSchema,
     apiKey: z.string().optional(),
     host: z.string().optional(),
-    port: z.number().int().min(1).max(65535).optional(),
+    port: z.coerce.number()
+        .int()
+        .min(1)
+        .max(65535)
+        .optional(),
     user: z.string().optional(),
     password: z.string().optional(),
     secure: z.boolean().default(true).optional(),
@@ -188,7 +192,7 @@ export const backupSettingsSchema = z.object({
     frequency: z.enum(['daily', 'weekly', 'monthly', 'never']),
     time: z.string()
         .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid time format (HH:MM)'),
-    retentionDays: z.number()
+    retentionDays: z.coerce.number()
         .int()
         .min(1, 'Retention must be at least 1 day')
         .max(365, 'Retention cannot exceed 365 days'),

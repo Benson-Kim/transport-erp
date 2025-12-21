@@ -99,6 +99,8 @@ export function SystemSettingsContent() {
 
     async function handleTestEmail() {
         try {
+            setSaving('email-test');
+
             const email = methods.getValues('email.fromEmail');
             const result = await testEmailConfiguration(email);
 
@@ -109,6 +111,8 @@ export function SystemSettingsContent() {
             }
         } catch (error) {
             toast.error('Failed to send test email');
+        } finally {
+            setSaving(null)
         }
     }
 
