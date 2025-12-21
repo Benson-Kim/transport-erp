@@ -17,11 +17,10 @@ import {
     Eye,
     EyeOff
 } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
 import { toast } from '@/lib/toast';
 import { UserRole } from '@/app/generated/prisma';
 import { createUser, updateUser } from '@/actions/user-actions';
-import { Button, Card, Input, Select, FormField, Badge } from '@/components/ui';
+import { Button, Card, Input, Select, FormField, Switch } from '@/components/ui';
 import { CreateUser, createUserSchema, UpdateUser, updateUserSchema } from '@/lib/validations/settings-schema';
 
 interface UserFormProps {
@@ -38,47 +37,6 @@ interface UserFormProps {
     onCancel: () => void;
     canManageRoles?: boolean;
     currentUserRole?: UserRole;
-}
-
-/**
- * Status Toggle Component
- */
-function StatusToggle({
-    checked,
-    onChange,
-    disabled = false
-}: {
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-    disabled?: boolean;
-}) {
-    return (
-        <div className="flex items-center gap-3">
-            <button
-                type="button"
-                onClick={() => !disabled && onChange(!checked)}
-                disabled={disabled}
-                className={cn(
-                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                    checked ? 'bg-success' : 'bg-neutral-300',
-                    disabled && 'opacity-50 cursor-not-allowed'
-                )}
-                aria-checked={checked}
-                role="switch"
-            >
-                <span className="sr-only">User status</span>
-                <span
-                    className={cn(
-                        'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
-                        checked ? 'translate-x-6' : 'translate-x-1'
-                    )}
-                />
-            </button>
-            <Badge variant={checked ? 'completed' : 'cancelled'}>
-                {checked ? 'Active' : 'Inactive'}
-            </Badge>
-        </div>
-    );
 }
 
 
@@ -463,9 +421,10 @@ export function UserForm({
                 label="User Status"
                 helperText="Inactive users cannot log into the system"
             >
-                <StatusToggle
+                <Switch
+                    id="status"
                     checked={statusValue === 'active'}
-                    onChange={(checked) => setValue('status', checked ? 'active' : 'inactive', { shouldDirty: true })}
+                    onCheckedChange={(checked) => setValue('status', checked ? 'active' : 'inactive', { shouldDirty: true })}
                     disabled={isSubmitting}
                 />
             </FormField>
