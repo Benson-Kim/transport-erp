@@ -1,4 +1,4 @@
-import { FILE_RESTRICTIONS, StoragePath } from '@/lib/storage/constants';
+import type { FILE_RESTRICTIONS, StoragePath } from '@/lib/storage/constants';
 
 /**
  * File upload options

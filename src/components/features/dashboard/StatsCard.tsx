@@ -6,6 +6,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
+import Link from 'next/link';
+
 import {
   TrendingUp,
   TrendingDown,
@@ -18,11 +21,11 @@ import {
   ArrowUp,
   RefreshCw,
 } from 'lucide-react';
+
 import { Card, Tooltip, Skeleton, Button } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/formatting';
-import Link from 'next/link';
-import { StatsCardsProps, StatsData } from '@/types/dashboard';
+import type { StatsCardsProps, StatsData } from '@/types/dashboard';
 
 export function StatsCards({
   stats,

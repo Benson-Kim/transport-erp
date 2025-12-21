@@ -1,15 +1,18 @@
 // /lib/storage/b2-client.ts
+import { Agent } from 'node:http';
+import { Agent as HttpsAgent } from 'node:https';
+
 import {
   S3Client,
   // HeadBucketCommand,
   ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
+
 import { StorageConfigError } from './errors';
 import { getB2Config } from './utils';
-import { B2Config } from './schema';
-import { Agent } from 'node:http';
-import { Agent as HttpsAgent } from 'node:https';
+
+import type { B2Config } from './schema';
 
 /**
  * B2 Storage Client Singleton

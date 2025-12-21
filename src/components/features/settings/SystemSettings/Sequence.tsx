@@ -1,15 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
+
 import { Controller, useFormContext, useWatch } from 'react-hook-form';
-import type { Option } from '@/types/ui';
+
 import { FormField, Input, Select } from '@/components/ui';
-import { type SystemSettings } from '@/lib/validations/settings-schema';
 import {
   generateNumberPreview,
   parseFormatTokens,
   validateNumberFormat,
 } from '@/lib/utils/number-format';
+import { type SystemSettings } from '@/lib/validations/settings-schema';
+import type { Option } from '@/types/ui';
 
 const TEST_NUMBERS = {
   service: 42,

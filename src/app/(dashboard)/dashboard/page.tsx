@@ -4,21 +4,12 @@
  */
 
 import { Suspense } from 'react';
+
 import { redirect } from 'next/navigation';
-import { Metadata } from 'next';
+
 // import { Info, Sparkles, RefreshCw, Plus, ArrowRight } from 'lucide-react';
 
-import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
-import {
-  ErrorBoundary,
-  // PageHeader,
-  Alert,
-  // Button,
-  Card,
-  CardBody,
-  // EmptyState
-} from '@/components/ui';
 import {
   DashboardDateRange,
   DashboardSkeleton,
@@ -35,6 +26,18 @@ import {
   NewUserWelcome,
   PerformanceTip,
 } from '@/components/features/dashboard';
+import {
+  ErrorBoundary,
+  // PageHeader,
+  Alert,
+  // Button,
+  Card,
+  CardBody,
+  // EmptyState
+} from '@/components/ui';
+import { auth } from '@/lib/auth';
+
+import type { Metadata } from 'next';
 // import { formatPercentage } from '@/lib/utils/formatting';
 // import { revalidatePath } from 'next/cache';
 
@@ -227,7 +230,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     services={dashboardData.recentServices}
                     loading={false}
                     error={dataError}
-                    advanced={true}
+                    advanced
                   />
                 </Suspense>
               </ErrorBoundary>

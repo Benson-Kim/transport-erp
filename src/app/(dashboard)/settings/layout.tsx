@@ -1,14 +1,18 @@
 // /app/(dashboard)/settings/layout.tsx
-import { ReactNode, Suspense } from 'react';
+import type { ReactNode} from 'react';
+import { Suspense } from 'react';
+
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@/app/generated/prisma';
-import { auth } from '@/lib/auth';
-import { cn } from '@/lib/utils/cn';
-import { canAccessRoute } from '@/lib/permissions';
+
 import { Activity, Building2, Database, Lock, Settings, Shield, User, Users } from 'lucide-react';
+
+import { UserRole } from '@/app/generated/prisma';
 import { PageHeader } from '@/components/ui';
+import { auth } from '@/lib/auth';
+import { canAccessRoute } from '@/lib/permissions';
+import { cn } from '@/lib/utils/cn';
 
 interface NavItem {
   label: string;

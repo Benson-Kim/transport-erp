@@ -2,11 +2,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+
 import { Menu, User, LogOut, ChevronDown, Settings, HelpCircle } from 'lucide-react';
-import { Button, DropdownMenu } from '@/components/ui';
-import { useLayout } from './MainLayout';
 import { signOut } from 'next-auth/react';
-import { TopBarProps } from '@/types/nav';
+
+import { Button, DropdownMenu } from '@/components/ui';
+import type { TopBarProps } from '@/types/nav';
+
+import { useLayout } from './MainLayout';
 
 export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
   const router = useRouter();

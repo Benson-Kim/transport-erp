@@ -1,7 +1,10 @@
 // /components/features/settings/PermissionMatrix.tsx
 'use client';
 
+import { Check, X, Info } from 'lucide-react';
+
 import { UserRole } from '@/app/generated/prisma';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
   RESOURCES,
   // ACTIONS,
@@ -9,8 +12,6 @@ import {
   getRoleDisplayName,
   PERMISSION_DESCRIPTIONS,
 } from '@/lib/permissions';
-import { Check, X, Info } from 'lucide-react';
-import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/utils/cn';
 
 /**

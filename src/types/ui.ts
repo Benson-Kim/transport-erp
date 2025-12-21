@@ -3,8 +3,9 @@
  * Core types and interfaces for the component library
  */
 
-import { ReactNode, CSSProperties } from 'react';
-import { FieldError, UseFormRegisterReturn } from 'react-hook-form';
+import type { ReactNode, CSSProperties } from 'react';
+
+import type { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 
 // Component size variants
 export type ComponentSize = 'sm' | 'md' | 'lg';

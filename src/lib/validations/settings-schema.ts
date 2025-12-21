@@ -1,6 +1,8 @@
 // /lib/validations/settings-schema.ts
-import { UserRole } from '@/app/generated/prisma';
 import { z } from 'zod';
+
+import { UserRole } from '@/app/generated/prisma';
+
 import { passwordSchema } from './auth-schema';
 
 /**

@@ -1,12 +1,13 @@
 'use client';
 
 import { Controller, useFormContext } from 'react-hook-form';
+
+import { Label } from '@/components/ui';
+import { FormField } from '@/components/ui/FormField';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { FormField } from '@/components/ui/FormField';
 import { Switch } from '@/components/ui/Switch';
 import { type SystemSettings } from '@/lib/validations/settings-schema';
-import { Label } from '@/components/ui';
 
 /**
  * General settings with feature toggles

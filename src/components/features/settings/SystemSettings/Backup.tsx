@@ -1,8 +1,8 @@
 'use client';
 
-import { Controller, useFormContext } from 'react-hook-form';
 import { useState, useEffect } from 'react';
-import { Alert, FormField, Input, Label, Select, Switch, TimeInput } from '@/components/ui';
+
+import { formatDistanceToNow, format } from 'date-fns';
 import {
   Database,
   Clock,
@@ -12,11 +12,13 @@ import {
   AlertTriangle,
   HardDrive,
 } from 'lucide-react';
-import { type SystemSettings } from '@/lib/validations/settings-schema';
-import { formatDistanceToNow, format } from 'date-fns';
-import { cn } from '@/lib/utils/cn';
+import { Controller, useFormContext } from 'react-hook-form';
+
 import { getLastBackupTime } from '@/actions/settings-actions';
-import { Option } from '@/types/ui';
+import { Alert, FormField, Input, Label, Select, Switch, TimeInput } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
+import { type SystemSettings } from '@/lib/validations/settings-schema';
+import type { Option } from '@/types/ui';
 
 /**
  * Backup settings configuration section

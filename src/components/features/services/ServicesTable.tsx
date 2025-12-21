@@ -2,8 +2,10 @@
 'use client';
 
 import { useState, useCallback, useTransition, useMemo } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, ServiceStatus } from '@/app/generated/prisma';
+
+import { format, formatDistanceToNow } from 'date-fns';
 import {
   TrendingUp,
   TrendingDown,
@@ -21,17 +23,21 @@ import {
   Users,
   Building2,
 } from 'lucide-react';
+
+import { deleteService } from '@/actions/service-actions';
+import type { UserRole} from '@/app/generated/prisma';
+import { ServiceStatus } from '@/app/generated/prisma';
 import { Button, Tooltip, Card, DropdownMenu, Amount } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import { ServiceData } from '@/types/service';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { format, formatDistanceToNow } from 'date-fns';
 import { DataTable, type Column } from '@/components/ui/DataTable';
+import { hasPermission } from '@/lib/permissions';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceData } from '@/types/service';
+
 import { BulkActions } from './BulkActions';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { toast } from '@/lib/toast';
-import { deleteService } from '@/actions/service-actions';
-import { hasPermission } from '@/lib/permissions';
+
 
 interface ServicesTableProps {
   services: ServiceData[];

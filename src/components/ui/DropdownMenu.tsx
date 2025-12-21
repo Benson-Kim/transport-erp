@@ -1,8 +1,10 @@
 'use client';
-import { ReactNode, useState, useRef, useEffect } from 'react';
-import { cn } from '@/lib/utils/cn';
+import type { ReactNode} from 'react';
+import { useState, useRef, useEffect } from 'react';
+
 import { Tooltip } from '@/components/ui';
 import { useEscapeKey } from '@/hooks';
+import { cn } from '@/lib/utils/cn';
 
 export type DropdownMenuItem =
   | {
@@ -262,9 +264,7 @@ export function DropdownMenu({
               }
 
               const enabledIndex = items
-                .filter((i): i is Exclude<DropdownMenuItem, { divider: true }> => {
-                  return !('divider' in i) && !i.disabled;
-                })
+                .filter((i): i is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in i) && !i.disabled)
                 .findIndex((i) => i.id === item.id);
 
               const isFocused = enabledIndex === focusedIndex;

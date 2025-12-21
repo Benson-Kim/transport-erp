@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   RefreshCw,
@@ -17,14 +17,17 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { toast } from '@/lib/toast';
-import { UserRole } from '@/app/generated/prisma';
+import { useForm } from 'react-hook-form';
+
 import { createUser, updateUser } from '@/actions/user-actions';
+import { UserRole } from '@/app/generated/prisma';
 import { Button, Card, Input, Select, FormField, Switch } from '@/components/ui';
-import {
+import { toast } from '@/lib/toast';
+import type {
   CreateUser,
+  UpdateUser} from '@/lib/validations/settings-schema';
+import {
   createUserSchema,
-  UpdateUser,
   updateUserSchema,
 } from '@/lib/validations/settings-schema';
 
@@ -78,7 +81,7 @@ export function UserForm({
           name: user?.name ?? '',
           email: user?.email ?? '',
           role: user?.role ?? UserRole.OPERATOR,
-          status: (user?.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
+          status: (user?.isActive ? 'active' : 'inactive'),
           department: user?.department ?? undefined,
           phone: user?.phone ?? undefined,
           password: '',

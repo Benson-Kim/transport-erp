@@ -1,6 +1,9 @@
-import { DefaultSession } from 'next-auth';
 import { AdapterUser } from '@auth/core/adapters';
-import { UserRole } from '@/app/generated/prisma';
+
+import type { UserRole } from '@/app/generated/prisma';
+
+import type { DefaultSession } from 'next-auth';
+
 
 // Extend next-auth session & user
 declare module 'next-auth' {

@@ -3,8 +3,9 @@
  * Loading placeholder with shimmer animation
  */
 
+import type { ReactNode } from 'react';
+
 import { cn } from '@/lib/utils/cn';
-import { ReactNode } from 'react';
 
 export interface SkeletonProps {
   className?: string;

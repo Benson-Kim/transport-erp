@@ -7,7 +7,9 @@ export const runtime = 'nodejs';
 
 import { hash, compare } from 'bcryptjs';
 import { addHours } from 'date-fns';
+
 import { UserRole } from '@/app/generated/prisma';
+
 import prisma from '../prisma/prisma';
 
 /**
@@ -188,7 +190,7 @@ export async function resetPasswordWithToken(
       where: { token },
     });
 
-    if (!resetToken || !resetToken.identifier.startsWith('password-reset:')) {
+    if (!resetToken?.identifier.startsWith('password-reset:')) {
       return { success: false, error: 'Invalid token' };
     }
 
@@ -382,7 +384,7 @@ export async function updatePassword(
       select: { password: true },
     });
 
-    if (!user || !user.password) {
+    if (!user?.password) {
       return { success: false, error: 'User not found' };
     }
 

@@ -5,10 +5,11 @@
 
 'use client';
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
+import type { UserRole } from '@/app/generated/prisma';
 import { usePermissions } from '@/hooks/use-permissions';
-import { Resource, Action } from '@/lib/permissions';
-import { UserRole } from '@/app/generated/prisma';
+import type { Resource, Action } from '@/lib/permissions';
 
 interface PermissionGuardProps {
   children: ReactNode;

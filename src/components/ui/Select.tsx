@@ -4,18 +4,21 @@
  */
 
 'use client';
-import {
+import type {
   SelectHTMLAttributes,
+  ReactNode} from 'react';
+import {
   forwardRef,
   useState,
   useRef,
   useEffect,
-  useCallback,
-  ReactNode,
+  useCallback
 } from 'react';
+
 import { ChevronDown, X, Check, Search } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize, Option } from '@/types/ui';
+import type { ComponentSize, Option } from '@/types/ui';
 
 export interface SelectProps
   extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size' | 'prefix'> {

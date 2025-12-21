@@ -4,10 +4,13 @@
  */
 
 'use client';
-import { InputHTMLAttributes, forwardRef, useState, useCallback, ReactNode } from 'react';
+import type { InputHTMLAttributes, ReactNode } from 'react';
+import { forwardRef, useState, useCallback } from 'react';
+
 import { X, Eye, EyeOff, AlertCircle } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize, ComponentStatus, InputType } from '@/types/ui';
+import type { ComponentSize, ComponentStatus, InputType } from '@/types/ui';
 
 export interface InputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'type' | 'prefix' | 'suffix'> {

@@ -6,10 +6,13 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
+
 import { Calendar } from 'lucide-react';
-import type { Option } from '@/types/ui';
+
 import { Select } from '@/components/ui';
+import type { Option } from '@/types/ui';
 
 export function DashboardDateRange() {
   const router = useRouter();
@@ -18,7 +21,7 @@ export function DashboardDateRange() {
   const [range, setRange] = useState(searchParams.get('range') || '30d');
 
   const handleRangeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
+    const {value} = event.target;
     setRange(value);
 
     const params = new URLSearchParams(searchParams.toString());

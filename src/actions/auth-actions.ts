@@ -5,8 +5,19 @@
 
 'use server';
 
-import { signIn, signOut } from '@/lib/auth';
+import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+
 import { AuthError } from 'next-auth';
+
+import { getServerAuth ,
+  createUser,
+  generatePasswordResetToken,
+  resetPasswordWithToken,
+  updatePassword,
+  verifyEmailToken,
+, signIn, signOut } from '@/lib/auth';
+import { sendVerificationEmail } from '@/lib/email';
 import {
   loginSchema,
   registerSchema,
@@ -19,17 +30,6 @@ import {
   type ResetPasswordFormData,
   type ChangePasswordFormData,
 } from '@/lib/validations/auth-schema';
-import {
-  createUser,
-  generatePasswordResetToken,
-  resetPasswordWithToken,
-  updatePassword,
-  verifyEmailToken,
-} from '@/lib/auth';
-import { getServerAuth } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
-import { sendVerificationEmail } from '@/lib/email';
 // import prisma from '@/lib/prisma/prisma';
 
 /**

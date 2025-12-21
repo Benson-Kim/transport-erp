@@ -1,6 +1,6 @@
-import { DropdownMenuItem } from '@/components/ui/DropdownMenu';
-import { UserRole, ServiceStatus } from '@/app/generated/prisma';
-import { hasPermission } from '@/lib/permissions';
+import type { JSX } from 'react';
+import { createElement } from 'react';
+
 import {
   Edit2,
   Copy,
@@ -16,8 +16,14 @@ import {
   FileText,
   Archive,
 } from 'lucide-react';
-import { ServiceData } from '@/types/service';
-import { createElement, JSX } from 'react';
+
+import type { UserRole} from '@/app/generated/prisma';
+import { ServiceStatus } from '@/app/generated/prisma';
+import type { DropdownMenuItem } from '@/components/ui/DropdownMenu';
+import { hasPermission } from '@/lib/permissions';
+import type { ServiceData } from '@/types/service';
+
+
 import { designTokens } from './design-tokens';
 
 interface Handlers {

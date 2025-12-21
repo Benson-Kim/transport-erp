@@ -6,16 +6,18 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
 
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 
 import { signInWithCredentials } from '@/actions/auth-actions';
-import { LoginFormData, loginSchema } from '@/lib/validations/auth-schema';
 import { Button, Checkbox, FormField, Input } from '@/components/ui';
 import { toast } from '@/lib/toast';
+import type { LoginFormData} from '@/lib/validations/auth-schema';
+import { loginSchema } from '@/lib/validations/auth-schema';
 
 export function LoginForm() {
   const router = useRouter();
@@ -106,7 +108,7 @@ export function LoginForm() {
         className="w-full"
         disabled={isLoading}
         loading={isLoading}
-        loadingText={'Signing in...'}
+        loadingText="Signing in..."
       >
         Sign in
       </Button>

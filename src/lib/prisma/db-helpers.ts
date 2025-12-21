@@ -3,7 +3,8 @@
  * Common utilities for database operations
  */
 
-import { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
+import type { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
+
 import prisma from './prisma';
 
 /**
@@ -308,7 +309,7 @@ export async function generateUniqueIdentifier(
   });
 
   let nextNumber = 1;
-  if (lastRecord && lastRecord[field]) {
+  if (lastRecord?.[field]) {
     const parts = lastRecord[field].split('-');
     const currentNumber = parseInt(parts[parts.length - 1], 10);
     nextNumber = currentNumber + 1;

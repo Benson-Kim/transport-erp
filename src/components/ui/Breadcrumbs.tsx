@@ -2,11 +2,14 @@
 'use client';
 
 import { Fragment } from 'react';
-import { usePathname } from 'next/navigation';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
 import { ChevronRight, Home } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+
 import { getBreadcrumbs } from '@/components/layout';
+import { cn } from '@/lib/utils/cn';
 
 interface BreadcrumbsProps {
   className?: string;

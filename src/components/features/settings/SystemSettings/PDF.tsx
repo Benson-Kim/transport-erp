@@ -1,14 +1,15 @@
 'use client';
 
-import { Controller, useFormContext } from 'react-hook-form';
-import { Select } from '@/components/ui/Select';
-import { FormField } from '@/components/ui/FormField';
-import { Switch } from '@/components/ui/Switch';
 import { FileText, Image } from 'lucide-react';
-import { type SystemSettings } from '@/lib/validations/settings-schema';
-import { cn } from '@/lib/utils/cn';
+import { Controller, useFormContext } from 'react-hook-form';
+
 import { Label, Textarea } from '@/components/ui';
-import { Option } from '@/types/ui';
+import { FormField } from '@/components/ui/FormField';
+import { Select } from '@/components/ui/Select';
+import { Switch } from '@/components/ui/Switch';
+import { cn } from '@/lib/utils/cn';
+import { type SystemSettings } from '@/lib/validations/settings-schema';
+import type { Option } from '@/types/ui';
 
 /**
  * PDF generation settings section
@@ -32,7 +33,7 @@ export default function PDFSettings() {
   };
 
   const dimensions =
-    paperDimensions[paperSize as keyof typeof paperDimensions] || paperDimensions.A4;
+    paperDimensions[paperSize] || paperDimensions.A4;
 
   const paperSizeOptions: Option[] = [
     { value: 'A4', label: 'A4 (210 × 297 mm)' },
@@ -181,15 +182,15 @@ export default function PDFSettings() {
 
             {/* Content area */}
             <div className="p-6 space-y-3">
-              <div className="h-4 bg-neutral-100 rounded w-1/3"></div>
+              <div className="h-4 bg-neutral-100 rounded w-1/3" />
               <div className="space-y-2">
-                <div className="h-3 bg-neutral-100 rounded"></div>
-                <div className="h-3 bg-neutral-100 rounded"></div>
-                <div className="h-3 bg-neutral-100 rounded w-5/6"></div>
+                <div className="h-3 bg-neutral-100 rounded" />
+                <div className="h-3 bg-neutral-100 rounded" />
+                <div className="h-3 bg-neutral-100 rounded w-5/6" />
               </div>
               <div className="space-y-2 pt-2">
-                <div className="h-3 bg-neutral-100 rounded"></div>
-                <div className="h-3 bg-neutral-100 rounded w-4/5"></div>
+                <div className="h-3 bg-neutral-100 rounded" />
+                <div className="h-3 bg-neutral-100 rounded w-4/5" />
               </div>
             </div>
 

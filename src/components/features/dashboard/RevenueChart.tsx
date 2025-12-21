@@ -6,16 +6,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
+
 import {
   Download,
   Euro,
@@ -28,6 +19,17 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+
+import {
   Button,
   Tooltip,
   EmptyState,
@@ -36,8 +38,8 @@ import {
   CardHeader,
   CardBody,
 } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils/cn';
+import { formatCurrency } from '@/lib/utils/formatting';
 
 interface ChartData {
   month: string;
@@ -120,7 +122,7 @@ export function RevenueChart({
   }, [data]);
 
   const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       return (
         <div className="rounded-lg border border-neutral-200 bg-background p-3 shadow-md">
           <p className="font-medium text-sm mb-2">{label}</p>
@@ -173,7 +175,7 @@ export function RevenueChart({
           row.revenue,
           row.cost,
           row.margin,
-          row.revenue > 0 ? ((row.margin / row.revenue) * 100).toFixed(2) + '%' : '0%',
+          row.revenue > 0 ? `${((row.margin / row.revenue) * 100).toFixed(2)  }%` : '0%',
         ]),
       ]
         .map((row) => row.join(','))

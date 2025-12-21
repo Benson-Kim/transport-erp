@@ -3,9 +3,20 @@
  * Handles all email sending functionality with multiple provider support
  */
 
-import nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
 import { render } from '@react-email/components';
+import nodemailer from 'nodemailer';
+
+import type {
+  EmailOptions,
+  InvoiceEmailData,
+  LoadingOrderEmailData,
+  NotificationEmailData,
+  PasswordResetEmailData,
+  VerificationEmailData,
+  WelcomeEmailData,
+} from '@/types/mail';
+
+import { emailConfigSchema } from '../validations/mail-schema';
 
 import {
   VerificationEmailTemplate,
@@ -15,16 +26,9 @@ import {
   LoadingOrderEmailTemplate,
   NotificationEmailTemplate,
 } from './email-templates';
-import { EmailConfig, emailConfigSchema } from '../validations/mail-schema';
-import {
-  EmailOptions,
-  InvoiceEmailData,
-  LoadingOrderEmailData,
-  NotificationEmailData,
-  PasswordResetEmailData,
-  VerificationEmailData,
-  WelcomeEmailData,
-} from '@/types/mail';
+
+import type { EmailConfig} from '../validations/mail-schema';
+import type { Transporter } from 'nodemailer';
 
 /**
  * Email Service Class
@@ -86,7 +90,7 @@ class EmailService {
     try {
       switch (this.config.provider) {
         case 'smtp':
-          this.transporter = nodemailer.createTransport(this.config.smtp!);
+          this.transporter = nodemailer.createTransport(this.config.smtp);
           break;
 
         case 'sendgrid':
@@ -502,8 +506,7 @@ export const sendPasswordResetEmail = (email: string, token: string) => {
   });
 };
 
-export const sendWelcomeEmail = (email: string, name: string) => {
-  return emailService.sendWelcomeEmail(email, {
+export const sendWelcomeEmail = (email: string, name: string) => emailService.sendWelcomeEmail(email, {
     name,
     email,
     loginUrl: `${process.env['NEXT_PUBLIC_APP_URL']}/login`,
@@ -515,4 +518,3 @@ export const sendWelcomeEmail = (email: string, name: string) => {
       'Document management',
     ],
   });
-};

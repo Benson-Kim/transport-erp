@@ -5,12 +5,13 @@
 
 import { UserRole } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
+import type {
+  Resource,
+  Action,
+  Permission} from '@/lib/permissions';
 import {
   hasPermission,
   canAccessRoute,
-  Resource,
-  Action,
-  Permission,
   getRolePermissions,
 } from '@/lib/permissions';
 import prisma from '@/lib/prisma/prisma';

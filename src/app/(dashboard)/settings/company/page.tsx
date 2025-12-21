@@ -1,13 +1,15 @@
 // /app/(dashboard)/settings/company/page.tsx
-import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { UserRole } from '@/app/generated/prisma';
-import { hasPermission, RESOURCES, ACTIONS, canAccessRoute } from '@/lib/permissions';
-import { CompanyForm } from '@/components/features/settings/CompanyForm';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { Alert } from '@/components/ui/Alert';
+
 import { getCompanySettings } from '@/actions/settings-actions';
+import { UserRole } from '@/app/generated/prisma';
+import { CompanyForm } from '@/components/features/settings/CompanyForm';
+import { Alert } from '@/components/ui/Alert';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { auth } from '@/lib/auth';
+import { hasPermission, RESOURCES, ACTIONS, canAccessRoute } from '@/lib/permissions';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Company Settings | Transport Management System',

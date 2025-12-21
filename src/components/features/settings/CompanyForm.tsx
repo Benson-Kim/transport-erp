@@ -2,16 +2,19 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { Building2, Mail, Phone, Globe, CreditCard, Upload, X, Save } from 'lucide-react';
+
 import Image from 'next/image';
-import { companySettingsSchema, type CompanySettings } from '@/lib/validations/settings-schema';
+import { useRouter } from 'next/navigation';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Building2, Mail, Phone, Globe, CreditCard, Upload, X, Save } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+
 import { updateCompanySettings } from '@/actions/settings-actions';
 import { Button, Card, FormField, Input, Textarea } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+import { companySettingsSchema, type CompanySettings } from '@/lib/validations/settings-schema';
 
 interface CompanyFormProps {
   initialData: CompanySettings | null;

@@ -2,6 +2,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+
+import { format as formatDate } from 'date-fns';
+import z from 'zod';
+
+import { AuditAction } from '@/app/generated/prisma';
+import { getServerAuth, requireAuth } from '@/lib/auth';
+import { createAuditLog } from '@/lib/prisma/db-helpers';
+import prisma from '@/lib/prisma/prisma';
+import { requirePermission } from '@/lib/rbac';
+import { getEnv } from '@/lib/utils/export';
 import {
   type CompanySettings,
   type EmailConfigInput,
@@ -18,18 +28,8 @@ import {
   generalSettingsSchema,
   DEFAULT_SYSTEM_SETTINGS,
 } from '@/lib/validations/settings-schema';
-
-import prisma from '@/lib/prisma/prisma';
-import { createAuditLog } from '@/lib/prisma/db-helpers';
-import { requirePermission } from '@/lib/rbac';
-import { getServerAuth, requireAuth } from '@/lib/auth';
-import { AuditAction } from '@/app/generated/prisma';
-
 import type { ActionResult } from '@/types/settings';
 import { SettingKey } from '@/types/settings';
-import z from 'zod';
-import { format as formatDate } from 'date-fns';
-import { getEnv } from '@/lib/utils/export';
 
 /**
  * B2 Configuration Interface
@@ -84,7 +84,7 @@ export async function updateCompanySettings(data: CompanySettings) {
     const validated = companySettingsSchema.parse(data);
 
     let logoUrl = validated.logo;
-    if (validated.logo && validated.logo.startsWith('data:')) {
+    if (validated.logo?.startsWith('data:')) {
       // Upload logo to B2
       logoUrl = await uploadLogoToB2(validated.logo);
     }
@@ -171,7 +171,7 @@ async function uploadLogoToB2(base64Data: string): Promise<string> {
 
   // Extract mime type and data from base64
   const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
-  if (!matches || !matches[1] || !matches[2]) {
+  if (!matches?.[1] || !matches[2]) {
     throw new Error('Invalid base64 image format');
   }
 
@@ -231,7 +231,7 @@ export async function getCompanySettings() {
 
     const settings: CompanySettings = {
       companyName: company.legalName,
-      address: company.addressLine1 + (company.addressLine2 ? '\n' + company.addressLine2 : ''),
+      address: company.addressLine1 + (company.addressLine2 ? `\n${  company.addressLine2}` : ''),
       vatNumber: company.vatNumber,
       email: company.email,
       phone: company.phone,
@@ -404,7 +404,7 @@ export async function testEmailConfiguration(testEmail?: string): Promise<Action
       null as unknown as EmailConfigInput
     );
 
-    if (!emailConfig || !emailConfig.fromEmail) {
+    if (!emailConfig?.fromEmail) {
       return {
         success: false,
         error: 'Email configuration not found. Please configure email settings first.',
@@ -715,7 +715,7 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
         ContentLength: stats.size,
         Metadata: {
           'backup-timestamp': new Date().toISOString(),
-          database: database,
+          database,
           'original-size': (await fs.stat(sqlPath).catch(() => ({ size: 0 }))).size.toString(),
         },
       })
@@ -749,7 +749,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
 }
 
 /**
@@ -821,7 +821,7 @@ export async function listBackups(): Promise<ActionResult<BackupInfo[]>> {
 
       if (response.Contents) {
         for (const object of response.Contents) {
-          if (object.Key && object.Key.endsWith('.sql.gz')) {
+          if (object.Key?.endsWith('.sql.gz')) {
             const filename = object.Key.split('/').pop() || object.Key;
             const url = config.cdnUrl
               ? `${config.cdnUrl}/${object.Key}`

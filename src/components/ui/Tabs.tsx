@@ -4,7 +4,9 @@
  */
 
 'use client';
-import { ReactNode, useState, useRef } from 'react';
+import type { ReactNode} from 'react';
+import { useState, useRef } from 'react';
+
 import { cn } from '@/lib/utils/cn';
 
 export interface Tab {

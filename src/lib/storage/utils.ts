@@ -1,9 +1,16 @@
 import z from 'zod';
-import { B2Config, b2ConfigSchema } from './schema';
-import { FileInfo } from '@/types/storage';
+
+
+import type { FileInfo } from '@/types/storage';
+
 import { getEnv } from '../utils/export';
-import { STORAGE_PATHS, StoragePath } from './constants';
+
+import { STORAGE_PATHS } from './constants';
+import { b2ConfigSchema } from './schema';
 import { storageService } from './service';
+
+import type { StoragePath } from './constants';
+import type { B2Config} from './schema';
 
 /**
  * Get B2 configuration from environment

@@ -3,9 +3,11 @@
  * Wrapper component for form inputs with label, error, and helper text
  */
 
-import { ReactNode } from 'react';
-import { cn } from '@/lib/utils/cn';
+import type { ReactNode } from 'react';
+
 import { AlertCircle, Info } from 'lucide-react';
+
+import { cn } from '@/lib/utils/cn';
 
 export interface FormFieldProps {
   children: ReactNode;

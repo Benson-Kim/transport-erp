@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import { Lock, Server, Mail } from 'lucide-react';
 
-import { Option } from '@/types/ui';
-import { type EmailProvider } from '@/types/settings';
-import { type SystemSettings } from '@/lib/validations/settings-schema';
+import { Lock, Server, Mail } from 'lucide-react';
+import { Controller, useFormContext } from 'react-hook-form';
+
 import { Alert, FormField, Input, Label, Select, Switch } from '@/components/ui';
+import { type SystemSettings } from '@/lib/validations/settings-schema';
+import { type EmailProvider } from '@/types/settings';
+import type { Option } from '@/types/ui';
 
 /**
  * Email configuration section with provider-specific fields

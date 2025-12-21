@@ -1,10 +1,13 @@
 // /app/(dashboard)/settings/system/page.tsx
-import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { SystemSettingsContent } from '@/components/features/settings/SystemSettings';
+
+
 import { getSystemSettings } from '@/actions/settings-actions';
 import { UserRole } from '@/app/generated/prisma';
+import { SystemSettingsContent } from '@/components/features/settings/SystemSettings';
 import { auth } from '@/lib/auth';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'System Settings',

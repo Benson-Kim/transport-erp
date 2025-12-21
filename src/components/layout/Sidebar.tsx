@@ -1,13 +1,19 @@
 'use client';
 
-import { JSX, useState } from 'react';
+import type { JSX} from 'react';
+import { useState } from 'react';
+
 import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils/cn';
+
 import { ChevronRight, Menu } from 'lucide-react';
-import { useLayout } from './MainLayout';
+
 import { Tooltip } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
+import type { NavItem } from '@/types/nav';
+
+import { useLayout } from './MainLayout';
 import { navigation } from './navigation-config';
-import { NavItem } from '@/types/nav';
+
 
 interface SidebarProps {
   variant: 'desktop' | 'tablet';

@@ -1,12 +1,15 @@
 // /app/(dashboard)/settings/users/page.tsx
-import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+
+
 import { UserRole } from '@/app/generated/prisma';
-import { hasPermission, RESOURCES, ACTIONS } from '@/lib/permissions';
-import { PageHeader } from '@/components/ui';
-import prisma from '@/lib/prisma/prisma';
 import { UserManagement } from '@/components/features/settings/UserManagement';
+import { PageHeader } from '@/components/ui';
+import { auth } from '@/lib/auth';
+import { hasPermission, RESOURCES, ACTIONS } from '@/lib/permissions';
+import prisma from '@/lib/prisma/prisma';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'User Management | Transport Management System',
@@ -64,7 +67,7 @@ export default async function UsersPage() {
       <PageHeader
         title="User Management"
         description="Manage users, roles, and permissions"
-      ></PageHeader>
+       />
 
       <UserManagement users={users} currentUserId={session.user.id} currentUserRole={userRole} />
     </div>

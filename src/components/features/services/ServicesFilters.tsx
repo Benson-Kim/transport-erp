@@ -6,7 +6,10 @@
 'use client';
 
 import { useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
+
+import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import {
   Search,
   X,
@@ -26,6 +29,13 @@ import {
   Trash2,
   FileStack,
 } from 'lucide-react';
+
+import {
+  bulkUpdateServices,
+  bulkDeleteServices,
+  generateBulkLoadingOrders,
+} from '@/actions/service-actions';
+import type { ServiceStatus } from '@/app/generated/prisma';
 import {
   Badge,
   Button,
@@ -38,20 +48,15 @@ import {
   DropdownMenu,
   Checkbox,
 } from '@/components/ui';
-import { ServiceStatus } from '@/app/generated/prisma';
-import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { useDebounce } from '@/hooks';
-import { toast } from '@/lib/toast';
-import { exportToExcel } from '@/lib/utils/export';
-import { cn } from '@/lib/utils/cn';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import {
-  bulkUpdateServices,
-  bulkDeleteServices,
-  generateBulkLoadingOrders,
-} from '@/actions/service-actions';
 import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
-import { ServicesFiltersProps } from '@/types/service';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+import { exportToExcel } from '@/lib/utils/export';
+import type { ServicesFiltersProps } from '@/types/service';
+
+import { ServiceStatusBadge } from './ServiceStatusBadge';
+
 
 export function ServicesFilters({
   clients,
@@ -278,7 +283,7 @@ export function ServicesFilters({
     try {
       const params = new URLSearchParams();
       Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value) params.set(key, value as string);
+        if (value) params.set(key, value);
       });
 
       setExportProgress(20);

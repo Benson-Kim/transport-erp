@@ -1,7 +1,7 @@
 /**
  * Service Types
  */
-import { ServiceStatus } from '@/app/generated/prisma';
+import type { ServiceStatus } from '@/app/generated/prisma';
 
 export interface ServiceData {
   id: string;

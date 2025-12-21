@@ -2,27 +2,28 @@
  * Complete authentication setup with credentials and OAuth providers
  */
 
-import { compare } from 'bcryptjs';
-import prisma from '../prisma/prisma';
-import { UserRole } from '@/app/generated/prisma';
 
 import { PrismaAdapter } from '@auth/prisma-adapter';
-
+import { compare } from 'bcryptjs';
 import NextAuth, {
   type NextAuthConfig,
   type User as NextAuthUser,
   type Session as NextAuthSession,
 } from 'next-auth';
-import type { Adapter } from 'next-auth/adapters';
-import type { JWT as DefaultJWT } from 'next-auth/jwt';
-
-import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
+import Google from 'next-auth/providers/google';
+
+import { UserRole } from '@/app/generated/prisma';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { loginSchema } from '@/lib/validations/auth-schema';
 
 import { sendVerificationEmail, sendWelcomeEmail } from '../email';
-import { rateLimiter } from '@/lib/rate-limiter';
+import prisma from '../prisma/prisma';
+
 import { generateVerificationToken } from './auth-helpers';
-import { loginSchema } from '@/lib/validations/auth-schema';
+
+import type { Adapter } from 'next-auth/adapters';
+import type { JWT as DefaultJWT } from 'next-auth/jwt';
 
 // Local helper types to narrow token and session shapes
 type AppJWT = DefaultJWT & {
@@ -134,7 +135,7 @@ export const authConfig = {
             },
           });
 
-          if (!user || !user.password) {
+          if (!user?.password) {
             await rateLimiter.increment(validatedFields.email);
             throw new Error('Invalid email or password');
           }
@@ -277,7 +278,7 @@ export const authConfig = {
 
       if (user) {
         const u = user as AppUser;
-        t.id = (u.id as string) ?? t.id;
+        t.id = (u.id) ?? t.id;
         t.role = u.role ?? t.role;
         t.emailVerified = u.emailVerified ?? null;
         t.twoFactorEnabled = u.twoFactorEnabled ?? false;
@@ -287,7 +288,7 @@ export const authConfig = {
 
       if (trigger === 'update' && session) {
         // Avoid reassigning token, update in place
-        Object.assign(t, session as any);
+        Object.assign(t, session);
       }
 
       return t;
@@ -303,12 +304,12 @@ export const authConfig = {
         s.user.id =
           typeof t.id === 'string'
             ? t.id
-            : typeof (token as DefaultJWT).sub === 'string'
-              ? (token as DefaultJWT).sub!
+            : typeof (token).sub === 'string'
+              ? (token).sub
               : s.user.id;
 
         // Set required/custom fields
-        s.user.role = (t.role as UserRole | undefined) ?? s.user.role ?? UserRole.VIEWER;
+        s.user.role = (t.role) ?? s.user.role ?? UserRole.VIEWER;
         s.user.emailVerified = t.emailVerified ?? null;
         s.user.twoFactorEnabled = Boolean(t.twoFactorEnabled);
         s.user.department = t.department ?? null;

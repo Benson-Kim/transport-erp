@@ -2,17 +2,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
-import type { Tab } from '@/components/ui/Tabs';
 
-import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
-import {
-  DEFAULT_SYSTEM_SETTINGS,
-  type SystemSettings,
-  systemSettingsSchema,
-} from '@/lib/validations/settings-schema';
-import { FormProvider, useForm } from 'react-hook-form';
+
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
+import { FormProvider, useForm } from 'react-hook-form';
+
 import {
   getSystemSettings,
   runManualBackup,
@@ -23,13 +18,20 @@ import {
   updateNumberSequences,
   updatePDF,
 } from '@/actions/settings-actions';
+import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
+import type { Tab } from '@/components/ui/Tabs';
 import { toast } from '@/lib/toast';
+import {
+  DEFAULT_SYSTEM_SETTINGS,
+  type SystemSettings,
+  systemSettingsSchema,
+} from '@/lib/validations/settings-schema';
 
-import SequenceSettings from './SystemSettings/Sequence';
-import GeneralSettings from './SystemSettings/General';
-import PDFSettings from './SystemSettings/PDF';
 import BackupSettings from './SystemSettings/Backup';
 import EmailConfiguration from './SystemSettings/EmailConfig';
+import GeneralSettings from './SystemSettings/General';
+import PDFSettings from './SystemSettings/PDF';
+import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 

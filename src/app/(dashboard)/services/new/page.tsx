@@ -1,10 +1,13 @@
 // app/(dashboard)/services/new/page.tsx
-import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+
+
 import { getClientsAndSuppliers, getService } from '@/actions/service-actions';
-import { PageHeader } from '@/components/ui';
 import { ServiceForm } from '@/components/features/services';
+import { PageHeader } from '@/components/ui';
+import { auth } from '@/lib/auth';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'New Service | Enterprise Dashboard',

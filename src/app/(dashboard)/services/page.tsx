@@ -3,20 +3,24 @@
  * Comprehensive service management with filtering and bulk actions
  */
 import { Suspense } from 'react';
-import { Metadata } from 'next';
+
 import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+
+
 import { getServices, getClientsAndSuppliers } from '@/actions/service-actions';
-import { ServicesFilters } from '@/components/features/services/ServicesFilters';
-import { Alert, Card, CardBody, ErrorBoundary } from '@/components/ui';
 import {
   ServiceSkeleton,
   ServicesTable,
   ServicesHeader,
   ServicesMobileView,
 } from '@/components/features/services';
-import { ServicesPageProps } from '@/types/service';
+import { ServicesFilters } from '@/components/features/services/ServicesFilters';
+import { Alert, Card, CardBody, ErrorBoundary } from '@/components/ui';
+import { auth } from '@/lib/auth';
 import { STATUS_URL_MAP } from '@/lib/service-helpers';
+import type { ServicesPageProps } from '@/types/service';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Services | Enterprise Dashboard',
@@ -63,7 +67,7 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Page Header */}
-      <ServicesHeader description={'Manage transport and logistics services'} />
+      <ServicesHeader description="Manage transport and logistics services" />
 
       {/* Filters */}
       <ServicesFilters

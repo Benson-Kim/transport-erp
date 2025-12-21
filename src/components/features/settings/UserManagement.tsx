@@ -2,7 +2,10 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
+
 import { useRouter } from 'next/navigation';
+
+import { format } from 'date-fns';
 import {
   UserPlus,
   MoreVertical,
@@ -14,17 +17,15 @@ import {
   User as UserIcon,
   AlertTriangle,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
-import { UserForm } from './UserForm';
-import { PermissionMatrix } from './PermissionMatrix';
+
+
 import {
   deleteUser,
   toggleUserStatus,
   bulkDeactivateUsers,
   bulkDeleteUsers,
 } from '@/actions/user-actions';
-import { toast } from '@/lib/toast';
+import { UserRole } from '@/app/generated/prisma';
 import {
   Button,
   Badge,
@@ -35,9 +36,12 @@ import {
   DataTable,
   type Column,
 } from '@/components/ui';
-
-import { cn } from '@/lib/utils/cn';
 import { usePermissions } from '@/hooks';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+
+import { PermissionMatrix } from './PermissionMatrix';
+import { UserForm } from './UserForm';
 
 interface User {
   id: string;

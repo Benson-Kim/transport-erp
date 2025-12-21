@@ -6,16 +6,18 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { ServiceStatus } from '@/app/generated/prisma';
+
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
+
+import { ServiceStatus } from '@/app/generated/prisma';
+import prisma from '@/lib/prisma/prisma';
 import {
   calculatePercentageChange,
   calculateDateRange,
   aggregateServicesByMonth,
   aggregateRevenueByMonth,
 } from '@/lib/utils/dashboard-helpers';
-import prisma from '@/lib/prisma/prisma';
-import { DashboardData, DashboardDateRange } from '@/types/dashboard';
+import type { DashboardData, DashboardDateRange } from '@/types/dashboard';
 
 /**
  * Get dashboard data with caching

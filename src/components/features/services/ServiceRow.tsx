@@ -2,9 +2,10 @@
 'use client';
 
 import { memo } from 'react';
-import { useRouter } from 'next/navigation';
-import { UserRole, ServiceStatus } from '@/app/generated/prisma';
 
+import { useRouter } from 'next/navigation';
+
+import { format, formatDistanceToNow } from 'date-fns';
 import {
   Eye,
   Edit,
@@ -21,15 +22,18 @@ import {
   Truck,
   Calendar,
 } from 'lucide-react';
-import { Button, DropdownMenu, Tooltip, Checkbox, Amount } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import { ServiceData } from '@/types/service';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { format, formatDistanceToNow } from 'date-fns';
-import { toast } from '@/lib/toast';
+
 import { deleteService } from '@/actions/service-actions';
+import type { UserRole} from '@/app/generated/prisma';
+import { ServiceStatus } from '@/app/generated/prisma';
+import { Button, DropdownMenu, Tooltip, Checkbox, Amount } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceData } from '@/types/service';
+
+import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceRowProps {
   service: ServiceData;
@@ -45,7 +49,7 @@ interface ServiceRowProps {
   style?: React.CSSProperties;
 }
 
-export const ServiceRow = memo(function ServiceRow({
+export const ServiceRow = memo(({
   service,
   index,
   isSelected,
@@ -57,7 +61,7 @@ export const ServiceRow = memo(function ServiceRow({
   onToggleExpand,
   userRole,
   style,
-}: ServiceRowProps) {
+}: ServiceRowProps) => {
   const router = useRouter();
 
   // Permissions
