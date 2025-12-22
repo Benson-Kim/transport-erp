@@ -18,7 +18,6 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 
-
 import {
   deleteUser,
   toggleUserStatus,
@@ -145,7 +144,7 @@ function ConfirmationDialog({
       <Modal.Body>
         {variant === 'danger' && (
           <div className="flex items-start gap-3 mb-4">
-            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center">
               <AlertTriangle className="h-5 w-5 text-danger" />
             </div>
             <div className="flex-1">

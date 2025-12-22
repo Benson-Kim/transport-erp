@@ -1,5 +1,9 @@
-// components/layout/Breadcrumbs.tsx
 'use client';
+
+/**
+ * Breadcrumbs Component
+ * Navigation trail showing current location in app hierarchy
+ */
 
 import { Fragment } from 'react';
 
@@ -8,7 +12,7 @@ import { usePathname } from 'next/navigation';
 
 import { ChevronRight, Home } from 'lucide-react';
 
-import { getBreadcrumbs } from '@/components/layout';
+import { getBreadcrumbs } from '@/components/layout/breadcrumbs-utils';
 import { cn } from '@/lib/utils/cn';
 
 interface BreadcrumbsProps {
@@ -20,7 +24,6 @@ export function Breadcrumbs({ className, showHome = true }: BreadcrumbsProps) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
 
-  // Don't show breadcrumbs on home page
   if (pathname === '/' || pathname === '/dashboard') {
     return null;
   }
@@ -30,12 +33,13 @@ export function Breadcrumbs({ className, showHome = true }: BreadcrumbsProps) {
       {showHome && (
         <>
           <Link
-            href="/"
-            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+            href="/dashboard"
+            className="flex items-center text-neutral-500 hover:text-neutral-700 transition-colors"
+            aria-label="Home"
           >
-            <Home className="h-4 w-4" />
+            <Home className="h-4 w-4" aria-hidden="true" />
           </Link>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
         </>
       )}
 
@@ -44,14 +48,16 @@ export function Breadcrumbs({ className, showHome = true }: BreadcrumbsProps) {
 
         return (
           <Fragment key={crumb.href}>
-            {index > 0 && !showHome && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            {index > 0 && <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />}
 
             {isLast ? (
-              <span className="font-medium text-foreground">{crumb.label}</span>
+              <span className="font-medium text-neutral-900" aria-current="page">
+                {crumb.label}
+              </span>
             ) : (
               <Link
                 href={crumb.href}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="text-neutral-500 hover:text-neutral-700 transition-colors"
               >
                 {crumb.label}
               </Link>

@@ -159,7 +159,7 @@ export function ServiceTimeline({ serviceId }: ServiceTimelineProps) {
                   {/* Icon */}
                   <div
                     className={cn(
-                      'flex-shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center',
+                      'shrink-0 w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center',
                       color === 'text-green-600' && 'border-green-200',
                       color === 'text-blue-600' && 'border-blue-200',
                       color === 'text-red-600' && 'border-red-200',

@@ -118,7 +118,7 @@ export function CompanyForm({ initialData, canEdit }: CompanyFormProps) {
         />
         <Card.Body>
           <div className="flex items-start gap-6">
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               {logoPreview ? (
                 <div className="relative group">
                   <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-neutral-200">

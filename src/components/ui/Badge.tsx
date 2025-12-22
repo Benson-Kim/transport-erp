@@ -51,7 +51,7 @@ export function Badge({
           <span className="relative inline-flex rounded-full h-2 w-2 bg-current" />
         </span>
       )}
-      {icon && <span className="flex-shrink-0">{icon}</span>}
+      {icon && <span className="shrink-0">{icon}</span>}
       <span>{children}</span>
     </span>
   );

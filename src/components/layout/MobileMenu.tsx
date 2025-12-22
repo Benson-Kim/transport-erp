@@ -12,7 +12,6 @@ import type { NavItem } from '@/types/nav';
 
 import { navigation } from './navigation-config';
 
-
 interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -51,7 +50,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
           }}
           className={cn('nav-item w-full', active && 'nav-item-active', depth > 0 && 'ps-9')}
         >
-          <Icon className="icon-sm flex-shrink-0" />
+          <Icon className="icon-sm shrink-0" />
           <span className="flex-1 text-left font-medium">{item.label}</span>
           {item.badge !== undefined && <span className="badge badge-active">{item.badge}</span>}
         </button>

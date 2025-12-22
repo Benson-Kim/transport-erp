@@ -3,7 +3,7 @@
  * Inline alert messages with variants
  */
 
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { isValidElement, createElement } from 'react';
 
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
@@ -94,7 +94,7 @@ export function Alert({
   return (
     <div role="alert" className={cn('rounded-lg p-4', styles.container, className)}>
       <div className="flex">
-        <div className="flex-shrink-0">{iconElement}</div>
+        <div className="shrink-0">{iconElement}</div>
 
         <div className="ml-3 flex-1">
           {title && <h3 className={cn('text-sm font-medium', styles.title)}>{title}</h3>}

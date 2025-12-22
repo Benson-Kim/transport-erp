@@ -1,5 +1,5 @@
 // /app/(dashboard)/settings/layout.tsx
-import type { ReactNode} from 'react';
+import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 
 import { headers } from 'next/headers';
@@ -123,7 +123,7 @@ const SettingsNavItem = ({
       )}
       title={description}
     >
-      <Icon className="icon-sm flex-shrink-0" aria-hidden="true" />
+      <Icon className="icon-sm shrink-0" aria-hidden="true" />
       <span className="font-medium flex-1">{label}</span>
       {badge && <span className="badge badge-active text-xs ml-auto">{badge}</span>}
     </Link>
@@ -137,7 +137,7 @@ const SettingsSidebar = ({ userRole, pathname }: { userRole: UserRole; pathname:
   const accessibleNavItems = navItems.filter((item) => item.roles.includes(userRole));
 
   return (
-    <aside className="w-full md:w-64 md:flex-shrink-0">
+    <aside className="w-full md:w-64 md:shrink-0">
       <nav className="flex flex-col space-y-2 p-4 md:p-0">
         {accessibleNavItems.map((item) => (
           <SettingsNavItem key={item.href} {...item} pathname={pathname} />

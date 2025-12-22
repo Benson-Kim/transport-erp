@@ -1,6 +1,6 @@
 'use client';
 
-import type { JSX} from 'react';
+import type { JSX } from 'react';
 import { useState } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -13,7 +13,6 @@ import type { NavItem } from '@/types/nav';
 
 import { useLayout } from './MainLayout';
 import { navigation } from './navigation-config';
-
 
 interface SidebarProps {
   variant: 'desktop' | 'tablet';
@@ -59,10 +58,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Sideb
         className={base}
       >
         <Icon
-          className={cn(
-            'icon-sm)] flex-shrink-0',
-            collapsed && variant === 'tablet' && 'icon-md)]'
-          )}
+          className={cn('icon-sm)] shrink-0', collapsed && variant === 'tablet' && 'icon-md)]')}
         />
         {(!collapsed || variant === 'desktop') && (
           <>

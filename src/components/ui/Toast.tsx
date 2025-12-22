@@ -89,7 +89,7 @@ export function Toast({
       )}
     >
       <div className="flex items-start gap-3 p-4">
-        <Icon className={cn('h-5 w-5 flex-shrink-0 mt-0.5', iconColor)} />
+        <Icon className={cn('h-5 w-5 shrink-0 mt-0.5', iconColor)} />
 
         <div className="flex-1">
           <h4 className="text-sm font-medium text-neutral-900">{title}</h4>
@@ -106,7 +106,7 @@ export function Toast({
 
         <button
           onClick={handleClose}
-          className="flex-shrink-0 rounded-lg p-1 hover:bg-neutral-100 transition-colors"
+          className="shrink-0 rounded-lg p-1 hover:bg-neutral-100 transition-colors"
           aria-label="Close notification"
         >
           <X size={16} className="text-neutral-500" />
