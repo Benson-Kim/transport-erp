@@ -6,7 +6,6 @@ import nextTs from "eslint-config-next/typescript";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
-import jsxA11y from "eslint-plugin-jsx-a11y";
 import importPlugin from "eslint-plugin-import";
 import eslintConfigPrettier from "eslint-config-prettier";
 import globals from "globals";
@@ -24,18 +23,21 @@ export default defineConfig([
   ...tseslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
 
-  // Ignores (override defaults)
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  // Global ignores
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    "eslint.config.mjs",
+    "postcss.config.mjs",
+  ]),
 
-  // Project rules
+  // TypeScript files
   {
-    name: "project:base",
-    files: ["**/*.{ts,tsx,js,jsx}"],
+    name: "project:ts",
+    files: ["**/*.{ts,tsx}"],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "module",
-      ecmaFeatures: { jsx: true },
-      // Using TS parser globally (matches your JSON config)
       parser: tseslint.parser,
       parserOptions: {
         project: ["./tsconfig.json"],
@@ -50,7 +52,6 @@ export default defineConfig([
       "@typescript-eslint": tseslint.plugin,
       react,
       "react-hooks": reactHooks,
-      "jsx-a11y": jsxA11y,
       import: importPlugin,
     },
     settings: {
@@ -98,7 +99,7 @@ export default defineConfig([
       "react/jsx-boolean-value": ["error", "never"],
       "react/jsx-curly-brace-presence": ["error", "never"],
 
-      // React Hooks rules
+      // React Hooks
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 
@@ -131,7 +132,7 @@ export default defineConfig([
       "import/no-cycle": "warn",
       "import/no-default-export": "off",
 
-      // Accessibility rules
+      // Accessibility
       "jsx-a11y/alt-text": "error",
       "jsx-a11y/anchor-is-valid": "error",
       "jsx-a11y/aria-props": "error",
@@ -139,7 +140,7 @@ export default defineConfig([
       "jsx-a11y/aria-role": "error",
       "jsx-a11y/role-has-required-aria-props": "error",
 
-      // General rules
+      // General
       "no-console": ["warn", { allow: ["warn", "error"] }],
       "no-debugger": "error",
       "no-alert": "error",
@@ -165,11 +166,24 @@ export default defineConfig([
     },
   },
 
-  // JS/JSX-only override
+  // JavaScript / JSX files
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx,mjs,cjs}"],
+    languageOptions: {
+      parser: "espree",
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+    plugins: {
+      react,
+      "react-hooks": reactHooks,
+      import: importPlugin,
+    },
     rules: {
       "@typescript-eslint/no-var-requires": "off",
+      "react/react-in-jsx-scope": "off",
     },
   },
 
@@ -184,5 +198,6 @@ export default defineConfig([
     },
   },
 
+  // Prettier
   eslintConfigPrettier,
 ]);

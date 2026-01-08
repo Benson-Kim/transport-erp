@@ -5,8 +5,10 @@
 
 'use client';
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
+
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+
 import { cn } from '@/lib/utils/cn';
 
 export interface ToastProps {

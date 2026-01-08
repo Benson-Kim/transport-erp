@@ -6,14 +6,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { requireAuth } from '@/lib/auth';
-import { requirePermission } from '@/lib/rbac';
-import { ServiceStatus, DocumentType, Prisma } from '@/app/generated/prisma';
 
-import { ServiceFormData, serviceSchema } from '@/lib/validations/service-schema';
-import prisma from '@/lib/prisma/prisma';
+import type { Prisma } from '@/app/generated/prisma';
+import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
+import { requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
-import { ServiceFiltersAPI } from '@/types/service';
+import prisma from '@/lib/prisma/prisma';
+import { requirePermission } from '@/lib/rbac';
+import type { ServiceFormData} from '@/lib/validations/service-schema';
+import { serviceSchema } from '@/lib/validations/service-schema';
+import type { ServiceFiltersAPI } from '@/types/service';
 
 /**
  * Get a single service by ID
@@ -300,8 +302,8 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
   const costVatRate = validatedData.costVatRate ?? 21;
   const saleVatRate = validatedData.saleVatRate ?? 21;
 
-  let costAmount = validatedData.costAmount;
-  let saleAmount = validatedData.saleAmount;
+  let {costAmount} = validatedData;
+  let {saleAmount} = validatedData;
   let margin = saleAmount - costAmount;
   let marginPercentage = saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
   let saleVatAmount = saleAmount * (saleVatRate / 100);
@@ -503,8 +505,8 @@ export async function getServiceActivity(
         // Parse changes from old/new values
         if (activity.oldValues && activity.newValues) {
           const changes = [];
-          const oldVals = activity.oldValues as any;
-          const newVals = activity.newValues as any;
+          const oldVals = activity.oldValues;
+          const newVals = activity.newValues;
 
           // Check common fields for changes
           const fieldsToCheck = ['costAmount', 'saleAmount', 'status', 'origin', 'destination'];

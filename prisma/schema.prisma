@@ -15,9 +15,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// =============================================
 // ENUMS
-// =============================================
 
 enum UserRole {
   SUPER_ADMIN
@@ -80,9 +78,7 @@ enum DocumentType {
   OTHER
 }
 
-// =============================================
 // AUTHENTICATION MODELS (NextAuth.js v5)
-// =============================================
 
 model Account {
   id                String  @id @default(cuid())
@@ -126,9 +122,7 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// =============================================
 // CORE BUSINESS MODELS
-// =============================================
 
 model User {
   id            String    @id @default(cuid())
@@ -664,9 +658,7 @@ model Document {
   @@map("documents")
 }
 
-// =============================================
 // SYSTEM MODELS
-// =============================================
 
 model AuditLog {
   id        String      @id @default(cuid())

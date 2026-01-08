@@ -3,12 +3,15 @@
  * User authentication page with credentials and OAuth options
  */
 
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getServerAuth } from '@/lib/auth';
-import { Logo } from '@/components/ui/Logo';
+
+
 import { LoginForm, OAuthButtons } from '@/components/features/auth';
+import { Logo } from '@/components/ui/Logo';
+import { getServerAuth } from '@/lib/auth';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Sign In | Enterprise Dashboard',

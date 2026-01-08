@@ -4,9 +4,11 @@
  */
 
 'use client';
-import { TextareaHTMLAttributes, forwardRef, useEffect, useRef } from 'react';
+import type { TextareaHTMLAttributes} from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize } from '@/types/ui';
+import type { ComponentSize } from '@/types/ui';
 
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   size?: ComponentSize;
@@ -49,7 +51,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 
       const textarea = internalRef.current;
       textarea.style.height = 'auto';
-      const scrollHeight = textarea.scrollHeight;
+      const {scrollHeight} = textarea;
       const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
       const maxHeight = lineHeight * maxRows;
 

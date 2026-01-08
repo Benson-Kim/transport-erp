@@ -1,5 +1,6 @@
 // components/features/services/ServiceFormSection.tsx
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
 import { Card, CardBody } from '@/components/ui';
 
 interface ServiceFormSectionProps {

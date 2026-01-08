@@ -1,8 +1,10 @@
 'use client';
-import { ReactNode, useState, useRef, useEffect } from 'react';
-import { cn } from '@/lib/utils/cn';
+import type { ReactNode} from 'react';
+import { useState, useRef, useEffect } from 'react';
+
 import { Tooltip } from '@/components/ui';
 import { useEscapeKey } from '@/hooks';
+import { cn } from '@/lib/utils/cn';
 
 export type DropdownMenuItem =
   | {
@@ -25,17 +27,97 @@ export interface DropdownMenuProps {
   trigger: ReactNode;
   items: DropdownMenuItem[];
   align?: 'left' | 'right';
+  position?: 'bottom' | 'left' | 'right';
   className?: string;
 }
 
-export function DropdownMenu({ trigger, items, align = 'left', className }: DropdownMenuProps) {
+export function DropdownMenu({
+  trigger,
+  items,
+  align = 'left',
+  position = 'bottom',
+  className,
+}: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [submenuOpenId, setSubmenuOpenId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [menuPosition, setMenuPosition] = useState<{
+    vertical: 'top' | 'bottom' | 'center';
+    horizontal?: 'left' | 'right';
+  }>({ vertical: 'bottom' });
+
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Close on Escape key
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current || !menuRef.current) return;
+
+    const calculatePosition = () => {
+      const triggerRect = triggerRef.current!.getBoundingClientRect();
+      const menuRect = menuRef.current!.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      let vertical: 'top' | 'bottom' | 'center' = 'bottom';
+      let horizontal: 'left' | 'right' = 'left';
+
+      if (position === 'left' || position === 'right') {
+        const spaceAbove = triggerRect.top;
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const menuHeight = menuRect.height;
+        const triggerMidpoint = triggerRect.top + triggerRect.height / 2;
+        const halfMenuHeight = menuHeight / 2;
+
+        if (
+          triggerMidpoint - halfMenuHeight > 0 &&
+          triggerMidpoint + halfMenuHeight < viewportHeight
+        ) {
+          vertical = 'center';
+        } else if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
+          vertical = 'top';
+        } else {
+          vertical = 'bottom';
+        }
+
+        if (position === 'left') {
+          const spaceLeft = triggerRect.left;
+          if (spaceLeft < menuRect.width) {
+            horizontal = 'right';
+          } else {
+            horizontal = 'left';
+          }
+        } else {
+          const spaceRight = viewportWidth - triggerRect.right;
+          if (spaceRight < menuRect.width) {
+            horizontal = 'left';
+          } else {
+            horizontal = 'right';
+          }
+        }
+      } else {
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
+
+        if (spaceBelow < menuRect.height && spaceAbove > spaceBelow) {
+          vertical = 'top';
+        }
+      }
+
+      setMenuPosition({ vertical, horizontal });
+    };
+
+    calculatePosition();
+
+    const handleRecalculate = () => calculatePosition();
+    window.addEventListener('scroll', handleRecalculate, true);
+    window.addEventListener('resize', handleRecalculate);
+
+    return () => {
+      window.removeEventListener('scroll', handleRecalculate, true);
+      window.removeEventListener('resize', handleRecalculate);
+    };
+  }, [isOpen, position]);
+
   useEscapeKey(() => {
     if (isOpen) {
       setIsOpen(false);
@@ -43,7 +125,6 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
     }
   });
 
-  // Close when clicking outside
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -60,9 +141,7 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // const enabledItems = items.filter(i => !i.disabled && !i.divider);
     const enabledItems = items.filter(
       (i): i is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in i) && !i.disabled
     );
@@ -114,6 +193,40 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
     }
   };
 
+  const getPositionClasses = () => {
+    const classes: string[] = ['absolute z-50'];
+
+    if (position === 'left' || position === 'right') {
+      if (menuPosition.horizontal === 'left') {
+        classes.push('right-full mr-2');
+      } else {
+        classes.push('left-full ml-2');
+      }
+
+      if (menuPosition.vertical === 'center') {
+        classes.push('top-1/2 -translate-y-1/2');
+      } else if (menuPosition.vertical === 'top') {
+        classes.push('bottom-0');
+      } else {
+        classes.push('top-0');
+      }
+    } else {
+      if (menuPosition.vertical === 'top') {
+        classes.push('bottom-full mb-2');
+      } else {
+        classes.push('mt-2');
+      }
+
+      if (align === 'right') {
+        classes.push('right-0');
+      } else {
+        classes.push('left-0');
+      }
+    }
+
+    return classes.join(' ');
+  };
+
   return (
     <div className="relative inline-block text-left">
       <button
@@ -137,10 +250,10 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
           tabIndex={-1}
           onKeyDown={handleKeyDown}
           className={cn(
-            'absolute z-50 mt-2 min-w-[200px] origin-top-right',
-            'bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5',
-            'animate-in slide-in-from-top-2 duration-200',
-            align === 'right' ? 'right-0' : 'left-0',
+            getPositionClasses(),
+            'min-w-[200px] origin-center',
+            'bg-white rounded-md shadow-lg',
+            'animate-in fade-in-0 zoom-in-95 duration-100',
             className
           )}
         >
@@ -151,9 +264,7 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
               }
 
               const enabledIndex = items
-                .filter((i): i is Exclude<DropdownMenuItem, { divider: true }> => {
-                  return !('divider' in i) && !i.disabled;
-                })
+                .filter((i): i is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in i) && !i.disabled)
                 .findIndex((i) => i.id === item.id);
 
               const isFocused = enabledIndex === focusedIndex;
@@ -218,7 +329,7 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
                       role="menu"
                       className={cn(
                         'absolute top-0 left-full ml-1 min-w-[180px]',
-                        'bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5',
+                        'bg-white rounded-md shadow-lg',
                         'animate-in fade-in duration-150'
                       )}
                     >

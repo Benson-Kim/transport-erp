@@ -6,9 +6,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+
 import Link from 'next/link';
-import { UserRole } from '@/app/generated/prisma';
-import { Button, Card, CardBody, CardHeader, Tooltip, EmptyState, Badge } from '@/components/ui';
+
 import {
   Plus,
   FileText,
@@ -31,6 +31,9 @@ import {
   ChevronRight,
   Loader2,
 } from 'lucide-react';
+
+import type { UserRole } from '@/app/generated/prisma';
+import { Button, Card, CardBody, CardHeader, Tooltip, EmptyState, Badge } from '@/components/ui';
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils/cn';
 

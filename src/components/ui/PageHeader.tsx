@@ -6,6 +6,7 @@
 'use client';
 
 import * as React from 'react';
+
 import { cn } from '@/lib/utils/cn';
 
 interface PageHeaderProps {
@@ -24,7 +25,7 @@ export function PageHeader({ title, description, children, className }: PageHead
       )}
     >
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
           {title}
         </h1>
         {description && <p className="text-neutral-500 dark:text-neutral-400">{description}</p>}

@@ -5,24 +5,27 @@
 
 'use client';
 
-import { useSession } from 'next-auth/react';
 import { useMemo, useCallback } from 'react';
+
+import { useSession } from 'next-auth/react';
+
+import { UserRole } from '@/app/generated/prisma';
+import type {
+  Resource,
+  Action,
+  Permission} from '@/lib/permissions';
 import {
   hasPermission,
   canAccessRoute,
-  getRolePermissions,
-  Resource,
-  Action,
-  Permission,
+  getRolePermissions
 } from '@/lib/permissions';
-import { UserRole } from '@/app/generated/prisma';
 
 /**
  * Hook for checking permissions
  */
 export function usePermissions() {
   const { data: session, status } = useSession();
-  const userRole = session?.user?.role as UserRole | undefined;
+  const userRole = session?.user?.role;
 
   /**
    * Check if user has a specific permission
@@ -39,9 +42,7 @@ export function usePermissions() {
    * Check if user cannot perform an action
    */
   const cannot = useCallback(
-    (resource: Resource, action: Action): boolean => {
-      return !can(resource, action);
-    },
+    (resource: Resource, action: Action): boolean => !can(resource, action),
     [can]
   );
 
@@ -60,9 +61,7 @@ export function usePermissions() {
    * Check multiple permissions at once
    */
   const canAny = useCallback(
-    (checks: Array<{ resource: Resource; action: Action }>): boolean => {
-      return checks.some(({ resource, action }) => can(resource, action));
-    },
+    (checks: Array<{ resource: Resource; action: Action }>): boolean => checks.some(({ resource, action }) => can(resource, action)),
     [can]
   );
 
@@ -70,9 +69,7 @@ export function usePermissions() {
    * Check if user has all permissions
    */
   const canAll = useCallback(
-    (checks: Array<{ resource: Resource; action: Action }>): boolean => {
-      return checks.every(({ resource, action }) => can(resource, action));
-    },
+    (checks: Array<{ resource: Resource; action: Action }>): boolean => checks.every(({ resource, action }) => can(resource, action)),
     [can]
   );
 
@@ -93,9 +90,7 @@ export function usePermissions() {
    * Check if user has a specific role
    */
   const hasRole = useCallback(
-    (role: UserRole): boolean => {
-      return userRole === role;
-    },
+    (role: UserRole): boolean => userRole === role,
     [userRole]
   );
 
@@ -113,16 +108,12 @@ export function usePermissions() {
   /**
    * Check if user is admin (SUPER_ADMIN or ADMIN)
    */
-  const isAdmin = useMemo(() => {
-    return hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
-  }, [hasAnyRole]);
+  const isAdmin = useMemo(() => hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]), [hasAnyRole]);
 
   /**
    * Check if user is manager or above
    */
-  const isManager = useMemo(() => {
-    return hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]);
-  }, [hasAnyRole]);
+  const isManager = useMemo(() => hasAnyRole([UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]), [hasAnyRole]);
 
   return {
     // Permission checks

@@ -2,13 +2,14 @@
 'use client';
 
 import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
+import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
+
+import type { UserRole , ServiceStatus } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 // import { RelatedDocuments } from './RelatedDocuments';
-import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
-import { ServiceStatus } from '@/app/generated/prisma';
+
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {

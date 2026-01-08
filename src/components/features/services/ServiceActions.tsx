@@ -1,9 +1,13 @@
 // components/features/services/ServiceActions.tsx
 'use client';
 
-import { useState, ReactElement, cloneElement, useEffect } from 'react';
+import type { ReactElement} from 'react';
+import { useState, cloneElement, useEffect } from 'react';
+
 import { useRouter } from 'next/navigation';
-import { Button, Input, Alert, Spinner, Modal } from '@/components/ui';
+
+import { AlertCircle } from 'lucide-react';
+
 import {
   markServiceComplete,
   deleteService,
@@ -11,8 +15,9 @@ import {
   //   archiveService,
   //   sendServiceEmail,
 } from '@/actions/service-actions';
+import { Button, Input, Alert, Spinner, Modal } from '@/components/ui';
 import { toast } from '@/lib/toast';
-import { AlertCircle } from 'lucide-react';
+
 
 interface ServiceActionsProps {
   service: any;

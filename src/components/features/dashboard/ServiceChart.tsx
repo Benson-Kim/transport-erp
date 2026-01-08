@@ -6,24 +6,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Tooltip,
-  EmptyState,
-  ErrorState,
-} from '@/components/ui';
 
 import {
   Download,
@@ -36,8 +18,27 @@ import {
   Activity,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { formatNumber } from '@/lib/utils/formatting';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Tooltip,
+  EmptyState,
+  ErrorState,
+} from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/formatting';
 
 interface ChartData {
   month: string;
@@ -142,8 +143,8 @@ export function ServicesChart({
   }, [data]);
 
   const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const total = payload[0].payload.total;
+    if (active && payload?.length) {
+      const {total} = payload[0].payload;
       const completionRate =
         total > 0 ? ((payload[0].payload.completed / total) * 100).toFixed(1) : '0';
 
@@ -472,7 +473,7 @@ export function ServicesChart({
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             onMouseMove={(e: any) => {
-              if (e && e.activeLabel) {
+              if (e?.activeLabel) {
                 setHoveredBar(e.activeLabel);
               }
             }}

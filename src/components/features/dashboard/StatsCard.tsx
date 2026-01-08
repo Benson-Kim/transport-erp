@@ -6,6 +6,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+
+import Link from 'next/link';
+
 import {
   TrendingUp,
   TrendingDown,
@@ -14,38 +17,15 @@ import {
   Euro,
   Percent,
   ArrowUpRight,
+  ArrowDown,
+  ArrowUp,
   RefreshCw,
 } from 'lucide-react';
+
 import { Card, Tooltip, Skeleton, Button } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/formatting';
-import Link from 'next/link';
-// import { useRouter } from 'next/navigation';
-
-interface StatsData {
-  activeServices: number;
-  activeServicesChange: number;
-  completedServices: number;
-  completedServicesChange: number;
-  totalRevenue: number;
-  totalRevenueChange: number;
-  averageMargin: number;
-  averageMarginAmount: number;
-  averageMarginChange: number;
-  totalServices: number;
-  period?: {
-    start: string;
-    end: string;
-  };
-}
-
-interface StatsCardsProps {
-  stats: StatsData;
-  loading?: boolean;
-  error?: Error | null;
-  onRefresh?: () => void;
-  compact?: boolean;
-}
+import type { StatsCardsProps, StatsData } from '@/types/dashboard';
 
 export function StatsCards({
   stats,
@@ -73,7 +53,7 @@ export function StatsCards({
           description: 'Services currently in progress or confirmed',
           details: [
             `${stats.activeServices} services active`,
-            `${stats.activeServicesChange >= 0 ? '+' : ''}${stats.activeServicesChange}% from last period`,
+            `${stats.activeServicesChange >= 0 ? '+' : ''}${formatPercentage(stats.activeServicesChange)} from last period`,
           ],
         },
       },
@@ -282,7 +262,7 @@ export function StatsCards({
                       ) : (
                         <TrendingDown className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
                       )}
-                      <span className="font-medium">{Math.abs(card.change)}%</span>
+                      <span className="font-medium">{formatPercentage(Math.abs(card.change))}</span>
                     </div>
                     <span className="text-muted-foreground">vs last period</span>
                   </div>
@@ -292,7 +272,7 @@ export function StatsCards({
               {/* Background Pattern */}
               <div
                 className={cn(
-                  'absolute -bottom-2 -right-2 opacity-5 group-hover:opacity-10 transition-opacity',
+                  'absolute inset-0 flex items-center justify-center opacity-5 group-hover:opacity-10 transition-opacity',
                   card.iconColor.replace('text-', 'text-')
                 )}
               >
@@ -342,7 +322,12 @@ export function MiniStats({ stats }: { stats: StatsData }) {
                 <span
                   className={cn('text-xs', item.change >= 0 ? 'text-green-600' : 'text-red-600')}
                 >
-                  {item.change >= 0 ? '↑' : '↓'}
+                  {/* {item.change >= 0 ? '↑' : '↓'} */}
+                  {item.change >= 0 ? (
+                    <ArrowUp className="h-3 w-3" />
+                  ) : (
+                    <ArrowDown className="h-3 w-3" />
+                  )}
                 </span>
               )}
             </div>

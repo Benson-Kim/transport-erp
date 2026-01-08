@@ -61,8 +61,7 @@ export function filterBySearch<T>(data: T[], query: string, fields?: (keyof T)[]
 
 // Apply multiple filters
 export function applyFilters<T>(data: T[], filters: Partial<Record<keyof T, any>>): T[] {
-  return data.filter((item) => {
-    return Object.entries(filters).every(([key, value]) => {
+  return data.filter((item) => Object.entries(filters).every(([key, value]) => {
       if (value === undefined || value === '') return true;
 
       const itemValue = item[key as keyof T];
@@ -80,8 +79,7 @@ export function applyFilters<T>(data: T[], filters: Partial<Record<keyof T, any>
 
       // Exact match
       return itemValue === value;
-    });
-  });
+    }));
 }
 
 // Paginate data

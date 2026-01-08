@@ -3,6 +3,9 @@
  * Populates the database with sample data for development and testing
  */
 
+import { hash } from 'bcryptjs';
+import { addDays, subDays } from 'date-fns';
+
 import {
   PrismaClient,
   UserRole,
@@ -10,8 +13,6 @@ import {
   InvoiceStatus,
   PaymentStatus,
 } from '@/app/generated/prisma';
-import { hash } from 'bcryptjs';
-import { addDays, subDays } from 'date-fns';
 
 const prisma = new PrismaClient();
 

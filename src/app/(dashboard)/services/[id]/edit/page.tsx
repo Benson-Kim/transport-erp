@@ -1,13 +1,17 @@
 // app/(dashboard)/services/[id]/edit/page.tsx
-import { Metadata } from 'next';
 import { redirect, notFound } from 'next/navigation';
-import { auth } from '@/lib/auth';
+
+import { AlertCircle } from 'lucide-react';
+
+
 import { getService, getClientsAndSuppliers } from '@/actions/service-actions';
+import { ServiceStatus } from '@/app/generated/prisma';
 import { ServiceForm } from '@/components/features/services/ServiceForm';
 import { PageHeader, Alert, Badge } from '@/components/ui';
-import { ServiceStatus } from '@/app/generated/prisma';
-import { AlertCircle } from 'lucide-react';
+import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
+
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Edit Service | Enterprise Dashboard',

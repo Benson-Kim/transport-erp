@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+
 import { auth } from '@/lib/auth';
 import { canAccessRoute } from '@/lib/permissions';
 
@@ -68,6 +69,7 @@ export default async function proxy(request: NextRequest) {
   requestHeaders.set('x-user-id', session.user.id);
   requestHeaders.set('x-user-role', session.user.role);
   requestHeaders.set('x-user-email', session.user.email);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
   return NextResponse.next({
     request: {

@@ -2,7 +2,6 @@
 'use client';
 
 import { format } from 'date-fns';
-import { Card, CardBody, Badge } from '@/components/ui';
 import {
   Calendar,
   Building2,
@@ -15,6 +14,8 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+
+import { Card, CardBody, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDistance } from '@/lib/utils/dashboard-helpers';
 // import { formatCurrency, formatDistance } from '@/lib/utils/service-detail-helpers';

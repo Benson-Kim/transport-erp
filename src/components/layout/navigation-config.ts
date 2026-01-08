@@ -1,5 +1,4 @@
 // components/layout/navigation-config.ts
-import { NavItem } from '@/types/nav';
 import {
   LayoutDashboard,
   Truck,
@@ -12,6 +11,8 @@ import {
   Receipt,
   FileCheck,
 } from 'lucide-react';
+
+import type { NavItem } from '@/types/nav';
 
 export const navigation: NavItem[] = [
   {

@@ -51,39 +51,29 @@ export const useToastStore = create<ToastStore>((set) => ({
 
 // Convenience functions
 export const toast = {
-  success: (title: string, description?: string) => {
-    return useToastStore.getState().addToast({
+  success: (title: string, description?: string) => useToastStore.getState().addToast({
       title,
       description: description ?? '',
       variant: 'success',
-    });
-  },
+    }),
 
-  error: (title: string, description?: string) => {
-    return useToastStore.getState().addToast({
+  error: (title: string, description?: string) => useToastStore.getState().addToast({
       title,
       description: description ?? '',
       variant: 'error',
-    });
-  },
+    }),
 
-  warning: (title: string, description?: string) => {
-    return useToastStore.getState().addToast({
+  warning: (title: string, description?: string) => useToastStore.getState().addToast({
       title,
       description: description ?? '',
       variant: 'warning',
-    });
-  },
+    }),
 
-  info: (title: string, description?: string) => {
-    return useToastStore.getState().addToast({
+  info: (title: string, description?: string) => useToastStore.getState().addToast({
       title,
       description: description ?? '',
       variant: 'info',
-    });
-  },
+    }),
 
-  custom: (toast: Omit<Toast, 'id'>) => {
-    return useToastStore.getState().addToast(toast);
-  },
+  custom: (toast: Omit<Toast, 'id'>) => useToastStore.getState().addToast(toast),
 };

@@ -2,12 +2,10 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
-import { Button, Badge, DropdownMenu, DropdownMenuItem } from '@/components/ui';
-// import { ServiceActions } from './ServiceActions';
-import { hasPermission } from '@/lib/permissions';
 import {
   Edit,
   Copy,
@@ -20,7 +18,14 @@ import {
   Archive,
   Mail,
 } from 'lucide-react';
+
+import type { UserRole } from '@/app/generated/prisma';
+import type { DropdownMenuItem } from '@/components/ui';
+import { Button, Badge, DropdownMenu } from '@/components/ui';
+// import { ServiceActions } from './ServiceActions';
+import { hasPermission } from '@/lib/permissions';
 import { getStatusLabel, getStatusVariant } from '@/lib/service-helpers';
+
 import { ServiceActions } from './ServiceActions';
 
 interface ServiceHeaderProps {

@@ -6,10 +6,12 @@
 'use client';
 
 import { forwardRef, useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon, X } from 'lucide-react';
+
 import { format, parse, isValid, isBefore, isAfter } from 'date-fns';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize } from '@/types/ui';
+import type { ComponentSize } from '@/types/ui';
 
 export interface DatePickerProps {
   value?: Date | null;
@@ -61,7 +63,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     useEffect(() => {
       if (!ref) return;
       if (typeof ref === 'function') ref(inputRef.current);
-      else (ref as React.RefObject<HTMLInputElement | null>).current = inputRef.current;
+      else (ref).current = inputRef.current;
     }, [ref]);
 
     // Sync input value with selected date
@@ -75,7 +77,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
     // Handle manual input
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
+      const {value} = e.target;
       setInputValue(value);
 
       // Try to parse the date

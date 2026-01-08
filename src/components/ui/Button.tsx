@@ -3,10 +3,13 @@
  * Accessible button with multiple variants and states
  */
 
-import { ButtonHTMLAttributes, forwardRef, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { forwardRef } from 'react';
+
 import { RefreshCw } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize } from '@/types/ui';
+import type { ComponentSize } from '@/types/ui';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';

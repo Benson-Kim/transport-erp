@@ -3,7 +3,8 @@
  * Traps focus within an element
  */
 
-import { useEffect, RefObject } from 'react';
+import type { RefObject } from 'react';
+import { useEffect } from 'react';
 
 export function useFocusTrap(ref: RefObject<HTMLElement>, isActive: boolean) {
   useEffect(() => {

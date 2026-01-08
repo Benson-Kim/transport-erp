@@ -1,11 +1,14 @@
 // components/features/services/PricingCalculator.tsx
 'use client';
-import { Controller, UseFormReturn } from 'react-hook-form';
-import { Input, Select, FormField, Tooltip } from '@/components/ui';
 import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+
+import { Input, Select, FormField, Tooltip } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { ServiceFormData } from '@/lib/validations/service-schema';
-import { Option } from '@/types/ui';
+import type { ServiceFormData } from '@/lib/validations/service-schema';
+import type { Option } from '@/types/ui';
+
+import type { UseFormReturn } from 'react-hook-form';
 
 interface PricingCalculatorProps {
   form: UseFormReturn<ServiceFormData>;

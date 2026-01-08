@@ -6,20 +6,11 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { format } from 'date-fns';
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  DataTable,
-  EmptyState,
-  ErrorState,
-  Column,
-  Tooltip,
-} from '@/components/ui';
 import {
   ArrowRight,
   Truck,
@@ -34,11 +25,24 @@ import {
   // Filter,
   Calendar,
 } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+
 import { ServiceStatus } from '@/app/generated/prisma';
-import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils/formatting';
+import type {
+  Column} from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  DataTable,
+  EmptyState,
+  ErrorState,
+  Tooltip,
+} from '@/components/ui';
 import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';
+import { cn } from '@/lib/utils/cn';
+import { formatCurrency } from '@/lib/utils/formatting';
 
 interface Service {
   id: string;
@@ -488,13 +492,13 @@ export function RecentServices({
           {/* Filters */}
           <div className="flex items-center justify-between">
             {/* Status Tabs */}
-            <div className="flex gap-2 border-b">
+            <div className="flex gap-2">
               {(['all', 'active', 'completed'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setSelectedTab(tab)}
                   className={cn(
-                    'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
+                    'cursor-pointer px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
                     selectedTab === tab
                       ? 'text-primary border-primary'
                       : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -555,9 +559,9 @@ export function RecentServices({
             loading={loading}
             error={error}
             // Selection
-            selectable={true}
+            selectable
             // Sorting
-            sortable={true}
+            sortable
             defaultSort={{ key: 'date', direction: 'desc' }}
             // Actions
             onRowClick={(row) => router.push(`/services/${row.id}`)}
@@ -566,11 +570,11 @@ export function RecentServices({
             // Pagination
             {...(paginationConfig && { pagination: paginationConfig })}
             // Features
-            searchable={true}
+            searchable
             searchPlaceholder="Search by service number, client, or route..."
-            exportable={true}
-            columnToggle={true}
-            stickyHeader={true}
+            exportable
+            columnToggle
+            stickyHeader
             // Empty state
             emptyState={
               <EmptyState
@@ -604,9 +608,9 @@ export function RecentServices({
             // Loading
             loadingRows={5}
             // Styling
-            compact={true}
+            compact
             bordered={false}
-            striped={true}
+            striped
           />
         </CardBody>
       </Card>

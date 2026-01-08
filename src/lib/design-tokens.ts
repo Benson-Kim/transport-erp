@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/consistent-type-definitions */
+ 
 /**
  * Design Tokens (single source of truth)
  * - Strictly typed
@@ -6,7 +6,7 @@
  * - Mobile-first
  */
 
-import { DesignTokens, Hex, StatusSwatch } from '@/types/styles';
+import type { DesignTokens, Hex, StatusSwatch } from '@/types/styles';
 
 export const designTokens: DesignTokens = {
   colors: {

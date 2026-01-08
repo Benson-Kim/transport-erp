@@ -1,12 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
+
 import { usePathname, useRouter } from 'next/navigation';
-import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils/cn';
+
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+
+import { cn } from '@/lib/utils/cn';
+import type { NavItem } from '@/types/nav';
+
 import { navigation } from './navigation-config';
-import { NavItem } from '@/types/nav';
+
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -44,11 +49,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
             router.push(item.href);
             onClose();
           }}
-          className={cn(
-            'nav-item w-full',
-            active && 'nav-item-active',
-            depth > 0 && 'ps-9'
-          )}
+          className={cn('nav-item w-full', active && 'nav-item-active', depth > 0 && 'ps-9')}
         >
           <Icon className="icon-sm flex-shrink-0" />
           <span className="flex-1 text-left font-medium">{item.label}</span>
@@ -56,9 +57,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
         </button>
 
         {hasChildren && (
-          <ul className="mt-1 space-y-1">
-            {item.children!.map((c) => renderItem(c, depth + 1))}
-          </ul>
+          <ul className="mt-1 space-y-1">{item.children!.map((c) => renderItem(c, depth + 1))}</ul>
         )}
       </li>
     );
@@ -89,11 +88,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
               <div className="logo rounded-radius-md bg-primary" />
               <span className="font-semibold">{companyName}</span>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md p-1.5 hover:bg-row-hover"
-            >
+            <button type="button" onClick={onClose} className="rounded-md p-1.5 hover:bg-row-hover">
               <X className="icon-sm" />
             </button>
           </header>
