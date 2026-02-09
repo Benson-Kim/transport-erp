@@ -10,13 +10,16 @@ import { headers } from 'next/headers';
 
 import { AuthError } from 'next-auth';
 
-import { getServerAuth ,
+import {
+  getServerAuth,
   createUser,
   generatePasswordResetToken,
   resetPasswordWithToken,
   updatePassword,
   verifyEmailToken,
-, signIn, signOut } from '@/lib/auth';
+  signIn,
+  signOut
+} from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email';
 import {
   loginSchema,

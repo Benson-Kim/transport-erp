@@ -106,10 +106,10 @@ export async function updateCompanySettings(data: CompanySettings) {
           addressLine1: validated.address,
           email: validated.email,
           phone: validated.phone,
-          website: validated.website || null,
-          iban: validated.bankAccount || null,
-          bankAccount: validated.bankAccount || null,
-          logoUrl: logoUrl || null,
+          website: validated.website ?? null,
+          iban: validated.bankAccount ?? null,
+          bankAccount: validated.bankAccount ?? null,
+          logoUrl: logoUrl ?? null,
           updatedAt: new Date(),
         },
       });
@@ -133,10 +133,10 @@ export async function updateCompanySettings(data: CompanySettings) {
           postalCode: '00000',
           email: validated.email,
           phone: validated.phone,
-          website: validated.website || null,
-          iban: validated.bankAccount || null,
-          bankAccount: validated.bankAccount || null,
-          logoUrl: logoUrl || null,
+          website: validated.website ?? null,
+          iban: validated.bankAccount ?? null,
+          bankAccount: validated.bankAccount ?? null,
+          logoUrl: logoUrl ?? null,
         },
       });
       await createAuditLog({
@@ -181,7 +181,7 @@ async function uploadLogoToB2(base64Data: string): Promise<string> {
   const buffer = Buffer.from(base64Content, 'base64');
 
   // Generate unique filename
-  const extension = mimeType?.split('/')[1] || 'png';
+  const extension = mimeType?.split('/')[1] ?? 'png';
   const filename = `logos/company-logo-${Date.now()}.${extension}`;
 
   const s3Client = new S3Client({
@@ -231,14 +231,14 @@ export async function getCompanySettings() {
 
     const settings: CompanySettings = {
       companyName: company.legalName,
-      address: company.addressLine1 + (company.addressLine2 ? `\n${  company.addressLine2}` : ''),
+      address: company.addressLine1 + (company.addressLine2 ? `\n${company.addressLine2}` : ''),
       vatNumber: company.vatNumber,
       email: company.email,
       phone: company.phone,
-      website: company.website || '',
-      bankAccount: company.iban || '',
-      bankDetails: company.bankName || '',
-      logo: company.logoUrl || undefined,
+      website: company.website ?? '',
+      bankAccount: company.iban ?? '',
+      bankDetails: company.bankName ?? '',
+      logo: company.logoUrl ?? undefined,
     };
 
     return { success: true, data: settings };
@@ -411,7 +411,7 @@ export async function testEmailConfiguration(testEmail?: string): Promise<Action
       };
     }
 
-    const recipient = testEmail || emailConfig.fromEmail;
+    const recipient = testEmail ?? emailConfig.fromEmail;
     await sendTestEmail(emailConfig, recipient);
 
     return {
@@ -491,7 +491,7 @@ async function sendTestEmail(config: EmailConfigInput, recipient: string): Promi
 
       let credentials: { accessKeyId: string; secretAccessKey: string; region: string };
       try {
-        credentials = JSON.parse(config.apiKey);
+        credentials = JSON.parse(config.apiKey) as { accessKeyId: string; secretAccessKey: string; region: string };
       } catch {
         throw new Error(
           'Invalid AWS SES credentials. Expected JSON with accessKeyId, secretAccessKey, region.'
@@ -499,7 +499,7 @@ async function sendTestEmail(config: EmailConfigInput, recipient: string): Promi
       }
 
       const sesClient = new SESClient({
-        region: credentials.region || 'eu-west-1',
+        region: credentials.region ?? 'eu-west-1',
         credentials: {
           accessKeyId: credentials.accessKeyId,
           secretAccessKey: credentials.secretAccessKey,
@@ -545,7 +545,7 @@ async function sendTestEmail(config: EmailConfigInput, recipient: string): Promi
     }
 
     default:
-      throw new Error(`Email provider '${config.provider}' is not supported`);
+      throw new Error(`Email provider '${String(config.provider)}' is not supported`);
   }
 }
 
@@ -675,7 +675,6 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
 
   try {
     // Create SQL dump using pg_dump
-    console.log('Creating database dump...');
     await execAsync(
       `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} --no-owner --no-acl -F p -f "${sqlPath}"`,
       {
@@ -685,7 +684,6 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
     );
 
     // Compress the SQL file
-    console.log('Compressing backup...');
     await pipeline(createReadStream(sqlPath), createGzip({ level: 9 }), createWriteStream(gzPath));
 
     // Get compressed file stats
@@ -700,7 +698,6 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
     }
 
     // Upload to B2
-    console.log('Uploading to Backblaze B2...');
     const { client, config } = await getB2Client();
     const key = `${config.keyName}/${gzFilename}`;
 
@@ -721,8 +718,6 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
       })
     );
 
-    console.log(`Backup uploaded successfully: ${key}`);
-
     // Generate URL
     const url = config.cdnUrl
       ? `${config.cdnUrl}/${key}`
@@ -737,7 +732,7 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
     };
   } finally {
     // Cleanup temp files
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
   }
 }
 
@@ -749,24 +744,29 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
  * Clean up old backups based on retention policy
  */
+/**
+ * Clean up old backups based on retention policy
+ */
 async function cleanupOldBackups(retentionDays: number): Promise<number> {
-  const { ListObjectsV2Command, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+  const { ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3');
   const { client, config } = await getB2Client();
 
   const prefix = `${config.keyName}/`;
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
-  let deletedCount = 0;
+  // Collect all expired keys
+  const keysToDelete: { Key: string }[] = [];
   let continuationToken: string | undefined;
 
   do {
+    // eslint-disable-next-line no-await-in-loop -- Pagination requires sequential requests
     const listResponse = await client.send(
       new ListObjectsV2Command({
         Bucket: config.bucketName,
@@ -776,24 +776,47 @@ async function cleanupOldBackups(retentionDays: number): Promise<number> {
     );
 
     if (listResponse.Contents) {
-      for (const object of listResponse.Contents) {
-        if (object.LastModified && object.LastModified < cutoffDate && object.Key) {
-          await client.send(
-            new DeleteObjectCommand({
-              Bucket: config.bucketName,
-              Key: object.Key,
-            })
-          );
-          console.log(`Deleted old backup: ${object.Key}`);
-          deletedCount++;
-        }
-      }
+      const expiredKeys = listResponse.Contents
+        .filter(
+          (object): object is typeof object & { Key: string } =>
+            typeof object.Key === 'string' &&
+            object.LastModified !== undefined &&
+            object.LastModified < cutoffDate
+        )
+        .map((obj) => ({ Key: obj.Key }));
+
+      keysToDelete.push(...expiredKeys);
     }
 
     continuationToken = listResponse.NextContinuationToken;
   } while (continuationToken);
 
-  return deletedCount;
+  if (keysToDelete.length === 0) {
+    return 0;
+  }
+
+  // Batch delete
+  const batchSize = 1000;
+  const deleteBatches: Promise<{ deleted: number }>[] = [];
+
+  for (let i = 0; i < keysToDelete.length; i += batchSize) {
+    const batch = keysToDelete.slice(i, i + batchSize);
+
+    deleteBatches.push(
+      client
+        .send(
+          new DeleteObjectsCommand({
+            Bucket: config.bucketName,
+            Delete: { Objects: batch },
+          })
+        )
+        .then((result) => ({ deleted: result.Deleted?.length ?? 0 }))
+    );
+  }
+
+  const results = await Promise.all(deleteBatches);
+
+  return results.reduce((total, result) => total + result.deleted, 0);
 }
 
 /**
@@ -807,10 +830,19 @@ export async function listBackups(): Promise<ActionResult<BackupInfo[]>> {
     const { client, config } = await getB2Client();
 
     const prefix = `${config.keyName}/`;
-    const backups: BackupInfo[] = [];
     let continuationToken: string | undefined;
 
+    // Define a type for valid backup objects
+    interface ValidBackupObject {
+      Key: string;
+      Size: number;
+      LastModified: Date;
+    }
+
+    const allObjects: ValidBackupObject[] = [];
+
     do {
+      // eslint-disable-next-line no-await-in-loop -- Pagination requires sequential requests
       const response = await client.send(
         new ListObjectsV2Command({
           Bucket: config.bucketName,
@@ -820,29 +852,37 @@ export async function listBackups(): Promise<ActionResult<BackupInfo[]>> {
       );
 
       if (response.Contents) {
-        for (const object of response.Contents) {
-          if (object.Key?.endsWith('.sql.gz')) {
-            const filename = object.Key.split('/').pop() || object.Key;
-            const url = config.cdnUrl
-              ? `${config.cdnUrl}/${object.Key}`
-              : `${config.endpoint}/${config.bucketName}/${object.Key}`;
+        const validObjects = response.Contents.filter(
+          (object): object is ValidBackupObject =>
+            typeof object.Key === 'string' &&
+            object.Key.endsWith('.sql.gz') &&
+            typeof object.Size === 'number' &&
+            object.LastModified instanceof Date
+        );
 
-            backups.push({
-              filename,
-              key: object.Key,
-              size: object.Size || 0,
-              createdAt: object.LastModified?.toISOString() || '',
-              url,
-            });
-          }
-        }
+        allObjects.push(...validObjects);
       }
 
       continuationToken = response.NextContinuationToken;
     } while (continuationToken);
 
-    // Sort by date, newest first
-    backups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Transform to BackupInfo
+    const backups: BackupInfo[] = allObjects
+      .map((object) => {
+        const filename = object.Key.split('/').pop();
+        const url = config.cdnUrl
+          ? `${config.cdnUrl}/${object.Key}`
+          : `${config.endpoint}/${config.bucketName}/${object.Key}`;
+
+        return {
+          filename: filename ?? object.Key,
+          key: object.Key,
+          size: object.Size,
+          createdAt: object.LastModified.toISOString(),
+          url,
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return { success: true, data: backups };
   } catch (error) {
@@ -951,7 +991,7 @@ export async function getLastBackupTime(): Promise<{
     null as unknown as { timestamp: string; filename: string; size: number }
   );
 
-  return data || null;
+  return data ?? null;
 }
 
 /**
@@ -1088,7 +1128,7 @@ export async function getLastBackupInfo(): Promise<ActionResult<BackupInfo | nul
       null as unknown as BackupInfo
     );
 
-    return { success: true, data: data || null };
+    return { success: true, data: data ?? null };
   } catch (error) {
     console.error('Get last backup error:', error);
     return {

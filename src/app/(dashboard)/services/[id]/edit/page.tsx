@@ -7,7 +7,7 @@ import { AlertCircle } from 'lucide-react';
 import { getService, getClientsAndSuppliers } from '@/actions/service-actions';
 import { ServiceStatus } from '@/app/generated/prisma';
 import { ServiceForm } from '@/components/features/services/ServiceForm';
-import { PageHeader, Alert, Badge } from '@/components/ui';
+import { PageHeader, Alert, Badge, Breadcrumbs } from '@/components/ui';
 import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
 
@@ -51,18 +51,13 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
     return (
       <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
         <div>
-          {/* <Breadcrumb
-            items={[
-              { label: 'Dashboard', href: '/dashboard' },
-              { label: 'Services', href: '/services' },
-              { label: service.serviceNumber, href: `/services/${service.id}` },
-              { label: 'Edit' },
-            ]}
-          /> */}
+          <Breadcrumbs />
+
           <PageHeader
             title="Cannot Edit Completed Service"
             description="This service has been completed and cannot be edited"
           />
+
         </div>
 
         <Alert variant="error" icon={<AlertCircle className="h-4 w-4" />}>
@@ -81,14 +76,8 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
       <div>
-        {/* <Breadcrumb
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Services', href: '/services' },
-            { label: service.serviceNumber, href: `/services/${service.id}` },
-            { label: 'Edit' },
-          ]}
-        /> */}
+        <Breadcrumbs />
+
         <div className="flex items-center justify-between">
           <PageHeader
             title={`Edit Service ${service.serviceNumber}`}

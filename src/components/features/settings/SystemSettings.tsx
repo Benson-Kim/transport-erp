@@ -1,12 +1,11 @@
 // /components/features/settings/SystemSettingsContent.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type Resolver } from 'react-hook-form';
 
 import {
   getSystemSettings,
@@ -35,20 +34,39 @@ import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 
-export function SystemSettingsContent() {
-  const [loading, setLoading] = useState(true);
+interface SystemSettingsContentProps {
+  initialSettings?: SystemSettings;
+}
+
+export function SystemSettingsContent({ initialSettings }: SystemSettingsContentProps) {
+  const [loading, setLoading] = useState(!initialSettings);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('email');
 
+  const defaultValues = useMemo(() => {
+    if (!initialSettings) return DEFAULT_SYSTEM_SETTINGS;
+
+    return {
+      email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
+      pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...initialSettings.pdf },
+      backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...initialSettings.backup },
+      numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...initialSettings.numberSequences },
+      general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...initialSettings.general },
+    };
+  }, [initialSettings]);
+
   const methods = useForm<SystemSettings>({
-    resolver: zodResolver(systemSettingsSchema),
-    defaultValues: DEFAULT_SYSTEM_SETTINGS,
+    resolver: zodResolver(systemSettingsSchema) as Resolver<SystemSettings>,
+    defaultValues,
   });
 
+  // Only fetch settings if not provided via props
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (!initialSettings) {
+      void loadSettings();
+    }
+  }, [initialSettings]);
 
   async function loadSettings() {
     try {
@@ -63,20 +81,19 @@ export function SystemSettingsContent() {
         general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
       };
       methods.reset(mergedData);
-    } catch (error) {
+    } catch (err) {
       setError('Failed to load system settings. Please check your permissions.');
-      console.error('Load settings error:', error);
+      console.error('Load settings error:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleSaveSection(section: SettingsSection) {
+  const handleSaveSection = useCallback(async (section: SettingsSection) => {
     setSaving(section);
 
     try {
       const values = methods.getValues();
-      let result;
 
       const actionMap: Record<
         SettingsSection,
@@ -89,22 +106,22 @@ export function SystemSettingsContent() {
         general: () => updateGeneral(values.general),
       };
 
-      result = await actionMap[section]();
+      const result = await actionMap[section]();
 
       if (result?.success) {
         toast.success(`${section} settings updated successfully`);
       } else {
-        toast.error(result?.error || `Failed to update ${section} settings`);
+        toast.error(result?.error ?? `Failed to update ${section} settings`);
       }
-    } catch (error) {
+    } catch (err) {
       toast.error(`Failed to update ${section} settings`);
-      console.error(`Save ${section} error:`, error);
+      console.error(`Save ${section} error:`, err);
     } finally {
       setSaving(null);
     }
-  }
+  }, [methods]);
 
-  async function handleTestEmail() {
+  const handleTestEmail = useCallback(async () => {
     try {
       setSaving('email-test');
 
@@ -112,28 +129,28 @@ export function SystemSettingsContent() {
       const result = await testEmailConfiguration(email);
 
       if (result.success) {
-        toast.success(result.data!);
+        toast.success(result.data ?? 'Test email sent successfully');
       } else {
-        toast.error(result.error!);
+        toast.error(result.error ?? 'Failed to send test email');
       }
-    } catch (error) {
-      toast.error('Failed to send test email');
+    } catch {
+      toast.error(`Failed to send test email, please check the configuration`);
     } finally {
       setSaving(null);
     }
-  }
+  }, [methods]);
 
   async function handleManualBackup() {
     try {
-      setSaving('backup');
+      setSaving('backup-manual');
       const result = await runManualBackup();
 
       if (result.success) {
-        toast.success(`Backup completed at ${new Date(result.data!.createdAt).toLocaleString()}`);
+        toast.success(`Backup completed at ${new Date(result.data?.createdAt ?? new Date()).toLocaleString()}`);
       } else {
-        toast.error(result.error!);
+        toast.error(result.error ?? 'Failed to run backup');
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to trigger backup');
     } finally {
       setSaving(null);
@@ -152,13 +169,13 @@ export function SystemSettingsContent() {
             title="Email Configuration"
             description="Configure email provider and sender settings for system notifications"
             section="email"
-            onSave={() => handleSaveSection('email')}
+            onSave={() => void handleSaveSection('email')}
             isSaving={saving === 'email'}
             actions={
               <Button
                 type="button"
                 variant="secondary"
-                onClick={handleTestEmail}
+                onClick={() => void handleTestEmail()}
                 disabled={saving === 'email' || saving === 'email-test'}
               >
                 {saving === 'email-test' ? 'Sending...' : 'Send Test Email'}
@@ -178,7 +195,7 @@ export function SystemSettingsContent() {
             title="PDF Settings"
             description="Configure PDF document generation settings"
             section="pdf"
-            onSave={() => handleSaveSection('pdf')}
+            onSave={() => void handleSaveSection('pdf')}
             isSaving={saving === 'pdf'}
           >
             <PDFSettings />
@@ -194,13 +211,13 @@ export function SystemSettingsContent() {
             title="Backup Settings"
             description="Configure automatic backup schedule and storage"
             section="backup"
-            onSave={() => handleSaveSection('backup')}
+            onSave={() => void handleSaveSection('backup')}
             isSaving={saving === 'backup'}
             actions={
               <Button
                 type="button"
                 variant="secondary"
-                onClick={handleManualBackup}
+                onClick={() => void handleManualBackup()}
                 disabled={saving === 'backup' || saving === 'backup-manual'}
               >
                 {saving === 'backup-manual' ? 'Running Backup...' : 'Run Manual Backup'}
@@ -220,7 +237,7 @@ export function SystemSettingsContent() {
             title="Number Sequences"
             description="Configure document numbering formats and sequences"
             section="numberSequences"
-            onSave={() => handleSaveSection('numberSequences')}
+            onSave={() => void handleSaveSection('numberSequences')}
             isSaving={saving === 'numberSequences'}
           >
             <SequenceSettings />
@@ -236,7 +253,7 @@ export function SystemSettingsContent() {
             title="General Settings"
             description="Configure regional settings, tax defaults, and feature toggles"
             section="general"
-            onSave={() => handleSaveSection('general')}
+            onSave={() => void handleSaveSection('general')}
             isSaving={saving === 'general'}
           >
             <GeneralSettings />
@@ -244,7 +261,7 @@ export function SystemSettingsContent() {
         ),
       },
     ],
-    [saving, methods]
+    [saving, handleSaveSection, handleTestEmail]
   );
 
   if (loading) {
@@ -298,16 +315,13 @@ interface TabContentProps {
 function TabContent({ title, description, onSave, isSaving, actions, children }: TabContentProps) {
   return (
     <div className="space-y-6">
-      {/* Section Header */}
       <div className="border-b border-neutral-200 pb-4">
         <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
         <p className="text-sm text-neutral-500 mt-1">{description}</p>
       </div>
 
-      {/* Section Content */}
       <div className="min-h-[400px]">{children}</div>
 
-      {/* Action Buttons */}
       <div className="flex justify-end gap-3 pt-6 border-t border-neutral-200">
         {actions}
         <Button type="button" onClick={onSave} disabled={isSaving}>

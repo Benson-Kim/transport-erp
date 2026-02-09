@@ -1,6 +1,4 @@
-/* eslint-disable max-lines */
-/* eslint-disable max-lines-per-function */
-// /actions/client-actions.ts
+
 'use server';
 
 /**
@@ -11,8 +9,7 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-import type { Prisma } from '@/app/generated/prisma';
-import { ServiceStatus } from '@/app/generated/prisma';
+import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import { RESOURCES, ACTIONS } from '@/lib/permissions';
 import {
@@ -59,7 +56,7 @@ export async function getClients(
     const { search, country, isActive, currency, tags, page, limit, sortBy, sortOrder } = validated;
 
     // Build where clause
-    const where: Prisma.ClientWhereInput = excludeDeleted<'client'>({});
+    const where: Prisma.ClientWhereInput = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -119,7 +116,7 @@ export async function getClients(
 
     // Transform to list items
     const data: ClientListItem[] = clients.map((client) => {
-      const billingAddress = client.billingAddress as Address;
+      const billingAddress = client.billingAddress as unknown as Address | null;
       return {
         id: client.id,
         clientCode: client.clientCode,
@@ -158,7 +155,7 @@ export async function getClientById(id: string): Promise<ActionResult<ClientWith
     await requirePermission(RESOURCES.CLIENTS, ACTIONS.VIEW);
 
     const client = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }),
+      where: excludeDeleted<'client'>({ id }) ?? {},
       include: {
         company: {
           select: { id: true, legalName: true },
@@ -233,7 +230,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
       ? services.reduce((sum, s) => sum + Number(s.marginPercentage), 0) / totalServices
       : 0;
 
-  const lastServiceDate = services.length > 0 ? services[0].date : null;
+  const lastServiceDate = services[0]?.date ?? null;
 
   return {
     totalServices,
@@ -268,7 +265,7 @@ export async function getClientServices(
     };
 
     if (params.status && params.status !== 'all') {
-      where.status = params.status as any;
+      where.status = params.status as ServiceStatus;
     }
 
     const [services, total] = await Promise.all([
@@ -354,7 +351,9 @@ export async function createClient(data: unknown): Promise<ActionResult<{ id: st
       tradeName: validated.tradeName ?? null,
       vatNumber: validated.vatNumber ?? null,
       billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress ? validated.shippingAddress : null,
+      shippingAddress: validated.useShippingAddress && validated.shippingAddress
+        ? validated.shippingAddress
+        : Prisma.DbNull,
       billingEmail: validated.billingEmail,
       trafficEmail: validated.trafficEmail ?? null,
       contactPerson: validated.contactPerson ?? null,
@@ -383,8 +382,8 @@ export async function createClient(data: unknown): Promise<ActionResult<{ id: st
       tableName: 'clients',
       recordId: client.id,
       newValues: createData,
-      ipAddress,
-      userAgent,
+      ...(ipAddress && { ipAddress }),
+      ...(userAgent && { userAgent }),
     });
 
     revalidatePath('/clients');
@@ -424,7 +423,7 @@ export async function updateClient(
 
     // Check if client exists
     const existing = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }),
+      where: excludeDeleted<'client'>({ id }) ?? {},
     });
 
     if (!existing) {
@@ -459,7 +458,9 @@ export async function updateClient(
       tradeName: validated.tradeName ?? null,
       vatNumber: validated.vatNumber ?? null,
       billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress ? validated.shippingAddress : null,
+      shippingAddress: validated.useShippingAddress && validated.shippingAddress
+        ? validated.shippingAddress
+        : Prisma.DbNull,
       billingEmail: validated.billingEmail,
       trafficEmail: validated.trafficEmail ?? null,
       contactPerson: validated.contactPerson ?? null,
@@ -490,9 +491,10 @@ export async function updateClient(
       recordId: client.id,
       oldValues: existing,
       newValues: updateData,
-      ipAddress,
-      userAgent,
+      ...(ipAddress && { ipAddress }),
+      ...(userAgent && { userAgent }),
     });
+
 
     revalidatePath('/clients');
     revalidatePath(`/clients/${id}`);
@@ -521,7 +523,7 @@ export async function deleteClient(id: string): Promise<ActionResult> {
 
     // Check if client exists
     const existing = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }),
+      where: excludeDeleted<'client'>({ id }) ?? {},
       include: {
         _count: {
           select: { services: true },
@@ -548,8 +550,8 @@ export async function deleteClient(id: string): Promise<ActionResult> {
       tableName: 'clients',
       recordId: id,
       oldValues: existing,
-      ipAddress,
-      userAgent,
+      ...(ipAddress && { ipAddress }),
+      ...(userAgent && { userAgent }),
       metadata: { servicesCount: existing._count.services },
     });
 
@@ -594,8 +596,8 @@ export async function bulkDeleteClients(ids: string[]): Promise<ActionResult<{ d
       tableName: 'clients',
       recordId: 'bulk',
       metadata: { ids, count: result.count },
-      ipAddress,
-      userAgent,
+      ...(ipAddress && { ipAddress }),
+      ...(userAgent && { userAgent }),
     });
 
     revalidatePath('/clients');
@@ -655,7 +657,7 @@ export async function getClientCountries(): Promise<ActionResult<string[]>> {
 
     const countries = new Set<string>();
     clients.forEach((client) => {
-      const address = client.billingAddress as Address;
+      const address = client.billingAddress as unknown as Address | null;
       if (address?.country) {
         countries.add(address.country);
       }
@@ -684,7 +686,7 @@ export async function exportClients(
     const { search, country, isActive, currency, tags } = validated;
 
     // Build where clause
-    const where: Prisma.ClientWhereInput = excludeDeleted<'client'>({});
+    const where: Prisma.ClientWhereInput = { deletedAt: null }
 
     if (search) {
       where.OR = [
@@ -744,7 +746,7 @@ export async function exportClients(
     ];
 
     const rows = clients.map((client) => {
-      const addr = client.billingAddress as Address;
+      const addr = client.billingAddress as unknown as Address | null;
       return [
         client.clientCode,
         `"${client.name.replace(/"/g, '""')}"`,
