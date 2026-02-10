@@ -25,8 +25,10 @@ import {
   createUser,
   generatePasswordResetToken,
   resetPasswordWithToken,
+  generateVerificationToken,
   updatePassword,
   verifyEmailToken,
+  regenerateVerificationToken,
 } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -236,62 +238,23 @@ export async function verifyEmail(token: string) {
 /**
  * Resend verification email
  */
-// export async function resendVerificationEmail(email: string) {
-//   try {
-//     // Implementation for resending verification email
-//     // This would generate a new token and send the email
+export async function resendVerificationEmail(data: ForgotPasswordFormData) {
+  try {
+    const validatedData = forgotPasswordSchema.parse(data);
 
-//     return {
-//       success: true,
-//       message: 'Verification email sent. Please check your inbox.',
-//     };
-//   } catch (error) {
-//     console.error('Resend verification error:', error);
-//     return { success: false, error: 'Failed to send verification email' };
-//   }
-// }
+    const result = await regenerateVerificationToken(validatedData.email);
 
-// /**
-//  * Resend verification email
-//  */
-// export async function resendVerificationEmail(email: string) {
-//   try {
-//     // Find existing user
-//     const user = await prisma.user.findUnique({ where: { email } });
-//     if (!user) {
-//       return { success: false, error: 'User not found' };
-//     }
+    if (result) {
+      // TODO: Send verification email
+      // await sendVerificationEmail(result.email, result.token);
+    }
 
-//     if (user.emailVerified) {
-//       return { success: false, error: 'Email is already verified.' };
-//     }
-
-//     // Generate a new verification token
-//     const token = generateToken(32);
-
-//     // Save or update token in your verification token table
-//     await prisma.verificationToken.upsert({
-//       where: { userId: user.id },
-//       update: {
-//         token,
-//         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h expiry
-//       },
-//       create: {
-//         userId: user.id,
-//         token,
-//         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-//       },
-//     });
-
-//     // Send the verification email
-//     await sendVerificationEmail(user.email, token);
-
-//     return {
-//       success: true,
-//       message: 'Verification email sent. Please check your inbox.',
-//     };
-//   } catch (error) {
-//     console.error('Resend verification error:', error);
-//     return { success: false, error: 'Failed to send verification email' };
-//   }
-// }
+    return {
+      success: true,
+      message: 'If an unverified account exists with this email, you will receive a verification link.',
+    };
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    return { success: false, error: 'Failed to resend verification email' };
+  }
+}
