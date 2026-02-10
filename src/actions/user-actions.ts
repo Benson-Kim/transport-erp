@@ -42,7 +42,7 @@ const updateUserSchema = z.object({
  * Get all users with statistics
  */
 export const getUsers = withPermission('users', 'view', async () => {
-  // const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+  await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
 
   const [users, total, active, admins, recentlyActive] = await Promise.all([
     prisma.user.findMany({

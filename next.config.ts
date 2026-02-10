@@ -119,7 +119,7 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
 
   // Output configuration
-  // output: "standalone",
+  output: "standalone",
 };
 
 export default withBundleAnalyzer(nextConfig);

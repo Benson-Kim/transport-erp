@@ -12,12 +12,9 @@ import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
 import {
   ErrorBoundary,
-  // PageHeader,
   Alert,
-  // Button,
   Card,
   CardBody,
-  // EmptyState
 } from '@/components/ui';
 import {
   DashboardDateRange,
@@ -35,8 +32,6 @@ import {
   NewUserWelcome,
   PerformanceTip,
 } from '@/components/features/dashboard';
-// import { formatPercentage } from '@/lib/utils/formatting';
-// import { revalidatePath } from 'next/cache';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',

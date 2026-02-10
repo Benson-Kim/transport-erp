@@ -5,7 +5,6 @@
 
 'use server';
 
-import { signIn, signOut } from '@/lib/auth';
 import { AuthError } from 'next-auth';
 import {
   loginSchema,
@@ -20,17 +19,18 @@ import {
   type ChangePasswordFormData,
 } from '@/lib/validations/auth-schema';
 import {
+  signIn,
+  signOut,
+  getServerAuth,
   createUser,
   generatePasswordResetToken,
   resetPasswordWithToken,
   updatePassword,
   verifyEmailToken,
 } from '@/lib/auth';
-import { getServerAuth } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { sendVerificationEmail } from '@/lib/email';
-// import prisma from '@/lib/prisma/prisma';
 
 /**
  * Get client IP and user agent
@@ -256,7 +256,7 @@ export async function verifyEmail(token: string) {
 //  */
 // export async function resendVerificationEmail(email: string) {
 //   try {
-//     // 1️⃣ Find existing user
+//     // Find existing user
 //     const user = await prisma.user.findUnique({ where: { email } });
 //     if (!user) {
 //       return { success: false, error: 'User not found' };
@@ -266,10 +266,10 @@ export async function verifyEmail(token: string) {
 //       return { success: false, error: 'Email is already verified.' };
 //     }
 
-//     // 2️⃣ Generate a new verification token
+//     // Generate a new verification token
 //     const token = generateToken(32);
 
-//     // 3️⃣ Save or update token in your verification token table
+//     // Save or update token in your verification token table
 //     await prisma.verificationToken.upsert({
 //       where: { userId: user.id },
 //       update: {
@@ -283,7 +283,7 @@ export async function verifyEmail(token: string) {
 //       },
 //     });
 
-//     // 4️⃣ Send the verification email
+//     // Send the verification email
 //     await sendVerificationEmail(user.email, token);
 
 //     return {

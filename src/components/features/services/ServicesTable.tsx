@@ -58,7 +58,7 @@ export function ServicesTable({
   userRole,
   loading = false,
   error = null,
-  onRefresh,
+  // onRefresh,
 }: ServicesTableProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

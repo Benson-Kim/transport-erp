@@ -235,6 +235,7 @@ export async function createService(data: ServiceFormData) {
   const count = await prisma.service.count();
   const serviceNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 
+  // Calculate margin and VAT amounts
   const costVatRate = validatedData.costVatRate ?? 21;
   const saleVatRate = validatedData.saleVatRate ?? 21;
 
@@ -250,6 +251,16 @@ export async function createService(data: ServiceFormData) {
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...saveData } =
     validatedData;
 
+  let serviceStatus: ServiceStatus;
+
+  if (cancelled) {
+    serviceStatus = ServiceStatus.CANCELLED;
+  } else if (completed) {
+    serviceStatus = ServiceStatus.COMPLETED;
+  } else {
+    serviceStatus = saveData.status || ServiceStatus.DRAFT;
+  }
+
   const service = await prisma.service.create({
     data: {
       ...(Object.fromEntries(Object.entries(saveData).filter(([_, v]) => v !== undefined)) as any),
@@ -258,11 +269,7 @@ export async function createService(data: ServiceFormData) {
       marginPercentage,
       costVatAmount,
       saleVatAmount,
-      status: cancelled
-        ? ServiceStatus.CANCELLED
-        : completed
-          ? ServiceStatus.COMPLETED
-          : saveData.status || ServiceStatus.DRAFT,
+      status: serviceStatus,
       createdById: session.user.id,
     },
   });
@@ -314,6 +321,19 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
     validatedData;
 
+  let serviceStatus: ServiceStatus;
+  if (cancelled) {
+    serviceStatus = ServiceStatus.CANCELLED;
+  } else if (completed) {
+    serviceStatus = ServiceStatus.COMPLETED;
+  } else {
+    serviceStatus = dataToStore.status || currentService.status;
+  }
+
+  const timestamps: { completedAt?: Date; cancelledAt?: Date } = {};
+  if (completed) timestamps.completedAt = new Date();
+  if (cancelled) timestamps.cancelledAt = new Date();
+
   const updateData = {
     ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
     costAmount,
@@ -322,13 +342,8 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     marginPercentage: Number(marginPercentage.toFixed(2)),
     costVatAmount: Number(costVatAmount.toFixed(2)),
     saleVatAmount: Number(saleVatAmount.toFixed(2)),
-    status: cancelled
-      ? ServiceStatus.CANCELLED
-      : completed
-        ? ServiceStatus.COMPLETED
-        : dataToStore.status || currentService.status,
-    ...(completed ? { completedAt: new Date() } : {}),
-    ...(cancelled ? { cancelledAt: new Date() } : {}),
+    status: serviceStatus,
+    ...timestamps,
   };
 
   const service = await prisma.service.update({
@@ -511,7 +526,7 @@ export async function getServiceActivity(
           for (const field of fieldsToCheck) {
             if (oldVals[field] !== newVals[field]) {
               changes.push({
-                field: field.replace(/([A-Z])/g, ' $1').toLowerCase(),
+                field: field.replaceAll(/([A-Z])/g, ' $1').toLowerCase(),
                 oldValue: oldVals[field],
                 newValue: newVals[field],
               });
@@ -534,7 +549,7 @@ export async function getServiceActivity(
         description = 'Service archived';
         break;
       default:
-        description = activity.action.replace(/_/g, ' ').toLowerCase();
+        description = activity.action.replaceAll(/_/g, ' ').toLowerCase();
     }
 
     return {
@@ -748,7 +763,6 @@ export async function bulkDeleteServices(serviceIds: string[]) {
  * Generate bulk loading orders
  */
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
-  // const session = await requireAuth();
   await requirePermission('documents', 'create');
 
   // TODO: Implementation for generating loading orders

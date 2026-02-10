@@ -27,10 +27,25 @@ class EmailService {
   private config: EmailConfig;
   private emailQueue: EmailOptions[] = [];
   private processing = false;
+  private initPromise: Promise<void> | null = null;
+  private initialized = false;
 
   constructor() {
     this.config = this.loadConfig();
-    this.initializeTransporter();
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
+
+    // Prevent multiple concurrent initializations
+    if (!this.initPromise) {
+      this.initPromise = this.initializeTransporter();
+    }
+
+    await this.initPromise;
+    this.initialized = true;
   }
 
   /**
@@ -156,6 +171,9 @@ class EmailService {
     options: EmailOptions
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
+
+      await this.ensureInitialized();
+
       if (!this.transporter) {
         throw new Error('Email transporter not initialized');
       }

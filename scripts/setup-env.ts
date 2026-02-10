@@ -1,6 +1,6 @@
 // scripts/setup-env.js
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const env = process.env.NODE_ENV || 'development';
 const rootDir = path.resolve(__dirname, '..');
@@ -42,11 +42,12 @@ try {
 
   // Verify DATABASE_URL exists
   const envContent = fs.readFileSync(targetPath, 'utf8');
-  if (!envContent.includes('DATABASE_URL=')) {
-    console.warn('Warning: DATABASE_URL not found in environment file');
-  } else {
+  if (envContent.includes('DATABASE_URL=')) {
     console.log('DATABASE_URL found');
+  } else {
+    console.warn('Warning: DATABASE_URL not found in environment file');
   }
+
 } catch (error) {
   console.error('Failed to setup environment:', error);
   process.exit(1);
