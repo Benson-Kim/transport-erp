@@ -1,8 +1,10 @@
 /**
  * Email Templates
  * React Email templates for all email types
+ * @module email-templates
  */
 
+import * as React from 'react';
 import {
   Body,
   Button,
@@ -16,65 +18,126 @@ import {
   Preview,
   Section,
   Text,
-  Tailwind,
   Row,
   Column,
+  Tailwind,
 } from '@react-email/components';
 
-// Base email template styles
-const main = {
-  backgroundColor: '#ffffff',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+import type {
+  VerificationEmailData,
+  PasswordResetEmailData,
+  WelcomeEmailData,
+  InvoiceEmailData,
+  LoadingOrderEmailData,
+  NotificationEmailData,
+  AccountLockedEmailData,
+  TwoFactorEmailData,
+} from '@/types/mail';
+
+/**
+ * Shared email template styles and utilities
+ */
+
+export const styles = {
+  main: {
+    backgroundColor: '#ffffff',
+    fontFamily:
+      '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+  } satisfies React.CSSProperties,
+
+  container: {
+    margin: '0 auto',
+    padding: '20px 0 48px',
+    maxWidth: '560px',
+  } satisfies React.CSSProperties,
+
+  logo: {
+    margin: '0 auto',
+    display: 'block',
+  } satisfies React.CSSProperties,
+
+  heading: {
+    fontSize: '24px',
+    letterSpacing: '-0.5px',
+    lineHeight: '1.3',
+    fontWeight: '400',
+    color: '#484848',
+    padding: '17px 0 0',
+  } satisfies React.CSSProperties,
+
+  paragraph: {
+    margin: '0 0 15px',
+    fontSize: '15px',
+    lineHeight: '1.4',
+    color: '#3c4149',
+  } satisfies React.CSSProperties,
+
+  button: {
+    backgroundColor: '#3b82f6',
+    borderRadius: '5px',
+    color: '#fff',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    textDecoration: 'none',
+    textAlign: 'center' as const,
+    display: 'inline-block',
+    padding: '12px 20px',
+    width: '100%',
+    maxWidth: '200px',
+  } satisfies React.CSSProperties,
+
+  hr: {
+    borderColor: '#e6ebf1',
+    margin: '20px 0',
+  } satisfies React.CSSProperties,
+
+  footer: {
+    color: '#8898aa',
+    fontSize: '12px',
+    lineHeight: '16px',
+  } satisfies React.CSSProperties,
+
+  codeBox: {
+    background: '#f4f4f4',
+    borderRadius: '4px',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    textAlign: 'center' as const,
+    padding: '16px',
+    color: '#333',
+    letterSpacing: '4px',
+  } satisfies React.CSSProperties,
+
+  alertBox: (color: string) =>
+    ({
+      backgroundColor: color === 'red' ? '#fef2f2' : '#eff6ff',
+      border: `1px solid ${color === 'red' ? '#fee2e2' : '#dbeafe'}`,
+      borderRadius: '6px',
+      padding: '16px',
+      marginTop: '20px',
+      marginBottom: '20px',
+    }) satisfies React.CSSProperties,
 };
 
-const container = {
-  margin: '0 auto',
-  padding: '20px 0 48px',
-  maxWidth: '560px',
-};
+// Get base URL with fallback
+export function getBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
 
-const logo = {
-  margin: '0 auto',
-};
-
-const heading = {
-  fontSize: '24px',
-  letterSpacing: '-0.5px',
-  lineHeight: '1.3',
-  fontWeight: '400',
-  color: '#484848',
-  padding: '17px 0 0',
-};
-
-const paragraph = {
-  margin: '0 0 15px',
-  fontSize: '15px',
-  lineHeight: '1.4',
-  color: '#3c4149',
-};
-
-const buttonStyle = {
-  backgroundColor: '#3b82f6',
-  borderRadius: '5px',
-  color: '#fff',
-  fontSize: '16px',
-  fontWeight: 'bold',
-  textDecoration: 'none',
-  textAlign: 'center' as const,
-  display: 'block',
-  padding: '12px 20px',
-};
-
-const hr = {
-  borderColor: '#e6ebf1',
-  margin: '20px 0',
-};
-
-const footer = {
-  color: '#8898aa',
-  fontSize: '12px',
-  lineHeight: '16px',
+// Get company details
+export function getCompanyDetails() {
+  return {
+    name:
+      process.env.NEXT_PUBLIC_COMPANY_NAME || 'Road Freight ERP',
+    address:
+      process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '123 Business St • Madrid, Spain 28001',
+    taxId:
+      process.env.NEXT_PUBLIC_COMPANY_TAX_ID || 'B12345678',
+    supportEmail:
+      process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@roadfreight-erp.com',
+    billingEmail:
+      process.env.NEXT_PUBLIC_BILLING_EMAIL || 'billing@roadfreight-erp.com',
+  }
 };
 
 /**
@@ -82,44 +145,42 @@ const footer = {
  */
 export function VerificationEmailTemplate({
   name,
+  email,
   verificationUrl,
   expiresIn,
-}: {
-  name: string;
-  email: string;
-  verificationUrl: string;
-  expiresIn: string;
-}) {
+}: VerificationEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
   return (
     <Html>
       <Head />
-      <Preview>Verify your email address for Enterprise Dashboard</Preview>
+      <Preview>Verify your email address for {company.name}</Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
-            <Heading style={heading}>Verify your email address</Heading>
+            <Heading style={styles.heading}>Verify your email address</Heading>
 
-            <Text style={paragraph}>Hi {name},</Text>
+            <Text style={styles.paragraph}>Hi {name},</Text>
 
-            <Text style={paragraph}>
-              Thanks for signing up for Enterprise Dashboard! Please verify your email address by
-              clicking the button below:
+            <Text style={styles.paragraph}>
+              Thanks for signing up for {company.name}! Please verify your email address by clicking
+              the button below:
             </Text>
 
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button style={buttonStyle} href={verificationUrl}>
+              <Button style={styles.button} href={verificationUrl}>
                 Verify Email Address
               </Button>
             </Section>
 
-            <Text style={paragraph}>Or copy and paste this URL into your browser:</Text>
+            <Text style={styles.paragraph}>Or copy and paste this URL into your browser:</Text>
             <Link
               href={verificationUrl}
               style={{ color: '#3b82f6', fontSize: '14px', wordBreak: 'break-all' }}
@@ -127,21 +188,23 @@ export function VerificationEmailTemplate({
               {verificationUrl}
             </Link>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               This verification link will expire in {expiresIn}.
             </Text>
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
-              If you didn't create an account with Enterprise Dashboard, you can safely ignore this
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
+              If you didn&apos;t create an account with {company.name}, you can safely ignore this
               email.
             </Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Text style={styles.footer}>
+              {company.name} • {company.address}
+              <br />
+              This email was sent to {email}
             </Text>
           </Container>
         </Body>
@@ -155,48 +218,45 @@ export function VerificationEmailTemplate({
  */
 export function PasswordResetEmailTemplate({
   name,
+  email,
   resetUrl,
   expiresIn,
   ipAddress,
   userAgent,
-}: {
-  name: string;
-  email: string;
-  resetUrl: string;
-  expiresIn: string;
-  ipAddress?: string;
-  userAgent?: string;
-}) {
+}: PasswordResetEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
   return (
     <Html>
       <Head />
-      <Preview>Reset your Enterprise Dashboard password</Preview>
+      <Preview>Reset your {company.name} password</Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
-            <Heading style={heading}>Reset your password</Heading>
+            <Heading style={styles.heading}>Reset your password</Heading>
 
-            <Text style={paragraph}>Hi {name},</Text>
+            <Text style={styles.paragraph}>Hi {name},</Text>
 
-            <Text style={paragraph}>
-              We received a request to reset your password for your Enterprise Dashboard account.
-              Click the button below to create a new password:
+            <Text style={styles.paragraph}>
+              We received a request to reset your password for your {company.name} account. Click
+              the button below to create a new password:
             </Text>
 
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button style={buttonStyle} href={resetUrl}>
+              <Button style={styles.button} href={resetUrl}>
                 Reset Password
               </Button>
             </Section>
 
-            <Text style={paragraph}>Or copy and paste this URL into your browser:</Text>
+            <Text style={styles.paragraph}>Or copy and paste this URL into your browser:</Text>
             <Link
               href={resetUrl}
               style={{ color: '#3b82f6', fontSize: '14px', wordBreak: 'break-all' }}
@@ -204,39 +264,201 @@ export function PasswordResetEmailTemplate({
               {resetUrl}
             </Link>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               This password reset link will expire in {expiresIn}.
             </Text>
 
             {(ipAddress || userAgent) && (
-              <>
-                <Text style={{ ...paragraph, fontSize: '14px', fontWeight: 'bold' }}>
-                  Request Details:
+              <Section
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fee2e2',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  marginTop: '20px',
+                }}
+              >
+                <Text
+                  style={{ ...styles.paragraph, fontSize: '14px', fontWeight: 'bold', color: '#991b1b' }}
+                >
+                  Security Information:
                 </Text>
                 {ipAddress && (
-                  <Text style={{ ...paragraph, fontSize: '13px', margin: '5px 0' }}>
+                  <Text
+                    style={{ ...styles.paragraph, fontSize: '13px', margin: '5px 0', color: '#991b1b' }}
+                  >
                     IP Address: {ipAddress}
                   </Text>
                 )}
                 {userAgent && (
-                  <Text style={{ ...paragraph, fontSize: '13px', margin: '5px 0' }}>
+                  <Text
+                    style={{ ...styles.paragraph, fontSize: '13px', margin: '5px 0', color: '#991b1b' }}
+                  >
                     Browser: {userAgent}
                   </Text>
                 )}
-              </>
+                <Text
+                  style={{ ...styles.paragraph, fontSize: '13px', marginTop: '10px', color: '#991b1b' }}
+                >
+                  If you didn&apos;t request this, please secure your account immediately.
+                </Text>
+              </Section>
             )}
 
-            <Text style={{ ...paragraph, fontSize: '14px', color: '#ef4444' }}>
-              If you didn't request a password reset, please contact our support team immediately as
-              someone may be trying to access your account.
+            <Hr style={styles.hr} />
+
+            <Text style={styles.footer}>
+              {company.name} • {company.address}
+              <br />
+              This email was sent to {email}
+            </Text>
+          </Container>
+        </Body>
+      </Tailwind>
+    </Html>
+  );
+}
+
+/**
+ * Two-Factor Authentication Email Template
+ */
+export function TwoFactorEmailTemplate({ name, email, code, expiresIn }: TwoFactorEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
+  return (
+    <Html>
+      <Head />
+      <Preview>
+        Your {company.name} verification code: {code}
+      </Preview>
+
+      <Tailwind>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
+            <Img
+              src={`${baseUrl}/logo.png`}
+              width="48"
+              height="48"
+              alt={company.name}
+              style={styles.logo}
+            />
+            <Heading style={styles.heading}>Two-Factor Authentication</Heading>
+
+            <Text style={styles.paragraph}>Hi {name},</Text>
+
+            <Text style={styles.paragraph}>Your two-factor authentication code is:</Text>
+
+            <Section style={styles.codeBox}>{code}</Section>
+
+            <Text style={styles.paragraph}>
+              Enter this code in your browser to complete the sign-in process.
             </Text>
 
-            <Hr style={hr} />
+            <Text style={{ ...styles.paragraph, fontSize: '14px', color: '#ef4444' }}>
+              This code will expire in {expiresIn}.
+            </Text>
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Hr style={styles.hr} />
+
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
+              If you didn&apos;t attempt to sign in, someone may be trying to access your account.
+              Please change your password immediately and contact support.
+            </Text>
+
+            <Hr style={styles.hr} />
+
+            <Text style={styles.footer}>
+              {company.name} • Security Alert
+              <br />
+              This email was sent to {email}
+            </Text>
+          </Container>
+        </Body>
+      </Tailwind>
+    </Html>
+  );
+}
+
+/**
+ * Account Locked Email Template
+ */
+export function AccountLockedEmailTemplate({
+  name,
+  email,
+  reason,
+  unlockUrl,
+  supportUrl,
+  lockedAt,
+}: AccountLockedEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
+  return (
+    <Html>
+      <Head />
+      <Preview>Your {company.name} account has been locked</Preview>
+      <Tailwind>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
+            <Img
+              src={`${baseUrl}/logo.png`}
+              width="48"
+              height="48"
+              alt={company.name}
+              style={styles.logo}
+            />
+            <Heading style={styles.heading}>Account Security Alert</Heading>
+
+            <Text style={styles.paragraph}>Hi {name},</Text>
+
+            <Section
+              style={{
+                backgroundColor: '#fef2f2',
+                border: '1px solid #fee2e2',
+                borderRadius: '6px',
+                padding: '16px',
+                marginTop: '20px',
+                marginBottom: '20px',
+              }}
+            >
+              <Text style={{ ...styles.paragraph, fontWeight: 'bold', color: '#991b1b' }}>
+                Your account has been locked
+              </Text>
+              <Text style={{ ...styles.paragraph, color: '#991b1b', marginBottom: '5px' }}>
+                Reason: {reason}
+              </Text>
+              <Text style={{ ...styles.paragraph, fontSize: '14px', color: '#991b1b', marginBottom: 0 }}>
+                Locked at: {lockedAt}
+              </Text>
+            </Section>
+
+            <Text style={styles.paragraph}>
+              To unlock your account, please follow the security verification process:
+            </Text>
+
+            <Section style={{ textAlign: 'center', margin: '32px 0' }}>
+              <Button style={styles.button} href={unlockUrl}>
+                Unlock Account
+              </Button>
+            </Section>
+
+            <Text style={styles.paragraph}>If you need assistance, please contact our support team:</Text>
+
+            <Section style={{ textAlign: 'center', marginTop: '20px' }}>
+              <Button style={{ ...styles.button, backgroundColor: '#6b7280' }} href={supportUrl}>
+                Contact Support
+              </Button>
+            </Section>
+
+            <Hr style={styles.hr} />
+
+            <Text style={styles.footer}>
+              {company.name} • Security Team
+              <br />
+              This email was sent to {email}
             </Text>
           </Container>
         </Body>
@@ -248,74 +470,64 @@ export function PasswordResetEmailTemplate({
 /**
  * Welcome Email Template
  */
-export function WelcomeEmailTemplate({
-  name,
-  email,
-  loginUrl,
-  features,
-}: {
-  name: string;
-  email: string;
-  loginUrl: string;
-  features: string[];
-}) {
+export function WelcomeEmailTemplate({ name, email, loginUrl, features }: WelcomeEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
   return (
     <Html>
       <Head />
-      <Preview>Welcome to Enterprise Dashboard!</Preview>
+      <Preview>Welcome to {company.name}!</Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
-            <Heading style={heading}>Welcome to Enterprise Dashboard! 🎉</Heading>
+            <Heading style={styles.heading}>Welcome to {company.name}! 🎉</Heading>
 
-            <Text style={paragraph}>Hi {name},</Text>
+            <Text style={styles.paragraph}>Hi {name},</Text>
 
-            <Text style={paragraph}>
-              Your account has been successfully created. We're excited to have you on board!
+            <Text style={styles.paragraph}>
+              Your account has been successfully created. We&apos;re excited to have you on board!
             </Text>
 
-            <Text style={paragraph}>With Enterprise Dashboard, you can:</Text>
+            <Text style={styles.paragraph}>With {company.name}, you can:</Text>
 
             <ul style={{ paddingLeft: '20px' }}>
               {features.map((feature, index) => (
-                <li key={index} style={{ ...paragraph, margin: '8px 0' }}>
+                <li key={index} style={{ ...styles.paragraph, margin: '8px 0' }}>
                   {feature}
                 </li>
               ))}
             </ul>
 
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-              <Button style={buttonStyle} href={loginUrl}>
+              <Button style={styles.button} href={loginUrl}>
                 Get Started
               </Button>
             </Section>
 
-            <Text style={paragraph}>
+            <Text style={styles.paragraph}>
               <strong>Your login details:</strong>
             </Text>
-            <Text style={{ ...paragraph, margin: '5px 0' }}>Email: {email}</Text>
+            <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Email: {email}</Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               Need help getting started? Check out our{' '}
-              <Link
-                href={`${process.env['NEXT_PUBLIC_APP_URL']}/help`}
-                style={{ color: '#3b82f6' }}
-              >
+              <Link href={`${baseUrl}/help`} style={{ color: '#3b82f6' }}>
                 Help Center
               </Link>{' '}
               or reply to this email.
             </Text>
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               Follow us on{' '}
               <Link href="https://twitter.com/enterprise" style={{ color: '#3b82f6' }}>
                 Twitter
@@ -327,10 +539,10 @@ export function WelcomeEmailTemplate({
               for updates and tips.
             </Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Text style={styles.footer}>
+              {company.name}, Inc. • {company.address}
             </Text>
           </Container>
         </Body>
@@ -352,23 +564,10 @@ export function InvoiceEmailTemplate({
   viewUrl,
   downloadUrl,
   items,
-}: {
-  recipientName: string;
-  recipientEmail: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  totalAmount: string;
-  currency: string;
-  viewUrl: string;
-  downloadUrl: string;
-  items: Array<{
-    description: string;
-    quantity: number;
-    unitPrice: string;
-    total: string;
-  }>;
-}) {
+}: InvoiceEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
   return (
     <Html>
       <Head />
@@ -376,20 +575,20 @@ export function InvoiceEmailTemplate({
         Invoice {invoiceNumber} - {totalAmount} {currency}
       </Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
-            <Heading style={heading}>Invoice {invoiceNumber}</Heading>
+            <Heading style={styles.heading}>Invoice {invoiceNumber}</Heading>
 
-            <Text style={paragraph}>Dear {recipientName},</Text>
+            <Text style={styles.paragraph}>Dear {recipientName},</Text>
 
-            <Text style={paragraph}>
+            <Text style={styles.paragraph}>
               Please find attached invoice {invoiceNumber} for your recent services.
             </Text>
 
@@ -403,31 +602,31 @@ export function InvoiceEmailTemplate({
             >
               <Row>
                 <Column>
-                  <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Invoice Number:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>{invoiceNumber}</Text>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{invoiceNumber}</Text>
                 </Column>
                 <Column>
-                  <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Invoice Date:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>{invoiceDate}</Text>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{invoiceDate}</Text>
                 </Column>
               </Row>
               <Row style={{ marginTop: '15px' }}>
                 <Column>
-                  <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Due Date:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>{dueDate}</Text>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{dueDate}</Text>
                 </Column>
                 <Column>
-                  <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Total Amount:
                   </Text>
                   <Text
-                    style={{ ...paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}
+                    style={{ ...styles.paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}
                   >
                     {totalAmount} {currency}
                   </Text>
@@ -437,7 +636,7 @@ export function InvoiceEmailTemplate({
 
             {items.length > 0 && (
               <>
-                <Text style={{ ...paragraph, fontWeight: 'bold', marginTop: '20px' }}>
+                <Text style={{ ...styles.paragraph, fontWeight: 'bold', marginTop: '20px' }}>
                   Invoice Items:
                 </Text>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -478,14 +677,14 @@ export function InvoiceEmailTemplate({
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
               <Row>
                 <Column>
-                  <Button style={{ ...buttonStyle, marginRight: '10px' }} href={viewUrl}>
+                  <Button style={{ ...styles.button, marginRight: '10px' }} href={viewUrl}>
                     View Invoice Online
                   </Button>
                 </Column>
                 <Column>
                   <Button
                     style={{
-                      ...buttonStyle,
+                      ...styles.button,
                       backgroundColor: '#10b981',
                       marginLeft: '10px',
                     }}
@@ -497,22 +696,22 @@ export function InvoiceEmailTemplate({
               </Row>
             </Section>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               Payment terms: Payment due within 30 days of invoice date.
             </Text>
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               For questions about this invoice, please contact our billing department.
             </Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Text style={styles.footer}>
+              {company.name} • {company.address}
               <br />
-              Tax ID: B12345678 • billing@enterprise-dashboard.com
+              {company.taxId && <> Tax ID: {company.taxId} • </>}{company.billingEmail}
             </Text>
           </Container>
         </Body>
@@ -531,39 +730,29 @@ export function LoadingOrderEmailTemplate({
   services,
   viewUrl,
   downloadUrl,
-}: {
-  recipientName: string;
-  recipientEmail: string;
-  orderNumber: string;
-  orderDate: string;
-  services: Array<{
-    serviceNumber: string;
-    description: string;
-    origin: string;
-    destination: string;
-  }>;
-  viewUrl: string;
-  downloadUrl: string;
-}) {
+}: LoadingOrderEmailData) {
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
   return (
     <Html>
       <Head />
       <Preview>Loading Order {orderNumber}</Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
-            <Heading style={heading}>Loading Order {orderNumber}</Heading>
+            <Heading style={styles.heading}>Loading Order {orderNumber}</Heading>
 
-            <Text style={paragraph}>Dear {recipientName},</Text>
+            <Text style={styles.paragraph}>Dear {recipientName},</Text>
 
-            <Text style={paragraph}>
+            <Text style={styles.paragraph}>
               Your loading order {orderNumber} has been generated and is ready for review.
             </Text>
 
@@ -575,17 +764,17 @@ export function LoadingOrderEmailTemplate({
                 margin: '20px 0',
               }}
             >
-              <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+              <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                 Order Details:
               </Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>Order Number: {orderNumber}</Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>Date: {orderDate}</Text>
-              <Text style={{ ...paragraph, margin: '5px 0' }}>Services: {services.length}</Text>
+              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Order Number: {orderNumber}</Text>
+              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Date: {orderDate}</Text>
+              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Services: {services.length}</Text>
             </Section>
 
             {services.length > 0 && (
               <>
-                <Text style={{ ...paragraph, fontWeight: 'bold', marginTop: '20px' }}>
+                <Text style={{ ...styles.paragraph, fontWeight: 'bold', marginTop: '20px' }}>
                   Services Included:
                 </Text>
                 {services.map((service, index) => (
@@ -597,11 +786,11 @@ export function LoadingOrderEmailTemplate({
                       marginBottom: '15px',
                     }}
                   >
-                    <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
+                    <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                       {service.serviceNumber}
                     </Text>
-                    <Text style={{ ...paragraph, margin: '5px 0' }}>{service.description}</Text>
-                    <Text style={{ ...paragraph, margin: '5px 0', fontSize: '14px' }}>
+                    <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{service.description}</Text>
+                    <Text style={{ ...styles.paragraph, margin: '5px 0', fontSize: '14px' }}>
                       Route: {service.origin} → {service.destination}
                     </Text>
                   </Section>
@@ -612,14 +801,14 @@ export function LoadingOrderEmailTemplate({
             <Section style={{ textAlign: 'center', margin: '32px 0' }}>
               <Row>
                 <Column>
-                  <Button style={{ ...buttonStyle, marginRight: '10px' }} href={viewUrl}>
+                  <Button style={{ ...styles.button, marginRight: '10px' }} href={viewUrl}>
                     View Order Online
                   </Button>
                 </Column>
                 <Column>
                   <Button
                     style={{
-                      ...buttonStyle,
+                      ...styles.button,
                       backgroundColor: '#10b981',
                       marginLeft: '10px',
                     }}
@@ -631,16 +820,16 @@ export function LoadingOrderEmailTemplate({
               </Row>
             </Section>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               For questions about this loading order, please contact our operations team.
             </Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Text style={styles.footer}>
+              {company.name}, Inc. • {company.address}
             </Text>
           </Container>
         </Body>
@@ -659,14 +848,7 @@ export function NotificationEmailTemplate({
   actionUrl,
   actionLabel,
   type,
-}: {
-  recipientName: string;
-  title: string;
-  message: string;
-  actionUrl?: string;
-  actionLabel?: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-}) {
+}: NotificationEmailData) {
   const typeColors = {
     info: '#3b82f6',
     success: '#10b981',
@@ -681,19 +863,22 @@ export function NotificationEmailTemplate({
     error: '❌',
   };
 
+  const company = getCompanyDetails();
+  const baseUrl = getBaseUrl();
+
   return (
     <Html>
       <Head />
       <Preview>{title}</Preview>
       <Tailwind>
-        <Body style={main}>
-          <Container style={container}>
+        <Body style={styles.main}>
+          <Container style={styles.container}>
             <Img
-              src={`${process.env['NEXT_PUBLIC_APP_URL']}/logo.png`}
+              src={`${baseUrl}/logo.png`}
               width="48"
               height="48"
-              alt="Enterprise Dashboard"
-              style={logo}
+              alt={company.name}
+              style={styles.logo}
             />
 
             <Section
@@ -703,20 +888,20 @@ export function NotificationEmailTemplate({
                 marginTop: '20px',
               }}
             >
-              <Heading style={heading}>
+              <Heading style={styles.heading}>
                 {typeEmojis[type]} {title}
               </Heading>
             </Section>
 
-            <Text style={paragraph}>Hi {recipientName},</Text>
+            <Text style={styles.paragraph}>Hi {recipientName},</Text>
 
-            <Text style={paragraph}>{message}</Text>
+            <Text style={styles.paragraph}>{message}</Text>
 
             {actionUrl && actionLabel && (
               <Section style={{ textAlign: 'center', margin: '32px 0' }}>
                 <Button
                   style={{
-                    ...buttonStyle,
+                    ...styles.button,
                     backgroundColor: typeColors[type],
                   }}
                   href={actionUrl}
@@ -726,27 +911,24 @@ export function NotificationEmailTemplate({
               </Section>
             )}
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
-              This is an automated notification from Enterprise Dashboard.
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
+              This is an automated notification from {company.name}.
             </Text>
 
-            <Text style={{ ...paragraph, fontSize: '14px' }}>
+            <Text style={{ ...styles.paragraph, fontSize: '14px' }}>
               To manage your notification preferences, visit your{' '}
-              <Link
-                href={`${process.env['NEXT_PUBLIC_APP_URL']}/settings/notifications`}
-                style={{ color: '#3b82f6' }}
-              >
+              <Link href={`${baseUrl}/settings/notifications`} style={{ color: '#3b82f6' }}>
                 account settings
               </Link>
               .
             </Text>
 
-            <Hr style={hr} />
+            <Hr style={styles.hr} />
 
-            <Text style={footer}>
-              Enterprise Dashboard, Inc. • 123 Business St • Madrid, Spain 28001
+            <Text style={styles.footer}>
+              {company.name}, Inc. • {company.address}
             </Text>
           </Container>
         </Body>
