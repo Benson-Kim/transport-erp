@@ -8,7 +8,10 @@ export const runtime = 'nodejs';
 import { hash, compare } from 'bcryptjs';
 import { addHours } from 'date-fns';
 import { UserRole } from '@/app/generated/prisma';
-import prisma from '../prisma/prisma';
+import prisma from '@/lib/prisma/prisma';
+
+import { emailService } from '../email';
+import { EmailTemplate } from '@/types/mail';
 
 /**
  * Password hashing configuration
@@ -329,6 +332,21 @@ export async function createUser(data: {
 
   // Generate verification token
   const verificationToken = await generateVerificationToken(user.email);
+
+  // Send verification email
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+
+  await emailService.sendTemplate(
+    EmailTemplate.VERIFICATION,
+    user.email,
+    {
+      name: user.name || 'User',
+      email: user.email,
+      verificationUrl,
+      expiresIn: '24 hours',
+    }
+  );
 
   // Create audit log
   await prisma.auditLog.create({

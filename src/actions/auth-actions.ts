@@ -25,24 +25,57 @@ import {
   createUser,
   generatePasswordResetToken,
   resetPasswordWithToken,
-  generateVerificationToken,
   updatePassword,
   verifyEmailToken,
   regenerateVerificationToken,
 } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { sendVerificationEmail } from '@/lib/email';
+import prisma from '@/lib/prisma/prisma';
+
+import { EmailTemplate } from '@/types/mail';
+import { emailService } from '@/lib/email';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
+
+
+function getBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
 
 /**
  * Get client IP and user agent
  */
 export async function getClientInfo() {
   const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
+  const ipAddress = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || headersList.get('x-real-ip') || '';
   const userAgent = headersList.get('user-agent') || '';
-  return { ip, userAgent };
+  return { ipAddress, userAgent };
 }
+
+/**
+ * Extract error message from NextAuth AuthError
+ * authorize() throws specific Error messages which are nested inside AuthError
+ */
+function getAuthErrorMessage(error: AuthError): string {
+  // The original error from authorize() is nested in the cause chain
+  const cause = error.cause as { err?: Error } | undefined;
+  const originalMessage = cause?.err?.message;
+
+  if (originalMessage) {
+    return originalMessage;
+  }
+
+  // Fallback for known error types
+  switch (error.type) {
+    case 'CredentialsSignin':
+      return 'Invalid email or password';
+    case 'AccessDenied':
+      return 'Access denied';
+    default:
+      return 'Authentication failed';
+  }
+}
+
 
 /**
  * Sign in with credentials
@@ -50,33 +83,26 @@ export async function getClientInfo() {
 export async function signInWithCredentials(data: LoginFormData) {
   try {
     const { email, password, rememberMe } = loginSchema.parse(data);
-    const { ip, userAgent } = await getClientInfo();
 
-    const result = await signIn('credentials', {
+    await signIn('credentials', {
       email,
       password,
-      rememberMe,
-      ip,
-      userAgent,
+      rememberMe: String(rememberMe ?? false),
       redirect: false,
     });
-
-    if (!result) {
-      return { success: false, error: 'Authentication failed' };
-    }
 
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return { success: false, error: 'Invalid email or password' };
-        case 'AccessDenied':
-          return { success: false, error: 'Access denied' };
-        default:
-          return { success: false, error: 'Authentication failed' };
-      }
+      return {
+        success: false,
+        error: getAuthErrorMessage(error)
+      };
     }
 
     console.error('Sign in error:', error);
@@ -99,14 +125,11 @@ export async function registerUser(data: RegisterFormData) {
     const validatedData = registerSchema.parse(data);
 
     // Create user account
-    const { user, verificationToken } = await createUser({
+    await createUser({
       email: validatedData.email,
       password: validatedData.password,
       name: validatedData.name,
     });
-
-    // Send verification email
-    await sendVerificationEmail(user.email, verificationToken);
 
     return {
       success: true,
@@ -134,17 +157,33 @@ export async function signOutUser() {
  */
 export async function requestPasswordReset(data: ForgotPasswordFormData) {
   try {
-    const validatedData = forgotPasswordSchema.parse(data);
+    const { email } = forgotPasswordSchema.parse(data);
+    const { ipAddress, userAgent } = await getClientInfo();
+    const baseUrl = getBaseUrl();
 
-    // Generate reset token (doesn't reveal if email exists)
-    const token = await generatePasswordResetToken(validatedData.email);
 
-    if (token) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { name: true },
+    });
+
+    const token = await generatePasswordResetToken(email);
+
+    if (token && user) {
       // Send password reset email
-      // await sendPasswordResetEmail(validatedData.email, token);
+      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+      await emailService.sendTemplate(EmailTemplate.PASSWORD_RESET, email,
+        {
+          name: user.name || 'User',
+          email,
+          resetUrl,
+          expiresIn: '1 hour',
+          ipAddress,
+          userAgent,
+        }
+      )
     }
 
-    // Always return success to prevent email enumeration
     return {
       success: true,
       message: 'If an account exists with this email, you will receive a password reset link.',
@@ -160,9 +199,9 @@ export async function requestPasswordReset(data: ForgotPasswordFormData) {
  */
 export async function resetPassword(token: string, data: ResetPasswordFormData) {
   try {
-    const validatedData = resetPasswordSchema.parse(data);
+    const { password } = resetPasswordSchema.parse(data);
 
-    const result = await resetPasswordWithToken(token, validatedData.password);
+    const result = await resetPasswordWithToken(token, password);
 
     if (!result.success) {
       return { success: false, error: result.error || 'Failed to reset password' };
@@ -240,13 +279,28 @@ export async function verifyEmail(token: string) {
  */
 export async function resendVerificationEmail(data: ForgotPasswordFormData) {
   try {
-    const validatedData = forgotPasswordSchema.parse(data);
-
-    const result = await regenerateVerificationToken(validatedData.email);
+    const { email } = forgotPasswordSchema.parse(data);
+    const baseUrl = getBaseUrl();
+    const result = await regenerateVerificationToken(email);
 
     if (result) {
-      // TODO: Send verification email
-      // await sendVerificationEmail(result.email, result.token);
+      const verificationUrl = `${baseUrl}/verify-email?token=${result.token}`;
+
+      // Get user name for template
+      const user = await prisma.user.findUnique({
+        where: { email: result.email },
+        select: { name: true },
+      });
+
+      await emailService.sendTemplate(
+        EmailTemplate.VERIFICATION,
+        result.email,
+        {
+          name: user?.name || 'User',
+          email: result.email,
+          verificationUrl,
+          expiresIn: '24 hours',
+        })
     }
 
     return {
