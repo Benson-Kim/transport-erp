@@ -12,6 +12,7 @@ import { CheckCircle, XCircle } from 'lucide-react';
 import { getServerAuth, verifyEmailToken } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
+import { AuthFormFooter } from '@/components/features/auth';
 
 export const metadata: Metadata = {
   title: 'Verify Email | Enterprise Dashboard',
@@ -64,7 +65,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
   // success
   return (
     <VerifyEmailLayout>
-      <SuccessState email={result.email} />
+      <SuccessState {...(result.email ? { email: result.email } : {})} />
     </VerifyEmailLayout>
   );
 }
@@ -151,12 +152,14 @@ function ErrorState({
           </Button>
         )}
 
-        <Button asChild variant="ghost" className="w-full">
+        <AuthFormFooter />
+
+        {/* <Button asChild variant="ghost" className="w-full">
           <Link href="/login">Back to sign in</Link>
         </Button>
-      </div>
-
-      <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+        </div>
+        
+        <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
         Need help?{' '}
         <Link
           href="/support"
@@ -164,7 +167,9 @@ function ErrorState({
         >
           Contact support
         </Link>
-      </p>
+      </p> */}
+      </div>
+
     </div>
   );
 }

@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { Mail } from 'lucide-react';
 
 import { Logo } from '@/components/ui/Logo';
-import { Button } from '@/components/ui';
+import { AuthFormFooter } from '@/components/features/auth';
 
 export const metadata: Metadata = {
   title: 'Check Your Email | Enterprise Dashboard',
@@ -72,7 +72,9 @@ export default async function CheckEmailPage({
               </p>
             </div>
 
-            <Button asChild variant="ghost" className="w-full">
+            <AuthFormFooter />
+
+            {/* <Button asChild variant="ghost" className="w-full">
               <Link href="/login">Back to sign in</Link>
             </Button>
 
@@ -84,7 +86,7 @@ export default async function CheckEmailPage({
               >
                 Contact support
               </Link>
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

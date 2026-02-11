@@ -4,7 +4,6 @@
  */
 
 import { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { getServerAuth } from '@/lib/auth';
@@ -41,25 +40,6 @@ export default async function ForgotPasswordPage() {
         {/* Forgot Password Card */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
           <ForgotPasswordForm />
-
-          {/* Links */}
-          <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
-            <Link
-              href="/login"
-              className="text-primary-600 hover:text-primary-500 dark:text-primary-400"
-            >
-              Back to sign in
-            </Link>
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-              >
-                Sign up
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

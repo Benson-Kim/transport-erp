@@ -9,7 +9,7 @@ import { redirect } from 'next/navigation';
 
 import { getServerAuth } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
-import { ResetPasswordForm } from '@/components/features/auth';
+import { AuthFormFooter, ResetPasswordForm } from '@/components/features/auth';
 
 export const metadata: Metadata = {
   title: 'Reset Password | Enterprise Dashboard',
@@ -86,6 +86,9 @@ export default async function ResetPasswordPage({
           <ResetPasswordForm token={token} />
 
           {/* Links */}
+
+          <AuthFormFooter hideSupportLink />
+          {/* 
           <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
             <Link
               href="/login"
@@ -93,7 +96,7 @@ export default async function ResetPasswordPage({
             >
               Back to sign in
             </Link>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

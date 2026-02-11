@@ -9,7 +9,7 @@ import { useState } from 'react';
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 import { requestPasswordReset } from '@/actions/auth-actions';
 import {
@@ -17,7 +17,7 @@ import {
     forgotPasswordSchema,
 } from '@/lib/validations/auth-schema';
 import { Button, FormField, Input } from '@/components/ui';
-import Link from 'next/link';
+import { AuthFormFooter } from './auth-forms-footer';
 
 export function ForgotPasswordForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -76,28 +76,8 @@ export function ForgotPasswordForm() {
                     </p>
                 </div>
 
-                {/* Back to Login */}
-                <Button
-                    asChild
-                    variant="ghost"
-                    className="w-full"
-                >
-                    <Link href="/login">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to sign in
-                    </Link>
-                </Button>
+                <AuthFormFooter />
 
-                {/* Footer */}
-                <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-                    Need help?{' '}
-                    <Link
-                        href="/support"
-                        className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-                    >
-                        Contact support
-                    </Link>
-                </p>
             </div>
         );
     }
@@ -138,30 +118,11 @@ export function ForgotPasswordForm() {
                     Send Reset Link
                 </Button>
 
-                {/* Back to Login */}
-                <Button
-                    asChild
-                    variant="ghost"
-                    className="w-full"
-                >
-                    <Link href="/login">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to sign in
-                    </Link>
-                </Button>
+                <AuthFormFooter />
 
-                {/* Footer */}
-                <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-                    Need help?{' '}
-                    <Link
-                        href="/support"
-                        className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-                    >
-                        Contact support
-                    </Link>
-                </p>
             </form>
 
         </div>
     );
 }
+
