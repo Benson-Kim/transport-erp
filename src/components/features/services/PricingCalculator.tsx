@@ -48,7 +48,11 @@ const getCurrencySymbol = (currency: string) => {
   return curr?.icon || '€';
 };
 
-export function PricingCalculator({ form, margin, marginPercent }: PricingCalculatorProps) {
+export function PricingCalculator({
+  form,
+  margin,
+  marginPercent,
+}: Readonly<PricingCalculatorProps>) {
   const {
     control,
     watch,
@@ -387,7 +391,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
 
           {/* Margin Percentage */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               Margin %
               <Tooltip content="(Sale - Cost) / Sale × 100">
                 <Info className="h-3 w-3 ml-1" />
@@ -409,7 +413,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
 
           {/* Markup */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               Markup %
               <Tooltip content="(Sale - Cost) / Cost × 100">
                 <Info className="h-3 w-3 ml-1" />
@@ -422,7 +426,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
 
           {/* ROI */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               ROI
               <Tooltip content="Return on Investment">
                 <Info className="h-3 w-3 ml-1" />

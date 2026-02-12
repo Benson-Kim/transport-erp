@@ -7,14 +7,7 @@
 
 import { useState } from 'react';
 import { UserRole } from '@/app/generated/prisma';
-import {
-  Trash2,
-  CheckCircle,
-  FileText,
-  // X,
-  AlertTriangle,
-  Info,
-} from 'lucide-react';
+import { Trash2, CheckCircle, FileText, AlertTriangle, Info } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
 import {
   bulkUpdateServices,
@@ -39,13 +32,12 @@ export function BulkActions({
   onClear,
   userRole,
   className,
-}: BulkActionsProps) {
+}: Readonly<BulkActionsProps>) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
-  // const canEdit = hasPermission(userRole, 'services', 'edit');
   const canDelete = hasPermission(userRole, 'services', 'delete');
   const canMarkCompleted = hasPermission(userRole, 'services', 'mark_completed');
   const canGenerateOrders = hasPermission(userRole, 'loading_orders', 'create');
@@ -55,7 +47,7 @@ export function BulkActions({
     try {
       await bulkUpdateServices(selectedIds, { status: 'COMPLETED' });
       toast.success(
-        `${selectedCount} service${selectedCount !== 1 ? 's' : ''} marked as completed`
+        `${selectedCount} service${selectedCount === 1 ? '' : 's'} marked as completed`
       );
       onClear();
     } catch (error) {
@@ -70,7 +62,7 @@ export function BulkActions({
     setIsProcessing(true);
     try {
       const result = await generateBulkLoadingOrders(selectedIds);
-      toast.success(`Generated ${result.count} loading order${result.count !== 1 ? 's' : ''}`);
+      toast.success(`Generated ${result.count} loading order${result.count === 1 ? '' : 's'}`);
       onClear();
     } catch (error) {
       toast.error('Failed to generate loading orders');
@@ -89,7 +81,7 @@ export function BulkActions({
     setIsDeleting(true);
     try {
       await bulkDeleteServices(selectedIds);
-      toast.success(`${selectedCount} service${selectedCount !== 1 ? 's' : ''} deleted`);
+      toast.success(`${selectedCount} service${selectedCount === 1 ? '' : 's'} deleted`);
       onClear();
       setShowDeleteDialog(false);
       setDeleteConfirmText('');
@@ -176,7 +168,7 @@ export function BulkActions({
         isOpen={showDeleteDialog}
         onClose={handleCloseDeleteDialog}
         title="Confirm Bulk Deletion"
-        description={`You are about to permanently delete ${selectedCount} service${selectedCount !== 1 ? 's' : ''}. This action cannot be undone.`}
+        description={`You are about to permanently delete ${selectedCount} service${selectedCount === 1 ? '' : 's'}. This action cannot be undone.`}
         size="md"
         closeOnEscape={!isDeleting}
         closeOnBackdrop={!isDeleting}
@@ -189,7 +181,7 @@ export function BulkActions({
                 <p className="font-medium">Warning: This will permanently delete the following:</p>
                 <ul className="list-disc list-inside text-sm space-y-1 ml-2">
                   <li>
-                    {selectedCount} service record{selectedCount !== 1 ? 's' : ''}
+                    {selectedCount} service record{selectedCount === 1 ? '' : 's'}
                   </li>
                   <li>All associated data and history</li>
                   <li>Related loading orders (if any)</li>
@@ -230,7 +222,7 @@ export function BulkActions({
             <div className="p-3 bg-neutral-50 rounded-lg">
               <p className="text-sm text-neutral-600">
                 You are deleting <span className="font-bold text-red-600">{selectedCount}</span>{' '}
-                service{selectedCount !== 1 ? 's' : ''}.
+                service{selectedCount === 1 ? '' : 's'}.
                 {selectedCount > 10 && (
                   <span className="block mt-1 text-xs text-red-600 font-medium">
                     This is a large number of services. Please double-check before proceeding.
@@ -253,13 +245,12 @@ export function BulkActions({
           >
             {isDeleting ? (
               <>
-                <span className="inline-block animate-spin mr-2">⏳</span>
-                Deleting...
+                <span className="inline-block animate-spin mr-2">⏳</span> Deleting...
               </>
             ) : (
               <>
                 <Trash2 className="mr-1.5 h-4 w-4" />
-                Delete {selectedCount} Service{selectedCount !== 1 ? 's' : ''}
+                Delete {selectedCount} Service{selectedCount === 1 ? '' : 's'}
               </>
             )}
           </Button>

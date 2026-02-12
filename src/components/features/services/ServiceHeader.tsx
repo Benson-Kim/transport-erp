@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { UserRole } from '@/app/generated/prisma';
 import { Button, Badge, DropdownMenu, DropdownMenuItem } from '@/components/ui';
-// import { ServiceActions } from './ServiceActions';
 import { hasPermission } from '@/lib/permissions';
 import {
   Edit,
@@ -29,7 +28,7 @@ interface ServiceHeaderProps {
   userId: string;
 }
 
-export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
+export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps>) {
   const router = useRouter();
   const [serviceActionType, setServiceActionType] = useState<string | null>(null);
   const [showServiceAction, setShowServiceAction] = useState(false);
@@ -44,7 +43,7 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
   const isCancelled = service.status === 'CANCELLED';
 
   const handlePrint = () => {
-    window.print();
+    globalThis.print();
   };
 
   const handleShare = async () => {
@@ -52,11 +51,11 @@ export function ServiceHeader({ service, userRole }: ServiceHeaderProps) {
       await navigator.share({
         title: `Service ${service.serviceNumber}`,
         text: `Service details for ${service.serviceNumber}`,
-        url: window.location.href,
+        url: globalThis.location.href,
       });
     } else {
       // Fallback - copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(globalThis.location.href);
       // Show toast notification
     }
   };

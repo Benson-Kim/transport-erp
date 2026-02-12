@@ -3,8 +3,7 @@
  * Handles all email sending functionality with multiple provider support
  */
 
-import nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 import { render } from '@react-email/components';
 
 import {
@@ -16,16 +15,23 @@ import {
   NotificationEmailTemplate,
 } from './email-templates';
 import { EmailConfig, emailConfigSchema } from '../validations/mail-schema';
-import { EmailOptions, InvoiceEmailData, LoadingOrderEmailData, NotificationEmailData, PasswordResetEmailData, VerificationEmailData, WelcomeEmailData } from '@/types/mail';
-
+import {
+  EmailOptions,
+  InvoiceEmailData,
+  LoadingOrderEmailData,
+  NotificationEmailData,
+  PasswordResetEmailData,
+  VerificationEmailData,
+  WelcomeEmailData,
+} from '@/types/mail';
 
 /**
  * Email Service Class
  */
 class EmailService {
   private transporter: Transporter | null = null;
-  private config: EmailConfig;
-  private emailQueue: EmailOptions[] = [];
+  private readonly config: EmailConfig;
+  private readonly emailQueue: EmailOptions[] = [];
   private processing = false;
   private initPromise: Promise<void> | null = null;
   private initialized = false;
@@ -39,10 +45,7 @@ class EmailService {
       return;
     }
 
-    // Prevent multiple concurrent initializations
-    if (!this.initPromise) {
-      this.initPromise = this.initializeTransporter();
-    }
+    this.initPromise ??= this.initializeTransporter();
 
     await this.initPromise;
     this.initialized = true;
@@ -58,7 +61,7 @@ class EmailService {
       provider: (process.env['EMAIL_PROVIDER'] as EmailConfig['provider']) || 'smtp',
       smtp: {
         host: process.env['EMAIL_SERVER_HOST'] || 'localhost',
-        port: parseInt(process.env['EMAIL_SERVER_PORT'] || '587'),
+        port: Number.parseInt(process.env['EMAIL_SERVER_PORT'] || '587'),
         secure: process.env['EMAIL_SERVER_PORT'] === '465',
         auth: {
           user: process.env['EMAIL_SERVER_USER'] || '',
@@ -94,7 +97,7 @@ class EmailService {
     try {
       switch (this.config.provider) {
         case 'smtp':
-          this.transporter = nodemailer.createTransport(this.config.smtp!);
+          this.transporter = nodemailer.createTransport(this.config.smtp);
           break;
 
         case 'sendgrid':
@@ -171,7 +174,6 @@ class EmailService {
     options: EmailOptions
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     try {
-
       await this.ensureInitialized();
 
       if (!this.transporter) {
@@ -179,22 +181,17 @@ class EmailService {
       }
 
       // Prepare email options
+      const email_cc = Array.isArray(options.cc) ? options.cc.join(', ') : options.cc;
+      const email_bcc = Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc;
+
       const mailOptions = {
         from: this.config.from,
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
         html: options.html,
         text: options.text || this.extractTextFromHtml(options.html || ''),
-        cc: options.cc
-          ? Array.isArray(options.cc)
-            ? options.cc.join(', ')
-            : options.cc
-          : undefined,
-        bcc: options.bcc
-          ? Array.isArray(options.bcc)
-            ? options.bcc.join(', ')
-            : options.bcc
-          : undefined,
+        cc: options.cc ? email_cc : undefined,
+        bcc: options.bcc ? email_bcc : undefined,
         replyTo: options.replyTo || this.config.replyTo,
         attachments: options.attachments,
         headers: options.headers,
@@ -282,10 +279,10 @@ class EmailService {
   private extractTextFromHtml(html: string): string {
     // Simple HTML to text conversion
     return html
-      .replace(/<style[^>]*>.*?<\/style>/gi, '')
-      .replace(/<script[^>]*>.*?<\/script>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
+      .replaceAll(/<style[^>]*>.*?<\/style>/gi, '')
+      .replaceAll(/<script[^>]*>.*?<\/script>/gi, '')
+      .replaceAll(/<[^>]+>/g, ' ')
+      .replaceAll(/\s+/g, ' ')
       .trim();
   }
 

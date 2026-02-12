@@ -22,7 +22,7 @@ export function Tooltip({
   position = 'top',
   delay = 200,
   className,
-}: TooltipProps) {
+}: Readonly<TooltipProps>) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -121,10 +121,10 @@ export function Tooltip({
             <div
               className={cn(
                 'absolute w-2 h-2 bg-neutral-900 transform rotate-45',
-                position === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2',
-                position === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2',
-                position === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2',
-                position === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2'
+                position === 'top' && '-bottom-1 left-1/2 -translate-x-1/2',
+                position === 'bottom' && '-top-1 left-1/2 -translate-x-1/2',
+                position === 'left' && '-right-1 top-1/2 -translate-y-1/2',
+                position === 'right' && '-left-1 top-1/2 -translate-y-1/2'
               )}
             />
           </div>,

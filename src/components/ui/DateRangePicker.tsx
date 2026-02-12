@@ -100,7 +100,7 @@ export function DateRangePicker({
   maxDate,
   minDate,
   disabled = false,
-}: DateRangePickerProps) {
+}: Readonly<DateRangePickerProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [localFrom, setLocalFrom] = useState(from || '');
   const [localTo, setLocalTo] = useState(to || '');
@@ -260,7 +260,7 @@ export function DateRangePicker({
               className={cn(
                 'flex-1 px-4 py-2.5 text-sm font-medium transition-colors',
                 activeTab === 'preset'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[2px]'
+                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-0.5'
                   : 'text-neutral-600 hover:text-neutral-900'
               )}
             >
@@ -272,7 +272,7 @@ export function DateRangePicker({
               className={cn(
                 'flex-1 px-4 py-2.5 text-sm font-medium transition-colors',
                 activeTab === 'custom'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[2px]'
+                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-0.5'
                   : 'text-neutral-600 hover:text-neutral-900'
               )}
             >
@@ -310,10 +310,14 @@ export function DateRangePicker({
             ) : (
               <div className="space-y-4 w-80">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  <label
+                    htmlFor="fromDate"
+                    className="block text-sm font-medium text-neutral-700 mb-1.5"
+                  >
                     From Date
                   </label>
                   <input
+                    id="fromDate"
                     type="date"
                     value={localFrom}
                     onChange={(e) => setLocalFrom(e.target.value)}
@@ -328,10 +332,14 @@ export function DateRangePicker({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  <label
+                    htmlFor="toDate"
+                    className="block text-sm font-medium text-neutral-700 mb-1.5"
+                  >
                     To Date
                   </label>
                   <input
+                    id="toDate"
                     type="date"
                     value={localTo}
                     onChange={(e) => setLocalTo(e.target.value)}
@@ -354,7 +362,7 @@ export function DateRangePicker({
                           (new Date(localTo).getTime() - new Date(localFrom).getTime()) /
                             (1000 * 60 * 60 * 24)
                         ) + 1;
-                      return `${days} day${days !== 1 ? 's' : ''} selected`;
+                      return `${days} day${days === 1 ? '' : 's'} selected`;
                     })()}
                   </div>
                 )}

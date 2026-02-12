@@ -28,7 +28,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
     const [inputValue, setInputValue] = useState(props.value || '');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let value = e.target.value.replace(/[^\d:]/g, '');
+      let value = e.target.value.replaceAll(/[^\d:]/g, '');
 
       // Auto-format as user types
       if (value.length === 2 && !value.includes(':')) {
@@ -47,13 +47,13 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
       }
     };
 
-    const placeholder = showSeconds
-      ? format === '12'
-        ? 'HH:MM:SS AM/PM'
-        : 'HH:MM:SS'
-      : format === '12'
-        ? 'HH:MM AM/PM'
-        : 'HH:MM';
+    let placeholder: string;
+
+    if (showSeconds) {
+      placeholder = format === '12' ? 'HH:MM:SS AM/PM' : 'HH:MM:SS';
+    } else {
+      placeholder = format === '12' ? 'HH:MM AM/PM' : 'HH:MM';
+    }
 
     return (
       <div className="relative w-full">

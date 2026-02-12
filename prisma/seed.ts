@@ -21,15 +21,16 @@ import {
   User,
 } from '@/app/generated/prisma';
 import { hash } from 'bcryptjs';
+import crypto from 'crypto';
 import { addDays, subDays } from 'date-fns';
 
 const prisma = new PrismaClient();
 
 interface SeedUsers {
-  admin: User,
-  manager: User,
-  accountant: User,
-  operator: User,
+  admin: User;
+  manager: User;
+  accountant: User;
+  operator: User;
 }
 
 /**
@@ -56,6 +57,15 @@ function randomDecimal(min: number, max: number, decimals: number = 2): number {
  */
 function randomDate(start: Date, end: Date): Date {
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
+/**
+ * Generate random integer between 0 (inclusive) and max (exclusive)
+ * @param max
+ * @returns
+ */
+function getRandomInt(max: number): number {
+  return crypto.randomInt(max);
 }
 
 /**
@@ -95,20 +105,48 @@ async function cleanDatabase(): Promise<void> {
  * @returns Object containing created user records for admin, manager, accountant, and operator
  */
 async function createUsers(): Promise<SeedUsers> {
-
   console.log('Creating users...');
   const hashedPassword = await hash('password123', 12);
 
   const userData = [
-    { email: 'admin@example.com', name: 'Admin User', role: UserRole.ADMIN, department: 'Management', phone: '+34 600 123 456', lastLoginAt: new Date(), },
-    { email: 'manager@example.com', name: 'Manager User', role: UserRole.MANAGER, department: 'Operations', phone: '+34 600 234 567', },
-    { email: 'accountant@example.com', name: 'Accountant User', role: UserRole.ACCOUNTANT, department: 'Finance', phone: '+34 600 345 678', },
-    { email: 'operator@example.com', name: 'Operator User', role: UserRole.OPERATOR, department: 'Operations', phone: '+34 600 456 789', },
+    {
+      email: 'admin@example.com',
+      name: 'Admin User',
+      role: UserRole.ADMIN,
+      department: 'Management',
+      phone: '+34 600 123 456',
+      lastLoginAt: new Date(),
+    },
+    {
+      email: 'manager@example.com',
+      name: 'Manager User',
+      role: UserRole.MANAGER,
+      department: 'Operations',
+      phone: '+34 600 234 567',
+    },
+    {
+      email: 'accountant@example.com',
+      name: 'Accountant User',
+      role: UserRole.ACCOUNTANT,
+      department: 'Finance',
+      phone: '+34 600 345 678',
+    },
+    {
+      email: 'operator@example.com',
+      name: 'Operator User',
+      role: UserRole.OPERATOR,
+      department: 'Operations',
+      phone: '+34 600 456 789',
+    },
   ];
 
   const users = await prisma.$transaction(
     userData.map((data) =>
-      prisma.user.create({ data: { ...data, password: hashedPassword, emailVerified: new Date(), isActive: true } })))
+      prisma.user.create({
+        data: { ...data, password: hashedPassword, emailVerified: new Date(), isActive: true },
+      })
+    )
+  );
 
   return {
     admin: users[0]!,
@@ -176,7 +214,7 @@ async function createCompanies(): Promise<Company[]> {
 
 /**
  *  Create sample clients with realistic data and return references for later use
- * @param companies 
+ * @param companies
  * @returns Array of created client records
  */
 async function createClient(companies: Company[]): Promise<Client[]> {
@@ -295,7 +333,7 @@ async function createClient(companies: Company[]): Promise<Client[]> {
 
 /**
  *  Create sample suppliers with realistic data and return references for later use
- * @param companies 
+ * @param companies
  * @returns Array of created supplier records
  */
 async function createSuppliers(companies: Company[]): Promise<Supplier[]> {
@@ -379,16 +417,15 @@ async function createSuppliers(companies: Company[]): Promise<Supplier[]> {
 
 /**
  *  Create sample services with realistic data, including randomization for dates, amounts, and statuses. Also builds related status history records.
- * @param clients 
- * @param suppliers 
- * @param users 
+ * @param clients
+ * @param suppliers
+ * @param users
  */
 async function createServices(
   clients: Client[],
   suppliers: Supplier[],
   users: SeedUsers
 ): Promise<Service[]> {
-
   console.log('Creating services ...');
 
   const currentDate = new Date();
@@ -397,8 +434,8 @@ async function createServices(
 
   for (let i = 1; i <= 50; i++) {
     const serviceDate = randomDate(startDate, currentDate);
-    const client = clients[Math.floor(Math.random() * clients.length)];
-    const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+    const client = clients[getRandomInt(clients.length)];
+    const supplier = suppliers[getRandomInt(suppliers.length)];
     if (!client || !supplier) continue;
 
     const costAmount = randomDecimal(100, 2000);
@@ -412,14 +449,9 @@ async function createServices(
       ServiceStatus.COMPLETED,
     ];
     // bias: earlier services more likely to be completed
-    const status =
-      i < 30
-        ? statuses[Math.floor(Math.random() * 3)]
-        : statuses[Math.floor(Math.random() * statuses.length)];
+    const status = i < 30 ? statuses[getRandomInt(3)] : statuses[getRandomInt(statuses.length)];
     const completedAt =
-      status === ServiceStatus.COMPLETED
-        ? addDays(serviceDate, Math.floor(Math.random() * 3) + 1)
-        : null;
+      status === ServiceStatus.COMPLETED ? addDays(serviceDate, getRandomInt(3) + 1) : null;
 
     const origins = ['Madrid', 'Barcelona', 'Valencia', 'Sevilla'];
     const destinations = ['Bilbao', 'Zaragoza', 'Málaga', 'Lisboa'];
@@ -428,25 +460,22 @@ async function createServices(
     const drivers = ['Juan Pérez', 'María García', 'Carlos López', 'Ana Martínez'];
     const storeNames = ['Store A', 'Store B', 'Distribution Center', 'Customer Location'];
 
-
     serviceCreateInputs.push({
       serviceNumber: generateNumber('SRV', i),
       date: serviceDate,
       clientId: client.id,
       supplierId: supplier.id,
       createdById: users.operator.id,
-      assignedToId: Math.random() > 0.5 ? users.manager.id : users.operator.id,
-      description: `Transport service from warehouse to ${storeNames[Math.floor(Math.random() * 4)]}`,
+      assignedToId: getRandomInt(2) === 0 ? users.manager.id : users.operator.id,
+      description: `Transport service from warehouse to ${storeNames[getRandomInt(storeNames.length)]}`,
       reference:
-        Math.random() > 0.5
-          ? `PO-2024-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`
-          : null,
-      origin: origins[Math.floor(Math.random() * 4)],
-      destination: destinations[Math.floor(Math.random() * 4)],
-      distance: Math.floor(Math.random() * 500) + 50,
-      vehicleType: vehicleTypes[Math.floor(Math.random() * 4)],
-      vehiclePlate: `${String(Math.floor(Math.random() * 9999)).padStart(4, '0')} ${plateSuffixes[Math.floor(Math.random() * 4)]}`,
-      driverName: drivers[Math.floor(Math.random() * 4)],
+        Math.random() > 0.5 ? `PO-2024-${String(getRandomInt(10000)).padStart(4, '0')}` : null,
+      origin: origins[getRandomInt(origins.length)],
+      destination: destinations[getRandomInt(destinations.length)],
+      distance: getRandomInt(500) + 50,
+      vehicleType: vehicleTypes[getRandomInt(vehicleTypes.length)],
+      vehiclePlate: `${String(getRandomInt(10000)).padStart(4, '0')} ${plateSuffixes[getRandomInt(plateSuffixes.length)]}`,
+      driverName: drivers[getRandomInt(drivers.length)],
       costAmount,
       saleAmount,
       margin: Math.round((saleAmount - costAmount) * 100) / 100,
@@ -513,13 +542,10 @@ async function createServices(
 
 /**
  *  Create sample loading orders that group multiple completed services, and return references for later use. Each loading order will be associated with 2-3 completed services.
- * @param services 
- * @param users 
+ * @param services
+ * @param users
  */
-async function createLoadingOrders(
-  services: Service[],
-  users: SeedUsers
-): Promise<LoadingOrder[]> {
+async function createLoadingOrders(services: Service[], users: SeedUsers): Promise<LoadingOrder[]> {
   console.log('Creating loading orders ...');
 
   const completedServices = services.filter((s) => s.status === ServiceStatus.COMPLETED);
@@ -538,7 +564,7 @@ async function createLoadingOrders(
       notes: 'Loading order for multiple deliveries',
       pdfPath: `/documents/loading-orders/LO-2024-${String(i).padStart(5, '0')}.pdf`,
       pdfGeneratedAt: new Date(),
-      pdfSize: Math.floor(Math.random() * 500_000) + 100_000,
+      pdfSize: getRandomInt(500_000) + 100_000,
       services: { create: selected.map((svc, idx) => ({ serviceId: svc.id, position: idx + 1 })) },
     });
   }
@@ -552,12 +578,12 @@ async function createLoadingOrders(
 
 /**
  *  Create sample invoices for completed services, associating them with suppliers and clients. Randomly determine which invoices are paid vs pending, and create corresponding payment records for paid invoices. Also updates the status of invoiced services to INVOICED.
- * @param tx 
- * @param index 
- * @param supplier 
- * @param invoiceServices 
- * @param users 
- * @param currentDate 
+ * @param tx
+ * @param index
+ * @param supplier
+ * @param invoiceServices
+ * @param users
+ * @param currentDate
  */
 async function createSingleInvoice(
   tx: any,
@@ -595,7 +621,7 @@ async function createSingleInvoice(
       status: isPaid ? InvoiceStatus.PAID : InvoiceStatus.SENT,
       paymentStatus: isPaid ? PaymentStatus.COMPLETED : PaymentStatus.PENDING,
       paidAmount: isPaid ? totalAmount : 0,
-      paidAt: isPaid ? addDays(invoiceDate, Math.floor(Math.random() * 20) + 10) : null,
+      paidAt: isPaid ? addDays(invoiceDate, getRandomInt(20) + 10) : null,
       paymentMethod: isPaid ? 'TRANSFER' : null,
       irpfRate: irpfRate > 0 ? irpfRate : null,
       irpfAmount: irpfAmount > 0 ? irpfAmount : null,
@@ -627,7 +653,7 @@ async function createSingleInvoice(
         currency: supplier.currency ?? 'EUR',
         paymentDate: invoice.paidAt ?? new Date(),
         paymentMethod: 'TRANSFER',
-        reference: `REF-${Math.floor(Math.random() * 999999)}`,
+        reference: `REF-${getRandomInt(999999)}`,
         status: PaymentStatus.COMPLETED,
         notes: 'Payment received via bank transfer',
       },
@@ -640,14 +666,14 @@ async function createSingleInvoice(
   });
 
   return invoice;
-};
+}
 
 /**
  *  Create sample invoices for completed services, associating them with suppliers and clients. Randomly determine which invoices are paid vs pending, and create corresponding payment records for paid invoices. Also updates the status of invoiced services to INVOICED.
- * @param supplier 
- * @param invoiceServices 
- * @param users 
- * @param currentDate 
+ * @param supplier
+ * @param invoiceServices
+ * @param users
+ * @param currentDate
  */
 
 async function createInvoices(
@@ -662,13 +688,13 @@ async function createInvoices(
   const completedServices = services.filter((s) => s.status === ServiceStatus.COMPLETED);
 
   for (let i = 1; i <= 15; i++) {
-    const supplier = suppliers[Math.floor(Math.random() * suppliers.length)];
+    const supplier = suppliers[getRandomInt(suppliers.length)];
     if (!supplier) continue;
 
     // pick 1-3 services that belong to this supplier
     const invoiceServices = completedServices
       .filter((s) => s.supplierId === supplier.id)
-      .slice(0, Math.floor(Math.random() * 3) + 1);
+      .slice(0, getRandomInt(3) + 1);
 
     if (invoiceServices.length === 0) continue;
 
@@ -683,7 +709,7 @@ async function createInvoices(
 
 /**
  *  Create sample notifications for users, including a mix of read/unread and different types (info, warning, success). Some notifications will include action URLs to simulate real application behavior.
- * @param users 
+ * @param users
  */
 async function createNotifications(users: SeedUsers): Promise<Notification[]> {
   console.log('Creating notifications...');
@@ -728,13 +754,10 @@ async function createNotifications(users: SeedUsers): Promise<Notification[]> {
       actionLabel: 'View Invoice',
       isRead: false,
     },
-  ]
+  ];
 
-  return prisma.$transaction(
-    notifications.map((data) => prisma.notification.create({ data })),
-  );
+  return prisma.$transaction(notifications.map((data) => prisma.notification.create({ data })));
 }
-
 
 /**
  * Create sample system settings with default values. These settings can be used to control application behavior and features. For example, we can create settings for enabling/disabling features, setting default values, or storing API keys. This is a placeholder function where you can define your specific settings based on your application's needs.
@@ -790,21 +813,19 @@ async function createSystemSettings(): Promise<SystemSetting[]> {
       isPublic: false,
     },
   ];
-  return prisma.$transaction(
-    settings.map((data) => prisma.systemSetting.create({ data })));
+  return prisma.$transaction(settings.map((data) => prisma.systemSetting.create({ data })));
 }
-
 
 /**
  *  Create sample audit logs to track important actions performed by users in the system. This can include actions like user logins, service status changes, invoice creations, etc. Each log entry will reference the user who performed the action, the type of action, the affected table and record, and a timestamp. This is useful for monitoring and debugging purposes.
- * @param users 
- * @param services 
- * @param invoices 
+ * @param users
+ * @param services
+ * @param invoices
  */
 async function createAuditLogs(
   users: SeedUsers,
   services: Service[],
-  invoices: Invoice[],
+  invoices: Invoice[]
 ): Promise<AuditLog[]> {
   console.log('Creating some audit logs...');
 
@@ -846,7 +867,6 @@ async function createAuditLogs(
     )
   );
 }
-
 
 async function main() {
   console.log('Starting database seed...');
@@ -907,12 +927,10 @@ async function main() {
 
 /* ---------- Run ---------- */
 try {
-  await main()
-}
-catch (e) {
+  await main();
+} catch (e) {
   console.error('Seed error:', e);
   process.exit(1);
-}
-finally {
+} finally {
   await prisma.$disconnect();
-};
+}

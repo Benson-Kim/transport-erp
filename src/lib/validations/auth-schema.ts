@@ -142,9 +142,9 @@ export function isValidEmail(email: string): boolean {
 export function sanitizeInput(input: string): string {
   return input
     .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+=/gi, ''); // Remove event handlers
+    .replaceAll(/[<>]/g, '') // Remove potential HTML tags
+    .replaceAll(/javascript:/gi, '') // Remove javascript: protocol
+    .replaceAll(/on\w+=/gi, ''); // Remove event handlers
 }
 
 export type LoginFormData = z.input<typeof loginSchema>;

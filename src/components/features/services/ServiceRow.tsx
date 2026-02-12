@@ -91,6 +91,7 @@ export const ServiceRow = memo(function ServiceRow({
       toast.success('Service deleted successfully');
       router.refresh();
     } catch (error) {
+      console.log(error);
       toast.error('Failed to delete service');
     }
   };
@@ -135,7 +136,7 @@ export const ServiceRow = memo(function ServiceRow({
       onClick: handleGenerateInvoice,
       disabled: service.status !== ServiceStatus.COMPLETED,
       tooltip:
-        service.status !== ServiceStatus.COMPLETED ? 'Service must be completed first' : undefined,
+        service.status === ServiceStatus.COMPLETED ? undefined : 'Service must be completed first',
     },
     canGenerateLoadingOrder && {
       id: 'loadingOrder',

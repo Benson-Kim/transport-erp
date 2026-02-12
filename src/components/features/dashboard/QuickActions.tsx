@@ -34,12 +34,12 @@ import {
 import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils/cn';
 
-interface QuickActionsProps {
+type QuickActionsProps = Readonly<{
   userRole: UserRole;
   loading?: boolean;
   error?: Error | null;
   onRefresh?: () => void;
-}
+}>;
 
 export function QuickActions({
   userRole,
@@ -445,7 +445,7 @@ export function QuickActions({
 }
 
 // Role-based Quick Actions Widget (Compact Version)
-export function QuickActionsWidget({ userRole: _userRole }: { userRole: UserRole }) {
+export function QuickActionsWidget({ userRole: _userRole }: Readonly<{ userRole: UserRole }>) {
   const permissions = usePermissions();
 
   const topActions = [

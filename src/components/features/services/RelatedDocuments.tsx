@@ -35,7 +35,7 @@ interface RelatedDocumentsProps {
   documents: Document[];
 }
 
-export function RelatedDocuments({ serviceId, documents = [] }: RelatedDocumentsProps) {
+export function RelatedDocuments({ serviceId, documents = [] }: Readonly<RelatedDocumentsProps>) {
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const handleDownload = async (doc: Document) => {

@@ -110,8 +110,8 @@ export async function createAuditLog({
       action,
       tableName,
       recordId,
-      oldValues: oldValues ? JSON.parse(JSON.stringify(oldValues)) : null,
-      newValues: newValues ? JSON.parse(JSON.stringify(newValues)) : null,
+      oldValues: oldValues ? structuredClone(oldValues) : null,
+      newValues: newValues ? structuredClone(newValues) : null,
       ipAddress: ipAddress ?? null,
       userAgent: userAgent ?? null,
       metadata: {
@@ -252,7 +252,7 @@ export function createSearchCondition(
   const clauses = fields.map((field, idx) => `"${field}" ILIKE $${idx + 1}`);
   return {
     text: `(${clauses.join(' OR ')})`,
-    params: Array(fields.length).fill(pattern),
+    params: new Array(fields.length).fill(pattern),
   };
 }
 
@@ -308,9 +308,9 @@ export async function generateUniqueIdentifier(
   });
 
   let nextNumber = 1;
-  if (lastRecord && lastRecord[field]) {
+  if (lastRecord?.[field]) {
     const parts = lastRecord[field].split('-');
-    const currentNumber = parseInt(parts[parts.length - 1], 10);
+    const currentNumber = Number.parseInt(parts[parts.length - 1], 10);
     nextNumber = currentNumber + 1;
   }
 

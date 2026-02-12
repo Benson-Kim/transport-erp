@@ -16,14 +16,13 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatDistance } from '@/lib/utils/dashboard-helpers';
-// import { formatCurrency, formatDistance } from '@/lib/utils/service-detail-helpers';
+import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
 
 interface ServiceDetailProps {
   service: any;
 }
 
-export function ServiceDetail({ service }: ServiceDetailProps) {
+export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
   // Calculate totals with VAT
   const costTotalWithVat = Number(service.costAmount) + Number(service.costVatAmount);
   const saleTotalWithVat = Number(service.saleAmount) + Number(service.saleVatAmount);
@@ -32,6 +31,11 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
   const margin = Number(service.saleAmount) - Number(service.costAmount);
   const marginPercent =
     Number(service.saleAmount) > 0 ? (margin / Number(service.saleAmount)) * 100 : 0;
+
+  const markupPercent =
+    Number(service.costAmount) > 0
+      ? ((margin / Number(service.costAmount)) * 100).toFixed(2)
+      : '0.00';
 
   return (
     <div className="space-y-6">
@@ -182,7 +186,9 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <dd>{formatCurrency(service.costAmount, service.costCurrency)}</dd>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <dt className="text-muted-foreground">VAT ({service.costVatRate}%)</dt>
+                  <dt className="text-muted-foreground">
+                    VAT ({formatPercentage(service.costVatRate)})
+                  </dt>
                   <dd>{formatCurrency(service.costVatAmount, service.costCurrency)}</dd>
                 </div>
                 <div className="flex justify-between font-medium pt-2 border-t">
@@ -201,7 +207,9 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <dd>{formatCurrency(service.saleAmount, service.saleCurrency)}</dd>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <dt className="text-muted-foreground">VAT ({service.saleVatRate}%)</dt>
+                  <dt className="text-muted-foreground">
+                    VAT ({formatPercentage(service.saleVatRate)})
+                  </dt>
                   <dd>{formatCurrency(service.saleVatAmount, service.saleCurrency)}</dd>
                 </div>
                 <div className="flex justify-between font-medium pt-2 border-t">
@@ -228,7 +236,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <h3 className="font-medium">Margin Analysis</h3>
                 </div>
                 <Badge variant={margin >= 0 ? 'completed' : 'cancelled'} size="sm">
-                  {marginPercent.toFixed(1)}%
+                  {formatPercentage(marginPercent)}
                 </Badge>
               </div>
 
@@ -256,7 +264,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                           : 'text-red-600'
                     )}
                   >
-                    {marginPercent.toFixed(2)}%
+                    {formatPercentage(marginPercent)}
                   </dd>
                 </div>
                 <div>
