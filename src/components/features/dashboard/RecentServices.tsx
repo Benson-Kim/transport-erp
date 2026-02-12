@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import {
   Badge,
   Button,
@@ -39,6 +38,7 @@ import { ServiceStatus } from '@/app/generated/prisma';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface Service {
   id: string;
@@ -198,9 +198,9 @@ export function RecentServices({
           </div>
         ),
         accessor: (row) => (
-          <Tooltip content={format(new Date(row.date), 'EEEE, MMMM d, yyyy')} position="top">
+          <Tooltip content={formatDate.full(row.date)} position="top">
             <span className="text-sm text-muted-foreground cursor-help">
-              {format(new Date(row.date), 'MMM d, yyyy')}
+              {formatDate.short(row.date)}
             </span>
           </Tooltip>
         ),
@@ -318,12 +318,12 @@ export function RecentServices({
   // Calculate pagination
   const paginationConfig = showPagination
     ? {
-      page: currentPage,
-      pageSize: selectedPageSize,
-      total: services.length,
-      onPageChange: setCurrentPage,
-      onPageSizeChange: setSelectedPageSize,
-    }
+        page: currentPage,
+        pageSize: selectedPageSize,
+        total: services.length,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: setSelectedPageSize,
+      }
     : undefined;
 
   // Header action
@@ -507,13 +507,13 @@ export function RecentServices({
                       ? services.length
                       : tab === 'active'
                         ? services.filter((s) =>
-                          (
-                            [
-                              ServiceStatus.CONFIRMED,
-                              ServiceStatus.IN_PROGRESS,
-                            ] as ServiceStatus[]
-                          ).includes(s.status)
-                        ).length
+                            (
+                              [
+                                ServiceStatus.CONFIRMED,
+                                ServiceStatus.IN_PROGRESS,
+                              ] as ServiceStatus[]
+                            ).includes(s.status)
+                          ).length
                         : services.filter((s) => s.status === ServiceStatus.COMPLETED).length}
                     )
                   </span>
@@ -581,22 +581,22 @@ export function RecentServices({
                 action={
                   onCreateNew
                     ? {
-                      label: 'Create Service',
-                      onClick: onCreateNew,
-                      icon: <Plus size={16} />,
-                    }
+                        label: 'Create Service',
+                        onClick: onCreateNew,
+                        icon: <Plus size={16} />,
+                      }
                     : {
-                      label: 'Refresh',
-                      onClick: handleRefresh,
-                      icon: <RefreshCw size={16} />,
-                    }
+                        label: 'Refresh',
+                        onClick: handleRefresh,
+                        icon: <RefreshCw size={16} />,
+                      }
                 }
                 secondaryAction={
                   onImport
                     ? {
-                      label: 'Import Services',
-                      onClick: onImport,
-                    }
+                        label: 'Import Services',
+                        onClick: onImport,
+                      }
                     : undefined
                 }
               />

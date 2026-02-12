@@ -4,8 +4,9 @@
  * Utility functions for dashboard calculations and data processing
  */
 
-import { format, startOfMonth, parseISO, subDays } from 'date-fns';
+import { startOfMonth, subDays } from 'date-fns';
 import { ServiceStatus } from '@/app/generated/prisma';
+import { formatDate, toDate } from './date-formats';
 
 /**
  * Calculate percentage change between two values
@@ -21,31 +22,25 @@ export function calculatePercentageChange(oldValue: number, newValue: number): n
  * Calculate date range from preset or custom dates
  */
 export function calculateDateRange(dateRange: { from?: string; to?: string; preset?: string }) {
-  let startDate: Date;
-  let endDate: Date;
-
-  if (dateRange.from && dateRange.to) {
-    startDate = parseISO(dateRange.from);
-    endDate = parseISO(dateRange.to);
-  } else {
-    endDate = new Date();
-    switch (dateRange.preset) {
-      case '7d':
-        startDate = subDays(endDate, 7);
-        break;
-      case '30d':
-        startDate = subDays(endDate, 30);
-        break;
-      case '90d':
-        startDate = subDays(endDate, 90);
-        break;
-      case '1y':
-        startDate = subDays(endDate, 365);
-        break;
-      default:
-        startDate = subDays(endDate, 30);
-    }
+  if (toDate(dateRange.from) && toDate(dateRange.to)) {
+    return {
+      startDate: toDate(dateRange.from),
+      endDate: toDate(dateRange.to),
+    };
   }
+
+  const endDate = new Date();
+
+  const presets: Record<string, number> = {
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+    '1y': 365,
+  };
+
+  const days = presets[dateRange.preset ?? ''] ?? 30;
+
+  const startDate = subDays(endDate, days);
 
   return { startDate, endDate };
 }
@@ -75,7 +70,7 @@ export function aggregateServicesByMonth(
   // Initialize last 6 months
   for (let i = 5; i >= 0; i--) {
     const date = subDays(new Date(), i * 30);
-    const monthKey = format(startOfMonth(date), 'MMM yyyy');
+    const monthKey = formatDate.monthYear(startOfMonth(date));
     monthlyData[monthKey] = {
       completed: 0,
       inProgress: 0,
@@ -86,7 +81,7 @@ export function aggregateServicesByMonth(
 
   // Aggregate services
   services.forEach((service) => {
-    const monthKey = format(startOfMonth(service.date), 'MMM yyyy');
+    const monthKey = formatDate.monthYear(startOfMonth(service.date));
     if (monthlyData[monthKey]) {
       monthlyData[monthKey].total++;
 
@@ -136,7 +131,7 @@ export function aggregateRevenueByMonth(
   // Initialize last 6 months
   for (let i = 5; i >= 0; i--) {
     const date = subDays(new Date(), i * 30);
-    const monthKey = format(startOfMonth(date), 'MMM yyyy');
+    const monthKey = formatDate.monthYear(startOfMonth(date));
     monthlyData[monthKey] = {
       revenue: 0,
       cost: 0,
@@ -151,7 +146,7 @@ export function aggregateRevenueByMonth(
       service.status === ServiceStatus.INVOICED ||
       service.status === ServiceStatus.ARCHIVED
     ) {
-      const monthKey = format(startOfMonth(service.date), 'MMM yyyy');
+      const monthKey = formatDate.monthYear(startOfMonth(service.date));
       if (monthlyData[monthKey]) {
         monthlyData[monthKey].revenue += Number(service.saleAmount || 0);
         monthlyData[monthKey].cost += Number(service.costAmount || 0);

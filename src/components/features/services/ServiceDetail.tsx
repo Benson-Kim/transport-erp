@@ -1,7 +1,6 @@
 // components/features/services/ServiceDetail.tsx
 'use client';
 
-import { format } from 'date-fns';
 import { Card, CardBody, Badge } from '@/components/ui';
 import {
   Calendar,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServiceDetailProps {
   service: any;
@@ -31,11 +31,6 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
   const margin = Number(service.saleAmount) - Number(service.costAmount);
   const marginPercent =
     Number(service.saleAmount) > 0 ? (margin / Number(service.saleAmount)) * 100 : 0;
-
-  const markupPercent =
-    Number(service.costAmount) > 0
-      ? ((margin / Number(service.costAmount)) * 100).toFixed(2)
-      : '0.00';
 
   return (
     <div className="space-y-6">
@@ -53,7 +48,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                 <Calendar className="h-4 w-4 mr-1" />
                 Date
               </dt>
-              <dd className="font-medium">{format(new Date(service.date), 'PPP')}</dd>
+              <dd className="font-medium">{formatDate.readable(service.date)}</dd>
             </div>
 
             <div>

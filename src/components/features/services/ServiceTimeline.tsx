@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
 import { getServiceActivity } from '@/actions/service-actions';
 import {
@@ -19,6 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServiceTimelineProps {
   serviceId: string;
@@ -178,7 +178,7 @@ export function ServiceTimeline({ serviceId }: Readonly<ServiceTimelineProps>) {
                     )}
 
                     <time dateTime={new Date(activity.createdAt).toISOString()}>
-                      {format(new Date(activity.createdAt), 'dd MMM yyyy HH:mm')}
+                      {formatDate.dateTime(activity.createdAt)}
                     </time>
                   </div>
                 </div>

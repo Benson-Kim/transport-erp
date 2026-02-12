@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { Card, CardBody, Button, EmptyState } from '@/components/ui';
 import {
   FileText,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { DocumentType } from '@/app/generated/prisma';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface Document {
   id: string;
@@ -164,7 +164,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                           <div className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {format(new Date(doc.uploadedAt), 'dd MMM yyyy')}
+                            {formatDate.compact(doc.uploadedAt)}
                           </div>
                           <div>{formatFileSize(doc.fileSize)}</div>
                         </div>

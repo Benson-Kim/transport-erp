@@ -8,7 +8,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronRight } from 'lucide-react';
 import {
-  format,
   subDays,
   startOfMonth,
   endOfMonth,
@@ -19,6 +18,7 @@ import {
 } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui';
+import { formatDate } from '@/lib/utils/date-formats';
 
 export interface DateRangePickerProps {
   id?: string;
@@ -41,36 +41,36 @@ const presetRanges: PresetRange[] = [
   {
     label: 'Today',
     getValue: () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const today = formatDate.isoDate(new Date());
       return { from: today, to: today };
     },
   },
   {
     label: 'Yesterday',
     getValue: () => {
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const yesterday = formatDate.isoDate(subDays(new Date(), 1));
       return { from: yesterday, to: yesterday };
     },
   },
   {
     label: 'Last 7 days',
     getValue: () => ({
-      from: format(subDays(new Date(), 6), 'yyyy-MM-dd'),
-      to: format(new Date(), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(subDays(new Date(), 6)),
+      to: formatDate.isoDate(new Date()),
     }),
   },
   {
     label: 'Last 30 days',
     getValue: () => ({
-      from: format(subDays(new Date(), 29), 'yyyy-MM-dd'),
-      to: format(new Date(), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(subDays(new Date(), 29)),
+      to: formatDate.isoDate(new Date()),
     }),
   },
   {
     label: 'This month',
     getValue: () => ({
-      from: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-      to: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(startOfMonth(new Date())),
+      to: formatDate.isoDate(endOfMonth(new Date())),
     }),
   },
   {
@@ -78,16 +78,16 @@ const presetRanges: PresetRange[] = [
     getValue: () => {
       const lastMonth = subDays(startOfMonth(new Date()), 1);
       return {
-        from: format(startOfMonth(lastMonth), 'yyyy-MM-dd'),
-        to: format(endOfMonth(lastMonth), 'yyyy-MM-dd'),
+        from: formatDate.isoDate(startOfMonth(lastMonth)),
+        to: formatDate.isoDate(endOfMonth(lastMonth)),
       };
     },
   },
   {
     label: 'This year',
     getValue: () => ({
-      from: format(startOfYear(new Date()), 'yyyy-MM-dd'),
-      to: format(endOfYear(new Date()), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(startOfYear(new Date())),
+      to: formatDate.isoDate(endOfYear(new Date())),
     }),
   },
 ];
@@ -186,16 +186,16 @@ export function DateRangePicker({
   ): string => {
     // Same day
     if (fromStr === tostr) {
-      return format(fromDate, 'MMM d, yyyy');
+      return formatDate.short(fromDate);
     }
 
     // Same year
     if (fromDate.getFullYear() === toDate.getFullYear()) {
-      return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`;
+      return `${formatDate.dayMonth(fromDate)} - ${formatDate.short(toDate)}`;
     }
 
     // Different years
-    return `${format(fromDate, 'MMM d, yyyy')} - ${format(toDate, 'MMM d, yyyy')}`;
+    return `${formatDate.short(fromDate)} - ${formatDate.short(toDate)}`;
   };
 
   const displayText = useMemo(() => {
@@ -209,11 +209,11 @@ export function DateRangePicker({
     }
 
     if (fromDate) {
-      return `From ${format(fromDate, 'MMM d, yyyy')}`;
+      return `From ${formatDate.short(fromDate)}`;
     }
 
     if (toDate) {
-      return `Until ${format(toDate, 'MMM d, yyyy')}`;
+      return `Until ${formatDate.short(toDate)}`;
     }
 
     return placeholder;

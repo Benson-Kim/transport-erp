@@ -61,7 +61,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     useEffect(() => {
       if (!ref) return;
       if (typeof ref === 'function') ref(inputRef.current);
-      else (ref as React.RefObject<HTMLInputElement | null>).current = inputRef.current;
+      else ref.current = inputRef.current;
     }, [ref]);
 
     // Sync input value with selected date

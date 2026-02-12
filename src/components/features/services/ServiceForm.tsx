@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, formatDistanceToNow } from 'date-fns';
 import { ServiceStatus, UserRole } from '@/app/generated/prisma';
 
 import { ServiceFormSection } from './ServiceFormSection';
@@ -19,6 +18,7 @@ import { hasPermission } from '@/lib/permissions';
 import { toast } from '@/lib/toast';
 import { Save, AlertCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/date-formats';
 import {
   Alert,
   Badge,
@@ -74,7 +74,7 @@ export function ServiceForm({
   suppliers,
   duplicateFrom,
   userRole,
-}: ServiceFormProps) {
+}: Readonly<ServiceFormProps>) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -112,7 +112,7 @@ export function ServiceForm({
       cancelled: false,
     };
 
-    if (typeof window === 'undefined') {
+    if (globalThis.window === undefined) {
       return {
         ...baseDefaults,
         ...(mode === 'duplicate' && sourceService
@@ -266,8 +266,8 @@ export function ServiceForm({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [handleSubmit]);
 
   return (
@@ -293,7 +293,7 @@ export function ServiceForm({
       {/* Auto-save indicator */}
       {mode === 'create' && lastSavedAt && (
         <div className="text-xs text-muted-foreground text-right">
-          Draft saved {formatDistanceToNow(lastSavedAt, { addSuffix: true })}
+          Draft saved {formatDate.relative(lastSavedAt)}
         </div>
       )}
 
@@ -669,11 +669,11 @@ export function ServiceForm({
                   <>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Created:</dt>
-                      <dd>{format(new Date(service.createdAt), 'dd MMM yyyy')}</dd>
+                      <dd>{formatDate.compact(service.createdAt)}</dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-muted-foreground">Updated:</dt>
-                      <dd>{format(new Date(service.updatedAt), 'dd MMM yyyy')}</dd>
+                      <dd>{formatDate.compact(service.updatedAt)}</dd>
                     </div>
                   </>
                 )}

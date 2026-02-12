@@ -25,12 +25,12 @@ import { Button, Tooltip, DropdownMenu, Amount } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { ServiceData } from '@/types/service';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { format, formatDistanceToNow } from 'date-fns';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 import { toast } from '@/lib/toast';
 import { deleteService } from '@/actions/service-actions';
 import { hasPermission } from '@/lib/permissions';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServicesTableProps {
   services: ServiceData[];
@@ -122,10 +122,10 @@ export function ServicesTable(<{
       sortable: true,
       width: '100px',
       accessor: (service) => (
-        <Tooltip content={formatDistanceToNow(new Date(service.date), { addSuffix: true })}>
+        <Tooltip content={formatDate.relative(service.date)}>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3 w-3 text-muted-foreground" />
-            <span className="text-sm">{format(new Date(service.date), 'dd MMM')}</span>
+            <span className="text-sm">{formatDate.dayMonth(service.date)}</span>
           </div>
         </Tooltip>
       ),

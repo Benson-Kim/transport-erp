@@ -1,14 +1,14 @@
 // components/features/services/ServiceSidebar.tsx
 'use client';
 
-import { format } from 'date-fns';
 import { UserRole, ServiceStatus } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 // import { RelatedDocuments } from './RelatedDocuments';
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
+import { formatDate } from '@/lib/utils/date-formats';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {
   service: any;
@@ -41,7 +41,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Completed Date</span>
                 <span className="text-sm font-medium">
-                  {format(new Date(service.completedAt), 'dd MMM yyyy')}
+                  {formatDate.compact(service.completedAt)}
                 </span>
               </div>
             )}
@@ -79,9 +79,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
               <div className="flex items-start justify-between">
                 <dt className="text-muted-foreground">Created</dt>
                 <dd className="text-right">
-                  <div className="font-medium">
-                    {format(new Date(service.createdAt), 'dd MMM yyyy HH:mm')}
-                  </div>
+                  <div className="font-medium">{formatDate.dateTime(service.createdAt)}</div>
                   {service.createdBy && (
                     <div className="text-xs text-muted-foreground">by {service.createdBy.name}</div>
                   )}
@@ -92,9 +90,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
                 <div className="flex items-start justify-between">
                   <dt className="text-muted-foreground">Last Modified</dt>
                   <dd className="text-right">
-                    <div className="font-medium">
-                      {format(new Date(service.updatedAt), 'dd MMM yyyy HH:mm')}
-                    </div>
+                    <div className="font-medium">{formatDate.dateTime(service.updatedAt)}</div>
                     {service.assignedTo && (
                       <div className="text-xs text-muted-foreground">
                         by {service.assignedTo.name}

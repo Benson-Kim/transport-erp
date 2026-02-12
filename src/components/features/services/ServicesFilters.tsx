@@ -39,7 +39,6 @@ import {
   Checkbox,
 } from '@/components/ui';
 import { ServiceStatus } from '@/app/generated/prisma';
-import { format, subDays, startOfWeek, startOfMonth } from 'date-fns';
 import { useDebounce } from '@/hooks';
 import { toast } from '@/lib/toast';
 import { exportToExcel } from '@/lib/utils/export';
@@ -52,6 +51,8 @@ import {
 } from '@/actions/service-actions';
 import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
 import { ServicesFiltersProps } from '@/types/service';
+import { formatDate } from '@/lib/utils/date-formats';
+import { subDays, startOfWeek, startOfMonth } from 'date-fns';
 
 export function ServicesFilters({
   clients,
@@ -223,8 +224,8 @@ export function ServicesFilters({
         action: () => {
           const today = new Date();
           updateFilters({
-            dateFrom: format(today, 'yyyy-MM-dd'),
-            dateTo: format(today, 'yyyy-MM-dd'),
+            dateFrom: formatDate.isoDate(today),
+            dateTo: formatDate.isoDate(today),
           });
         },
       },
@@ -236,8 +237,8 @@ export function ServicesFilters({
           const start = startOfWeek(new Date(), { weekStartsOn: 1 });
           const end = new Date();
           updateFilters({
-            dateFrom: format(start, 'yyyy-MM-dd'),
-            dateTo: format(end, 'yyyy-MM-dd'),
+            dateFrom: formatDate.isoDate(start),
+            dateTo: formatDate.isoDate(end),
           });
         },
       },
@@ -249,8 +250,8 @@ export function ServicesFilters({
           const start = startOfMonth(new Date());
           const end = new Date();
           updateFilters({
-            dateFrom: format(start, 'yyyy-MM-dd'),
-            dateTo: format(end, 'yyyy-MM-dd'),
+            dateFrom: formatDate.isoDate(start),
+            dateTo: formatDate.isoDate(end),
           });
         },
       },
@@ -262,8 +263,8 @@ export function ServicesFilters({
           const end = new Date();
           const start = subDays(end, 30);
           updateFilters({
-            dateFrom: format(start, 'yyyy-MM-dd'),
-            dateTo: format(end, 'yyyy-MM-dd'),
+            dateFrom: formatDate.isoDate(start),
+            dateTo: formatDate.isoDate(end),
           });
         },
       },
@@ -303,7 +304,7 @@ export function ServicesFilters({
       // Export using the generic utility
       await exportToExcel(
         data.services || [],
-        `services_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xlsx`,
+        `services_export_${formatDate.dateTime(new Date())}.xlsx`,
         'Services',
         {
           headers: [
@@ -322,7 +323,7 @@ export function ServicesFilters({
           ],
           transformRow: (row: any) => ({
             'Service Number': row.serviceNumber,
-            Date: row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '',
+            Date: row.date ? formatDate.isoDate(row.date) : '',
             Client: row.clientName || '',
             Supplier: row.supplierName || '',
             Driver: row.driverName || '-',
@@ -364,7 +365,7 @@ export function ServicesFilters({
     if (currentFilters.dateFrom || currentFilters.dateTo) {
       filters.push({
         key: 'date',
-        label: `Date: ${currentFilters.dateFrom ? format(new Date(currentFilters.dateFrom), 'MMM d') : '...'} - ${currentFilters.dateTo ? format(new Date(currentFilters.dateTo), 'MMM d') : '...'}`,
+        label: `Date: ${currentFilters.dateFrom ? formatDate.dayMonth(currentFilters.dateFrom) : '...'} - ${currentFilters.dateTo ? formatDate.dayMonth(currentFilters.dateTo) : '...'}`,
         icon: <Calendar className="h-3 w-3" />,
       });
     }
