@@ -24,16 +24,13 @@ import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/form
 import Link from 'next/link';
 import { StatsCardsProps, StatsData } from '@/types/dashboard';
 
-
-
 export function StatsCards({
   stats,
   loading = false,
   error = null,
   onRefresh,
   compact = false,
-}: StatsCardsProps) {
-  // const router = useRouter();
+}: Readonly<StatsCardsProps>) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   const cards = useMemo(
@@ -277,8 +274,6 @@ export function StatsCards({
               >
                 <card.icon className="h-24 w-24" />
               </div>
-
-
             </Card>
           </Link>
         </Tooltip>
@@ -288,7 +283,7 @@ export function StatsCards({
 }
 
 // Mini Stats for Sidebar or Header
-export function MiniStats({ stats }: { stats: StatsData }) {
+export function MiniStats({ stats }: Readonly<{ stats: StatsData }>) {
   const items = [
     {
       label: 'Revenue',
@@ -323,11 +318,10 @@ export function MiniStats({ stats }: { stats: StatsData }) {
                 <span
                   className={cn('text-xs', item.change >= 0 ? 'text-green-600' : 'text-red-600')}
                 >
-                  {/* {item.change >= 0 ? '↑' : '↓'} */}
                   {item.change >= 0 ? (
-                    <ArrowUp className='h-3 w-3' />
+                    <ArrowUp className="h-3 w-3" />
                   ) : (
-                    <ArrowDown className='h-3 w-3' />
+                    <ArrowDown className="h-3 w-3" />
                   )}
                 </span>
               )}

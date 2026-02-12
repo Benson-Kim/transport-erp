@@ -2,13 +2,12 @@
 'use client';
 
 import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
+import { UserRole, ServiceStatus } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 // import { RelatedDocuments } from './RelatedDocuments';
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
-import { ServiceStatus } from '@/app/generated/prisma';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {
@@ -16,7 +15,7 @@ interface ServiceSidebarProps {
   userRole: UserRole;
 }
 
-export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
+export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarProps>) {
   const canViewInternal = hasPermission(userRole, 'services', 'view');
   const config = SERVICE_STATUS_CONFIG[service.status as ServiceStatus];
 
@@ -33,7 +32,9 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Current Status</span>
-              <Badge variant={config.variant}>{service.status.replace(/_/g, ' ')}</Badge>
+              <Badge variant={config?.variant ?? 'default'}>
+                {service.status.replaceAll('_', ' ')}
+              </Badge>
             </div>
 
             {service.completedAt && (

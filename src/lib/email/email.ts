@@ -104,7 +104,8 @@ class EmailService {
           // For SendGrid, we use SMTP with their settings
           this.transporter = nodemailer.createTransport({
             host: 'smtp.sendgrid.net',
-            port: 587,
+            port: 465,
+            secure: true,
             auth: {
               user: 'apikey',
               pass: this.config.sendgrid!.apiKey,
@@ -117,7 +118,8 @@ class EmailService {
           // This is a placeholder - implement Resend API integration
           this.transporter = nodemailer.createTransport({
             host: 'smtp.resend.com',
-            port: 587,
+            port: 465,
+            secure: true,
             auth: {
               user: 'resend',
               pass: this.config.resend!.apiKey,
@@ -278,12 +280,7 @@ class EmailService {
    */
   private extractTextFromHtml(html: string): string {
     // Simple HTML to text conversion
-    return html
-      .replaceAll(/<style[^>]*>.*?<\/style>/gi, '')
-      .replaceAll(/<script[^>]*>.*?<\/script>/gi, '')
-      .replaceAll(/<[^>]+>/g, ' ')
-      .replaceAll(/\s+/g, ' ')
-      .trim();
+    return html.replaceAll(/<[^>]*>/g, ' ').trim();
   }
 
   /**
@@ -466,21 +463,6 @@ class EmailService {
     }
 
     return results;
-  }
-
-  /**
-   * Validate email address
-   */
-  validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  /**
-   * Sanitize email address
-   */
-  sanitizeEmail(email: string): string {
-    return email.toLowerCase().trim();
   }
 }
 

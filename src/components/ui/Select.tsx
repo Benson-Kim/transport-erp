@@ -63,7 +63,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const groupedOptions = filteredOptions.reduce(
       (acc, option) => {
         const group = option.group || 'default';
-        if (!acc[group]) acc[group] = [];
+        acc[group] ??= [];
         acc[group].push(option);
         return acc;
       },
@@ -176,9 +176,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     // Custom dropdown implementation
     return (
       <div className="relative w-full" ref={dropdownRef}>
-        <div
+        <button
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          role="button"
           tabIndex={0}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
@@ -210,7 +209,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               className={cn('text-neutral-500 transition-transform', isOpen && 'rotate-180')}
             />
           </div>
-        </div>
+        </button>
 
         {error && (
           <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">
@@ -244,7 +243,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </div>
             )}
 
-            <div role="listbox">
+            <datalist>
               {loading ? (
                 <div className="px-3 py-2 text-sm text-neutral-500">Loading...</div>
               ) : filteredOptions.length === 0 ? (
@@ -287,7 +286,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                   </div>
                 ))
               )}
-            </div>
+            </datalist>
           </div>
         )}
       </div>

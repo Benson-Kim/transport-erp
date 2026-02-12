@@ -28,7 +28,12 @@ export interface DropdownMenuProps {
   className?: string;
 }
 
-export function DropdownMenu({ trigger, items, align = 'left', className }: DropdownMenuProps) {
+export function DropdownMenu({
+  trigger,
+  items,
+  align = 'left',
+  className,
+}: Readonly<DropdownMenuProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [submenuOpenId, setSubmenuOpenId] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -62,7 +67,6 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // const enabledItems = items.filter(i => !i.disabled && !i.divider);
     const enabledItems = items.filter(
       (i): i is Exclude<DropdownMenuItem, { divider: true }> => !('divider' in i) && !i.disabled
     );
@@ -77,7 +81,7 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
         setFocusedIndex((prev) => (prev <= 0 ? enabledItems.length - 1 : prev - 1));
         break;
       case 'Enter':
-      case ' ':
+      case ' ': {
         e.preventDefault();
         const item = enabledItems[focusedIndex];
         if (item) {
@@ -89,13 +93,15 @@ export function DropdownMenu({ trigger, items, align = 'left', className }: Drop
           }
         }
         break;
-      case 'ArrowRight':
+      }
+      case 'ArrowRight': {
         e.preventDefault();
         const rightItem = enabledItems[focusedIndex];
         if (rightItem?.submenu) {
           setSubmenuOpenId(rightItem.id);
         }
         break;
+      }
       case 'ArrowLeft':
         e.preventDefault();
         if (submenuOpenId) {

@@ -61,7 +61,7 @@ export function ServicesChart({
   error = null,
   onRefresh,
   onViewDetails,
-}: ServicesChartProps) {
+}: Readonly<ServicesChartProps>) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [isExporting, setIsExporting] = useState(false);
@@ -105,8 +105,8 @@ export function ServicesChart({
     // Calculate trend
     let trend = 0;
     if (data.length >= 2) {
-      const lastMonth = data[data.length - 1];
-      const previousMonth = data[data.length - 2];
+      const lastMonth = data.at(-1);
+      const previousMonth = data.at(-2);
       if (lastMonth && previousMonth && previousMonth.total > 0) {
         trend = ((lastMonth.total - previousMonth.total) / previousMonth.total) * 100;
       }
@@ -142,7 +142,7 @@ export function ServicesChart({
   }, [data]);
 
   const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload?.length) {
       const total = payload[0].payload.total;
       const completionRate =
         total > 0 ? ((payload[0].payload.completed / total) * 100).toFixed(1) : '0';
@@ -267,8 +267,8 @@ export function ServicesChart({
                 <div className="text-xs opacity-90">Month-over-month change</div>
                 {data.length >= 2 && (
                   <div className="text-xs opacity-90">
-                    {data[data.length - 2]?.month}: {data[data.length - 2]?.total || 0} →{' '}
-                    {data[data.length - 1]?.month}: {data[data.length - 1]?.total || 0}
+                    {data.at(-2)?.month}: {data.at(-2)?.total || 0} → {data.at(-1)?.month}:{' '}
+                    {data.at(-1)?.total || 0}
                   </div>
                 )}
               </div>
@@ -472,7 +472,7 @@ export function ServicesChart({
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             onMouseMove={(e: any) => {
-              if (e && e.activeLabel) {
+              if (e?.activeLabel) {
                 setHoveredBar(e.activeLabel);
               }
             }}

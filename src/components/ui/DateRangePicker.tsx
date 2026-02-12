@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui';
 
 export interface DateRangePickerProps {
+  id?: string;
   from?: string;
   to?: string;
   onSelect: (range: { from?: string; to?: string }) => void;
@@ -168,47 +169,51 @@ export function DateRangePicker({
     buttonRef.current?.focus();
   };
 
+  const isValidDate = (dateStr: string): Date | null => {
+    try {
+      const date = parseISO(dateStr);
+      return isValid(date) ? date : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const formatDateRange = (
+    fromDate: Date,
+    toDate: Date,
+    fromStr: string,
+    tostr: string
+  ): string => {
+    // Same day
+    if (fromStr === tostr) {
+      return format(fromDate, 'MMM d, yyyy');
+    }
+
+    // Same year
+    if (fromDate.getFullYear() === toDate.getFullYear()) {
+      return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`;
+    }
+
+    // Different years
+    return `${format(fromDate, 'MMM d, yyyy')} - ${format(toDate, 'MMM d, yyyy')}`;
+  };
+
   const displayText = useMemo(() => {
     if (!from && !to) return placeholder;
 
-    try {
-      if (from && to) {
-        const fromDate = parseISO(from);
-        const toDate = parseISO(to);
+    const fromDate = from ? isValidDate(from) : null;
+    const toDate = to ? isValidDate(to) : null;
 
-        if (!isValid(fromDate) || !isValid(toDate)) {
-          return placeholder;
-        }
+    if (fromDate && toDate) {
+      return formatDateRange(fromDate, toDate, from!, to!);
+    }
 
-        // Same day
-        if (from === to) {
-          return format(fromDate, 'MMM d, yyyy');
-        }
+    if (fromDate) {
+      return `From ${format(fromDate, 'MMM d, yyyy')}`;
+    }
 
-        // Same year
-        if (fromDate.getFullYear() === toDate.getFullYear()) {
-          return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`;
-        }
-
-        // Different years
-        return `${format(fromDate, 'MMM d, yyyy')} - ${format(toDate, 'MMM d, yyyy')}`;
-      }
-
-      if (from) {
-        const fromDate = parseISO(from);
-        if (isValid(fromDate)) {
-          return `From ${format(fromDate, 'MMM d, yyyy')}`;
-        }
-      }
-
-      if (to) {
-        const toDate = parseISO(to);
-        if (isValid(toDate)) {
-          return `Until ${format(toDate, 'MMM d, yyyy')}`;
-        }
-      }
-    } catch (e) {
-      console.error('Invalid date format', e);
+    if (toDate) {
+      return `Until ${format(toDate, 'MMM d, yyyy')}`;
     }
 
     return placeholder;

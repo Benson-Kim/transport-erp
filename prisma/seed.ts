@@ -21,7 +21,7 @@ import {
   User,
 } from '@/app/generated/prisma';
 import { hash } from 'bcryptjs';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { addDays, subDays } from 'date-fns';
 
 const prisma = new PrismaClient();
@@ -49,14 +49,16 @@ function generateNumber(
  */
 function randomDecimal(min: number, max: number, decimals: number = 2): number {
   const factor = Math.pow(10, decimals);
-  return Math.round((Math.random() * (max - min) + min) * factor) / factor;
+  const randomOffset = getRandomInt(Math.floor((max - min) * factor));
+  return randomOffset / factor + min;
 }
 
 /**
  * Generate random date within range
  */
 function randomDate(start: Date, end: Date): Date {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  const randomOffset = getRandomInt(end.getTime() - start.getTime());
+  return new Date(start.getTime() + randomOffset);
 }
 
 /**
@@ -469,7 +471,7 @@ async function createServices(
       assignedToId: getRandomInt(2) === 0 ? users.manager.id : users.operator.id,
       description: `Transport service from warehouse to ${storeNames[getRandomInt(storeNames.length)]}`,
       reference:
-        Math.random() > 0.5 ? `PO-2024-${String(getRandomInt(10000)).padStart(4, '0')}` : null,
+        getRandomInt(2) === 0 ? `PO-2024-${String(getRandomInt(10000)).padStart(4, '0')}` : null,
       origin: origins[getRandomInt(origins.length)],
       destination: destinations[getRandomInt(destinations.length)],
       distance: getRandomInt(500) + 50,
@@ -486,8 +488,8 @@ async function createServices(
       saleVatAmount: Math.round(saleAmount * 0.21 * 100) / 100,
       status,
       completedAt,
-      notes: Math.random() > 0.7 ? 'Handle with care - fragile items' : null,
-      internalNotes: Math.random() > 0.8 ? 'Regular customer - priority service' : null,
+      notes: getRandomInt(10) > 7 ? 'Handle with care - fragile items' : null,
+      internalNotes: getRandomInt(10) > 8 ? 'Regular customer - priority service' : null,
       attachments: [],
       customFields: null,
     });
@@ -604,7 +606,7 @@ async function createSingleInvoice(
 
   const invoiceDate = subDays(currentDate, 45 - index * 3);
   const dueDate = addDays(invoiceDate, supplier.paymentTerms ?? 30);
-  const isPaid = Math.random() > 0.3 && dueDate < currentDate;
+  const isPaid = getRandomInt(10) > 3 && dueDate < currentDate;
 
   // create invoice and optional payment inside a transaction to keep each invoice atomic
   const invoice = await tx.invoice.create({

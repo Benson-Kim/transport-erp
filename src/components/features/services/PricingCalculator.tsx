@@ -6,6 +6,7 @@ import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-r
 import { cn } from '@/lib/utils/cn';
 import { ServiceFormData } from '@/lib/validations/service-schema';
 import { Option } from '@/types/ui';
+import { formatPercentage } from '@/lib/utils/formatting';
 
 interface PricingCalculatorProps {
   form: UseFormReturn<ServiceFormData>;
@@ -368,7 +369,7 @@ export function PricingCalculator({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Gross Margin */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Gross Margin</label>
+            <p className="block text-xs text-muted-foreground mb-1">Gross Margin</p>
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white font-medium text-center',
@@ -407,7 +408,7 @@ export function PricingCalculator({
                     : 'text-red-600 border-red-200'
               )}
             >
-              {marginPercent.toFixed(2)}%
+              {formatPercentage(marginPercent)}
             </div>
           </div>
 

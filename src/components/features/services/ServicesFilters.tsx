@@ -53,7 +53,6 @@ import {
 import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
 import { ServicesFiltersProps } from '@/types/service';
 
-
 export function ServicesFilters({
   clients,
   suppliers,
@@ -66,7 +65,7 @@ export function ServicesFilters({
   onBulkAction,
   // onSaveFilter,
   savedFilters = [],
-}: ServicesFiltersProps) {
+}: Readonly<ServicesFiltersProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -163,10 +162,11 @@ export function ServicesFilters({
             }
             break;
 
-          case 'loadingOrder':
+          case 'loadingOrder': {
             const result = await generateBulkLoadingOrders(selectedServices);
             toast.success(`Generated ${result.count} loading orders`);
             break;
+          }
         }
 
         onBulkAction?.(action as any, data);
@@ -279,7 +279,7 @@ export function ServicesFilters({
     try {
       const params = new URLSearchParams();
       Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value) params.set(key, value as string);
+        if (value) params.set(key, value);
       });
 
       setExportProgress(20);
@@ -479,8 +479,7 @@ export function ServicesFilters({
                   return {
                     id: `status-${status}`,
                     label: <ServiceStatusBadge status={enumVal} size="sm" showIcon />,
-                    onClick: () =>
-                      handleBulkAction('updateStatus', { status: enumVal }),
+                    onClick: () => handleBulkAction('updateStatus', { status: enumVal }),
                   };
                 }),
 
@@ -493,7 +492,9 @@ export function ServicesFilters({
                       Generate Loading Orders
                     </div>
                   ),
-                  onClick: () => handleBulkAction('loadingOrder'),
+                  onClick: () => {
+                    handleBulkAction('loadingOrder');
+                  },
                 },
                 { id: 'divider-2', divider: true },
                 {
@@ -504,7 +505,9 @@ export function ServicesFilters({
                       Delete Selected
                     </div>
                   ),
-                  onClick: () => handleBulkAction('delete'),
+                  onClick: () => {
+                    handleBulkAction('delete');
+                  },
                   danger: true,
                 },
               ]}
@@ -577,10 +580,8 @@ export function ServicesFilters({
                       onClick={() => {
                         if (isActive) {
                           updateFilter('status', '');
-                        } else {
-                          if (group.statuses[0]) {
-                            updateFilter('status', group.statuses[0]);
-                          }
+                        } else if (group.statuses[0]) {
+                          updateFilter('status', group.statuses[0]);
                         }
                       }}
                       className={cn('gap-1', !isActive && group.color)}
@@ -605,12 +606,14 @@ export function ServicesFilters({
                 }
                 items={Object.entries(SERVICE_STATUS_CONFIG).map(([status]) => {
                   const enumVal = status as ServiceStatus;
-                  const urlValue = Object.entries(STATUS_URL_MAP).find(([, v]) => v === enumVal)?.[0];
+                  const urlValue = Object.entries(STATUS_URL_MAP).find(
+                    ([, v]) => v === enumVal
+                  )?.[0];
                   return {
                     id: status,
                     label: <ServiceStatusBadge status={enumVal} size="sm" />,
                     onClick: () => updateFilter('status', urlValue ?? ''),
-                  }
+                  };
                 })}
               />
             </div>
@@ -682,8 +685,11 @@ export function ServicesFilters({
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Client */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Client</label>
+                <label htmlFor="clientSelect" className="text-sm font-medium mb-1 block">
+                  Client
+                </label>
                 <Select
+                  id="clientSelect"
                   value={currentFilters.clientId}
                   onChange={(e) => updateFilter('clientId', e.target.value)}
                   options={[
@@ -702,8 +708,11 @@ export function ServicesFilters({
 
               {/* Supplier */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Supplier</label>
+                <label htmlFor="supplierSelect" className="text-sm font-medium mb-1 block">
+                  Supplier
+                </label>
                 <Select
+                  id="supplierSelect"
                   value={currentFilters.supplierId}
                   onChange={(e) => updateFilter('supplierId', e.target.value)}
                   options={[
@@ -722,8 +731,11 @@ export function ServicesFilters({
 
               {/* Driver */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Driver</label>
+                <label htmlFor="driverName" className="text-sm font-medium mb-1 block">
+                  Driver
+                </label>
                 <Input
+                  id="driverName"
                   value={currentFilters.driver}
                   onChange={(e) => updateFilter('driver', e.target.value)}
                   placeholder="Driver name..."
@@ -733,8 +745,11 @@ export function ServicesFilters({
 
               {/* Date Range Picker */}
               <div>
-                <label className="text-sm font-medium mb-1 block">Custom Date Range</label>
+                <label htmlFor="dateRange" className="text-sm font-medium mb-1 block">
+                  Custom Date Range
+                </label>
                 <DateRangePicker
+                  id="dateRange"
                   from={currentFilters.dateFrom}
                   to={currentFilters.dateTo}
                   onSelect={(range) => {

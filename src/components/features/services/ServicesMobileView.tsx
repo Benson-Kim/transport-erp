@@ -35,7 +35,7 @@ export function ServicesMobileView({
   currentPage,
   pageSize,
   userRole,
-}: ServicesMobileViewProps) {
+}: Readonly<ServicesMobileViewProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
@@ -82,12 +82,10 @@ export function ServicesMobileView({
               <CardBody className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedServices.has(service.id)}
-                        onCheckedChange={() => handleSelect(service.id)}
-                      />
-                    </div>
+                    <Checkbox
+                      checked={selectedServices.has(service.id)}
+                      onCheckedChange={() => handleSelect(service.id)}
+                    />
                     <div>
                       <p className="font-semibold text-primary">{service.serviceNumber}</p>
                       <ServiceStatusBadge status={service.status} size="sm" />
