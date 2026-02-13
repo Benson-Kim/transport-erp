@@ -62,11 +62,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const content = (
       <>
         {loading && (
-          <RefreshCw
-            className="animate-spin"
-            size={size === 'sm' ? 14 : size === 'md' ? 16 : 18}
-            aria-hidden="true"
-          />
+          <RefreshCw className="animate-spin" size={size === 'sm' ? 14 : 16} aria-hidden="true" />
         )}
         {!loading && icon && iconPosition === 'left' && (
           <span className="icon" aria-hidden="true">

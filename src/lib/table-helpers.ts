@@ -115,9 +115,7 @@ export function groupBy<T>(data: T[], key: keyof T): Record<string, T[]> {
   return data.reduce(
     (groups, item) => {
       const groupKey = String(item[key]);
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
+      groups[groupKey] ??= [];
       groups[groupKey].push(item);
       return groups;
     },
@@ -137,9 +135,10 @@ export function aggregate<T>(
     case 'sum':
       return data.reduce((sum, item) => sum + Number(item[field] || 0), 0);
 
-    case 'avg':
+    case 'avg': {
       const total = data.reduce((sum, item) => sum + Number(item[field] || 0), 0);
       return total / data.length;
+    }
 
     case 'min':
       return Math.min(...data.map((item) => Number(item[field] || 0)));

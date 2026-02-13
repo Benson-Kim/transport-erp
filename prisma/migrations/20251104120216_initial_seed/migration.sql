@@ -1,8 +1,11 @@
+-- sonar.ignore
+-- sqllint:disable S1192
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'OPERATOR', 'VIEWER');
 
 -- CreateEnum
-CREATE TYPE "ServiceStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'INVOICED');
+CREATE TYPE "ServiceStatus" AS ENUM ('DRAFT', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'INVOICED'); --NOSONAR(S1192) duplicate literals 'DRAFT', 'COMPLETED'
 
 -- CreateEnum
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'SENT', 'VIEWED', 'PAID', 'OVERDUE', 'CANCELLED');

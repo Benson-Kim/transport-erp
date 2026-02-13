@@ -34,7 +34,7 @@ export function ClientSelector({
   disabled = false,
   placeholder = 'Select client...',
   allowCreate = true,
-}: ClientSelectorProps) {
+}: Readonly<ClientSelectorProps>) {
   const router = useRouter();
 
   // Convert clients to Option format with groups
@@ -42,11 +42,11 @@ export function ClientSelector({
     const clientOptions: Option[] = clients.map((client) => ({
       value: client.id,
       label: client.name,
-      description: `${client.clientCode}${client.email ? ` • ${client.email}` : ''}`,
-      group: client.isActive !== false ? 'Active Clients' : 'Inactive Clients',
+      description: [client.clientCode, client.email].filter(Boolean).join(' • '),
+      group: client.isActive === false ? 'Inactive Clients' : 'Active Clients',
       disabled: false,
       icon: (
-        <Badge variant={client.isActive !== false ? 'active' : 'cancelled'} size="sm">
+        <Badge variant={client.isActive === false ? 'cancelled' : 'active'} size="sm">
           {client.clientCode}
         </Badge>
       ),
@@ -85,7 +85,7 @@ export function ClientSelector({
       clearable={!!value}
       onClear={() => onChange('')}
       disabled={disabled}
-      error={error ? error : ''}
+      error={error || ''}
       emptyMessage="No clients found"
       className={cn(error && 'border-red-500 ring-0 focus-visible:ring-red-500')}
     />

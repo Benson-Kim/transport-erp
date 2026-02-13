@@ -6,6 +6,7 @@
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Button, Select } from '@/components/ui';
+import { useId } from 'react';
 
 export interface PaginationProps {
   currentPage: number;
@@ -29,7 +30,7 @@ export function Pagination({
   onPageSizeChange,
   totalItems,
   className,
-}: PaginationProps) {
+}: Readonly<PaginationProps>) {
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 7;
@@ -61,6 +62,8 @@ export function Pagination({
 
     return pages;
   };
+
+  const baseId = useId();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -121,7 +124,7 @@ export function Pagination({
         {getPageNumbers().map((page, index) => {
           if (page === '...') {
             return (
-              <span key={`ellipsis-${index}`} className="px-2 text-neutral-400">
+              <span key={`${baseId}-ellipsis-${index}`} className="px-2 text-neutral-400">
                 <MoreHorizontal size={16} />
               </span>
             );

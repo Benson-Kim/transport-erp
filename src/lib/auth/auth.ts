@@ -134,7 +134,7 @@ export const authConfig = {
             },
           });
 
-          if (!user || !user.password) {
+          if (!user?.password) {
             await rateLimiter.increment(validatedFields.email);
             throw new Error('Invalid email or password');
           }
@@ -277,7 +277,7 @@ export const authConfig = {
 
       if (user) {
         const u = user as AppUser;
-        t.id = (u.id as string) ?? t.id;
+        t.id = u.id ?? t.id;
         t.role = u.role ?? t.role;
         t.emailVerified = u.emailVerified ?? null;
         t.twoFactorEnabled = u.twoFactorEnabled ?? false;
@@ -287,7 +287,7 @@ export const authConfig = {
 
       if (trigger === 'update' && session) {
         // Avoid reassigning token, update in place
-        Object.assign(t, session as any);
+        Object.assign(t, session);
       }
 
       return t;
@@ -300,15 +300,12 @@ export const authConfig = {
 
       if (s.user) {
         // Ensure a string id
-        s.user.id =
-          typeof t.id === 'string'
-            ? t.id
-            : typeof (token as DefaultJWT).sub === 'string'
-              ? (token as DefaultJWT).sub!
-              : s.user.id;
+        const subValue = token.sub;
+        const userId = typeof subValue === 'string' ? subValue : s.user.id;
+        s.user.id = typeof t.id === 'string' ? t.id : userId;
 
         // Set required/custom fields
-        s.user.role = (t.role as UserRole | undefined) ?? s.user.role ?? UserRole.VIEWER;
+        s.user.role = t.role ?? s.user.role ?? UserRole.VIEWER;
         s.user.emailVerified = t.emailVerified ?? null;
         s.user.twoFactorEnabled = Boolean(t.twoFactorEnabled);
         s.user.department = t.department ?? null;

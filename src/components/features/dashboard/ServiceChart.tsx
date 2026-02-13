@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -55,6 +55,19 @@ interface ServicesChartProps {
   onViewDetails?: (month: string) => void;
 }
 
+interface ServiceStats {
+  total: number;
+  completed: number;
+  inProgress: number;
+  cancelled: number;
+  average: number;
+  completionRate: number;
+  cancellationRate: number;
+  trend: number;
+  bestMonth: string | null;
+  worstMonth: string | null;
+}
+
 export function ServicesChart({
   data = [],
   loading = false,
@@ -65,7 +78,7 @@ export function ServicesChart({
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [isExporting, setIsExporting] = useState(false);
-  const [_hoveredBar, setHoveredBar] = useState<string | null>(null);
+  const hoveredBarRef = useRef<string | null>(null);
 
   const colors = useMemo(
     () => ({
@@ -78,8 +91,32 @@ export function ServicesChart({
     [isDark]
   );
 
+  // Extract helper functions to reduce complexity
+  const calculateTrend = (data: ChartData[]): number => {
+    if (data.length < 2) return 0;
+
+    const lastMonth = data.at(-1);
+    const previousMonth = data.at(-2);
+
+    if (!lastMonth || !previousMonth || previousMonth.total === 0) return 0;
+
+    return ((lastMonth.total - previousMonth.total) / previousMonth.total) * 100;
+  };
+
+  const findBestAndWorstMonths = (data: ChartData[]) => {
+    if (data.length === 0) return { best: null, worst: null };
+
+    const sorted = [...data].sort((a, b) => b.total - a.total);
+    return {
+      best: sorted[0]?.month || null,
+      worst: sorted.at(-1)?.month || null,
+    };
+  };
+
   const stats = useMemo(() => {
-    if (!data || data.length === 0) {
+    const hasData = data && data.length > 0;
+
+    if (!hasData) {
       return {
         total: 0,
         completed: 0,
@@ -98,34 +135,12 @@ export function ServicesChart({
     const completed = data.reduce((sum, item) => sum + item.completed, 0);
     const inProgress = data.reduce((sum, item) => sum + item.inProgress, 0);
     const cancelled = data.reduce((sum, item) => sum + item.cancelled, 0);
+
     const average = total / data.length;
     const completionRate = total > 0 ? (completed / total) * 100 : 0;
     const cancellationRate = total > 0 ? (cancelled / total) * 100 : 0;
-
-    // Calculate trend
-    let trend = 0;
-    if (data.length >= 2) {
-      const lastMonth = data.at(-1);
-      const previousMonth = data.at(-2);
-      if (lastMonth && previousMonth && previousMonth.total > 0) {
-        trend = ((lastMonth.total - previousMonth.total) / previousMonth.total) * 100;
-      }
-    }
-
-    // Find best and worst months
-    let bestMonth: ChartData | null = data[0] || null;
-    let worstMonth: ChartData | null = data[0] || null;
-
-    if (bestMonth && worstMonth) {
-      data.forEach((month) => {
-        if (bestMonth && month.total > bestMonth.total) {
-          bestMonth = month;
-        }
-        if (worstMonth && month.total < worstMonth.total) {
-          worstMonth = month;
-        }
-      });
-    }
+    const trend = calculateTrend(data);
+    const { best, worst } = findBestAndWorstMonths(data);
 
     return {
       total,
@@ -136,230 +151,70 @@ export function ServicesChart({
       completionRate,
       cancellationRate,
       trend,
-      bestMonth: bestMonth?.month || null,
-      worstMonth: worstMonth?.month || null,
+      bestMonth: best,
+      worstMonth: worst,
     };
   }, [data]);
 
-  const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload?.length) {
-      const total = payload[0].payload.total;
-      const completionRate =
-        total > 0 ? ((payload[0].payload.completed / total) * 100).toFixed(1) : '0';
+  const exportToCsv = (data: ChartData[], stats: ServiceStats) => {
+    const csv = [
+      ['Month', 'Completed', 'In Progress', 'Cancelled', 'Total', 'Completion Rate'],
+      ...data.map((row) => [
+        row.month,
+        row.completed,
+        row.inProgress,
+        row.cancelled,
+        row.total,
+        row.total > 0 ? `${((row.completed / row.total) * 100).toFixed(2)}%` : '0%',
+      ]),
+      [],
+      ['Summary'],
+      ['Total Services', stats.total],
+      ['Average per Month', stats.average.toFixed(1)],
+      ['Completion Rate', `${stats.completionRate.toFixed(2)}%`],
+      ['Cancellation Rate', `${stats.cancellationRate.toFixed(2)}%`],
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
 
-      return (
-        <div className="rounded-lg border border-neutral-200 bg-background p-3 shadow-md">
-          <div className="flex items-center justify-between mb-2">
-            <p className="font-medium text-sm">{label}</p>
-            {onViewDetails && (
-              <button
-                onClick={() => onViewDetails(label)}
-                className="text-xs text-primary hover:underline"
-              >
-                View Details →
-              </button>
-            )}
-          </div>
-          <div className="space-y-1">
-            {payload.map((entry: any) => (
-              <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }} />
-                  <span className="text-muted-foreground">{entry.name}</span>
-                </div>
-                <span className="font-medium tabular-nums">{formatNumber(entry.value)}</span>
-              </div>
-            ))}
-            <div className="mt-2 pt-2 border-t space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Total</span>
-                <span className="font-medium tabular-nums">{formatNumber(total)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Completion</span>
-                <span className="font-medium tabular-nums text-green-600 dark:text-green-400">
-                  {completionRate}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return null;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `services-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExport = async () => {
-    if (!data || data.length === 0) {
+    const hasNoData = !data || data.length === 0;
+    if (hasNoData) {
       console.warn('No data to export');
       return;
     }
 
     setIsExporting(true);
-
     try {
       await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const csv = [
-        ['Month', 'Completed', 'In Progress', 'Cancelled', 'Total', 'Completion Rate'],
-        ...data.map((row) => [
-          row.month,
-          row.completed,
-          row.inProgress,
-          row.cancelled,
-          row.total,
-          row.total > 0 ? `${((row.completed / row.total) * 100).toFixed(2)}%` : '0%',
-        ]),
-        [],
-        ['Summary'],
-        ['Total Services', stats.total],
-        ['Average per Month', stats.average.toFixed(1)],
-        ['Completion Rate', `${stats.completionRate.toFixed(2)}%`],
-        ['Cancellation Rate', `${stats.cancellationRate.toFixed(2)}%`],
-      ]
-        .map((row) => row.join(','))
-        .join('\n');
-
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `services-report-${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      exportToCsv(data, stats);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const headerAction =
-    data.length > 0 ? (
-      <div className="flex items-center gap-4">
-        {/* Service Stats */}
-        <div className="flex items-center gap-3">
-          {/* Total Services */}
-          <Tooltip
-            content={
-              <div className="space-y-1">
-                <div className="font-semibold">Total Services</div>
-                <div className="text-xs opacity-90">Completed: {formatNumber(stats.completed)}</div>
-                <div className="text-xs opacity-90">
-                  In Progress: {formatNumber(stats.inProgress)}
-                </div>
-                <div className="text-xs opacity-90">Cancelled: {formatNumber(stats.cancelled)}</div>
-              </div>
-            }
-            position="bottom"
-          >
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-help">
-              <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
-                {formatNumber(stats.total)} total
-              </span>
-            </div>
-          </Tooltip>
+  // Simplified state checks
+  const hasError = !loading && error;
+  const hasNoData = !loading && !error && (!data || data.length === 0);
 
-          {/* Trend Indicator */}
-          <Tooltip
-            content={
-              <div className="space-y-1">
-                <div className="font-semibold">{stats.trend >= 0 ? 'Growth' : 'Decline'} Trend</div>
-                <div className="text-xs opacity-90">Month-over-month change</div>
-                {data.length >= 2 && (
-                  <div className="text-xs opacity-90">
-                    {data.at(-2)?.month}: {data.at(-2)?.total || 0} → {data.at(-1)?.month}:{' '}
-                    {data.at(-1)?.total || 0}
-                  </div>
-                )}
-              </div>
-            }
-            position="bottom"
-          >
-            <div
-              className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help',
-                stats.trend >= 0
-                  ? 'bg-green-50 dark:bg-green-900/20'
-                  : 'bg-red-50 dark:bg-red-900/20'
-              )}
-            >
-              {stats.trend >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
-              )}
-              <span
-                className={cn(
-                  'text-sm font-semibold',
-                  stats.trend >= 0
-                    ? 'text-green-900 dark:text-green-200'
-                    : 'text-red-900 dark:text-red-200'
-                )}
-              >
-                {Math.abs(stats.trend).toFixed(1)}%
-              </span>
-            </div>
-          </Tooltip>
-        </div>
-
-        <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
-
-        {/* Completion Rate */}
-        <Tooltip
-          content={
-            <div className="space-y-1">
-              <div className="font-semibold">Completion Rate</div>
-              <div className="text-xs opacity-90">
-                {formatNumber(stats.completed)} of {formatNumber(stats.total)} services
-              </div>
-              {stats.bestMonth && (
-                <div className="text-xs opacity-90">Best month: {stats.bestMonth}</div>
-              )}
-            </div>
-          }
-          position="bottom"
-        >
-          <div className="flex items-center gap-1.5 text-sm cursor-help">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="font-semibold text-green-900 dark:text-green-200">
-              {stats.completionRate.toFixed(1)}%
-            </span>
-            <span className="text-muted-foreground">completed</span>
-          </div>
-        </Tooltip>
-
-        {/* Export Button */}
-        <Tooltip content="Download complete services report" position="bottom">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleExport}
-            icon={<Download className="h-4 w-4" />}
-            iconPosition="left"
-            loading={isExporting}
-            loadingText="Exporting..."
-          >
-            Export
-          </Button>
-        </Tooltip>
-      </div>
-    ) : null;
-
-  // Handle error state
-  if (!loading && error) {
-    // Build error state props conditionally
+  if (hasError) {
     const errorStateProps: Parameters<typeof ErrorState>[0] = {
       error,
       title: 'Failed to load services data',
       description:
         "We couldn't fetch your services data. Please check your connection and try again.",
       variant: 'full' as const,
+      ...(onRefresh && { onRetry: onRefresh }),
     };
-
-    // Only add onRetry if onRefresh exists
-    if (onRefresh) {
-      errorStateProps.onRetry = onRefresh;
-    }
 
     return (
       <Card variant="elevated" padding="none">
@@ -371,8 +226,7 @@ export function ServicesChart({
     );
   }
 
-  // Handle empty state
-  if (!loading && !error && (!data || data.length === 0)) {
+  if (hasNoData) {
     return (
       <Card variant="elevated" padding="none">
         <CardHeader
@@ -423,7 +277,14 @@ export function ServicesChart({
       <CardHeader
         title="Services Overview"
         subtitle="Monthly service distribution and completion rates"
-        action={headerAction}
+        action={
+          <HeaderAction
+            data={data}
+            stats={stats}
+            isExporting={isExporting}
+            onExport={handleExport}
+          />
+        }
       />
       <CardBody className="pt-2">
         {/* Service Status Legend with Tooltips */}
@@ -473,10 +334,10 @@ export function ServicesChart({
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             onMouseMove={(e: any) => {
               if (e?.activeLabel) {
-                setHoveredBar(e.activeLabel);
+                hoveredBarRef.current = e.activeLabel;
               }
             }}
-            onMouseLeave={() => setHoveredBar(null)}
+            onMouseLeave={() => (hoveredBarRef.current = null)}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} vertical={false} />
             <XAxis
@@ -493,7 +354,9 @@ export function ServicesChart({
               axisLine={false}
               tickFormatter={(value) => formatNumber(value)}
             />
-            <RechartsTooltip content={<CustomChartTooltip />} />
+            <RechartsTooltip
+              content={<ServiceChartTooltip {...(onViewDetails && { onViewDetails })} />}
+            />
             <Bar
               dataKey="completed"
               fill={colors.completed}
@@ -521,3 +384,190 @@ export function ServicesChart({
     </Card>
   );
 }
+
+type TooltipEntry = {
+  name: string;
+  value: number;
+  fill: string;
+  payload: {
+    total: number;
+    completed: number;
+  };
+};
+
+type ServiceChartTooltipProps = Readonly<{
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+  onViewDetails?: (month: string) => void;
+}>;
+
+export const ServiceChartTooltip: React.FC<ServiceChartTooltipProps> = ({
+  active,
+  payload,
+  label,
+  onViewDetails,
+}) => {
+  // Only render if tooltip is active and payload exists
+  if (!active || !payload || payload.length === 0) return null;
+
+  const firstPayload = payload[0]?.payload;
+  if (!firstPayload) return null;
+
+  const total = firstPayload.total;
+  const completionRate = total > 0 ? ((firstPayload.completed / total) * 100).toFixed(1) : '0.0';
+
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-background p-3 shadow-md">
+      <div className="flex items-center justify-between mb-2">
+        <p className="font-medium text-sm">{label}</p>
+        {onViewDetails && label && (
+          <button
+            onClick={() => onViewDetails(label)}
+            className="text-xs text-primary hover:underline"
+          >
+            View Details →
+          </button>
+        )}
+      </div>
+      <div className="space-y-1">
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.fill }} />
+              <span className="text-muted-foreground">{entry.name}</span>
+            </div>
+            <span className="font-medium tabular-nums">{formatNumber(entry.value)}</span>
+          </div>
+        ))}
+
+        <div className="mt-2 pt-2 border-t space-y-1">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Total</span>
+            <span className="font-medium tabular-nums">{formatNumber(total)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Completion</span>
+            <span className="font-medium tabular-nums text-green-600 dark:text-green-400">
+              {completionRate}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Extract header action component
+interface HeaderActionProps {
+  data: ChartData[];
+  stats: ServiceStats;
+  isExporting: boolean;
+  onExport: () => void;
+}
+
+const HeaderAction = ({ data, stats, isExporting, onExport }: Readonly<HeaderActionProps>) => {
+  if (data.length === 0) return null;
+
+  const trendColor = stats.trend >= 0 ? 'green' : 'red';
+  const TrendIcon = stats.trend >= 0 ? TrendingUp : TrendingDown;
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <Tooltip
+          content={
+            <div className="space-y-1">
+              <div className="font-semibold">Total Services</div>
+              <div className="text-xs opacity-90">Completed: {formatNumber(stats.completed)}</div>
+              <div className="text-xs opacity-90">
+                In Progress: {formatNumber(stats.inProgress)}
+              </div>
+              <div className="text-xs opacity-90">Cancelled: {formatNumber(stats.cancelled)}</div>
+            </div>
+          }
+          position="bottom"
+        >
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg cursor-help">
+            <Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+              {formatNumber(stats.total)} total
+            </span>
+          </div>
+        </Tooltip>
+
+        <Tooltip
+          content={
+            <div className="space-y-1">
+              <div className="font-semibold">{stats.trend >= 0 ? 'Growth' : 'Decline'} Trend</div>
+              <div className="text-xs opacity-90">Month-over-month change</div>
+              {data.length >= 2 && (
+                <div className="text-xs opacity-90">
+                  {data.at(-2)?.month}: {data.at(-2)?.total || 0} → {data.at(-1)?.month}:{' '}
+                  {data.at(-1)?.total || 0}
+                </div>
+              )}
+            </div>
+          }
+          position="bottom"
+        >
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help',
+              `bg-${trendColor}-50 dark:bg-${trendColor}-900/20`
+            )}
+          >
+            <TrendIcon className={`h-4 w-4 text-${trendColor}-600 dark:text-${trendColor}-400`} />
+            <span
+              className={cn(
+                'text-sm font-semibold',
+                `text-${trendColor}-900 dark:text-${trendColor}-200`
+              )}
+            >
+              {Math.abs(stats.trend).toFixed(1)}%
+            </span>
+          </div>
+        </Tooltip>
+      </div>
+
+      <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
+
+      <Tooltip
+        content={
+          <div className="space-y-1">
+            <div className="font-semibold">Completion Rate</div>
+            <div className="text-xs opacity-90">
+              {formatNumber(stats.completed)} of {formatNumber(stats.total)} services
+            </div>
+            {stats.bestMonth && (
+              <div className="text-xs opacity-90">Best month: {stats.bestMonth}</div>
+            )}
+          </div>
+        }
+        position="bottom"
+      >
+        <div className="flex items-center gap-1.5 text-sm cursor-help">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <span className="font-semibold text-green-900 dark:text-green-200">
+            {stats.completionRate.toFixed(1)}%
+          </span>
+          <span className="text-muted-foreground">completed</span>
+        </div>
+      </Tooltip>
+
+      <Tooltip content="Download complete services report" position="bottom">
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={onExport}
+          icon={<Download className="h-4 w-4" />}
+          iconPosition="left"
+          loading={isExporting}
+          loadingText="Exporting..."
+        >
+          Export
+        </Button>
+      </Tooltip>
+    </div>
+  );
+};

@@ -20,6 +20,8 @@ import {
   Row,
   Column,
 } from '@react-email/components';
+import { formatCurrency, formatNumber } from '../utils/formatting';
+import { formatDate } from '../utils/date-formats';
 
 // Base email template styles
 const main = {
@@ -84,12 +86,12 @@ export function VerificationEmailTemplate({
   name,
   verificationUrl,
   expiresIn,
-}: {
+}: Readonly<{
   name: string;
   email: string;
   verificationUrl: string;
   expiresIn: string;
-}) {
+}>) {
   return (
     <Html>
       <Head />
@@ -159,14 +161,14 @@ export function PasswordResetEmailTemplate({
   expiresIn,
   ipAddress,
   userAgent,
-}: {
+}: Readonly<{
   name: string;
   email: string;
   resetUrl: string;
   expiresIn: string;
   ipAddress?: string;
   userAgent?: string;
-}) {
+}>) {
   return (
     <Html>
       <Head />
@@ -253,12 +255,7 @@ export function WelcomeEmailTemplate({
   email,
   loginUrl,
   features,
-}: {
-  name: string;
-  email: string;
-  loginUrl: string;
-  features: string[];
-}) {
+}: Readonly<{ name: string; email: string; loginUrl: string; features: string[] }>) {
   return (
     <Html>
       <Head />
@@ -284,8 +281,8 @@ export function WelcomeEmailTemplate({
             <Text style={paragraph}>With Enterprise Dashboard, you can:</Text>
 
             <ul style={{ paddingLeft: '20px' }}>
-              {features.map((feature, index) => (
-                <li key={index} style={{ ...paragraph, margin: '8px 0' }}>
+              {features.map((feature) => (
+                <li key={feature} style={{ ...paragraph, margin: '8px 0' }}>
                   {feature}
                 </li>
               ))}
@@ -352,29 +349,28 @@ export function InvoiceEmailTemplate({
   viewUrl,
   downloadUrl,
   items,
-}: {
+}: Readonly<{
   recipientName: string;
   recipientEmail: string;
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
-  totalAmount: string;
+  totalAmount: number;
   currency: string;
   viewUrl: string;
   downloadUrl: string;
   items: Array<{
+    id: string;
     description: string;
     quantity: number;
-    unitPrice: string;
-    total: string;
+    unitPrice: number;
+    total: number;
   }>;
-}) {
+}>) {
   return (
     <Html>
       <Head />
-      <Preview>
-        Invoice {invoiceNumber} - {totalAmount} {currency}
-      </Preview>
+      <Preview>{`Invoice ${invoiceNumber} - ${formatCurrency(totalAmount, currency)}`}</Preview>
       <Tailwind>
         <Body style={main}>
           <Container style={container}>
@@ -420,7 +416,9 @@ export function InvoiceEmailTemplate({
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Due Date:
                   </Text>
-                  <Text style={{ ...paragraph, margin: '5px 0' }}>{dueDate}</Text>
+                  <Text style={{ ...paragraph, margin: '5px 0' }}>
+                    {formatDate.readable(dueDate)}
+                  </Text>
                 </Column>
                 <Column>
                   <Text style={{ ...paragraph, margin: '5px 0', fontWeight: 'bold' }}>
@@ -429,7 +427,7 @@ export function InvoiceEmailTemplate({
                   <Text
                     style={{ ...paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}
                   >
-                    {totalAmount} {currency}
+                    {formatCurrency(totalAmount, currency)}
                   </Text>
                 </Column>
               </Row>
@@ -456,17 +454,17 @@ export function InvoiceEmailTemplate({
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    {items.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '8px', fontSize: '14px' }}>{item.description}</td>
                         <td style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>
-                          {item.quantity}
+                          {formatNumber(item.quantity)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', fontSize: '14px' }}>
-                          {item.unitPrice}
+                          {formatCurrency(item.unitPrice, currency)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', fontSize: '14px' }}>
-                          {item.total}
+                          {formatCurrency(item.total, currency)}
                         </td>
                       </tr>
                     ))}
@@ -531,7 +529,7 @@ export function LoadingOrderEmailTemplate({
   services,
   viewUrl,
   downloadUrl,
-}: {
+}: Readonly<{
   recipientName: string;
   recipientEmail: string;
   orderNumber: string;
@@ -544,7 +542,7 @@ export function LoadingOrderEmailTemplate({
   }>;
   viewUrl: string;
   downloadUrl: string;
-}) {
+}>) {
   return (
     <Html>
       <Head />
@@ -588,9 +586,9 @@ export function LoadingOrderEmailTemplate({
                 <Text style={{ ...paragraph, fontWeight: 'bold', marginTop: '20px' }}>
                   Services Included:
                 </Text>
-                {services.map((service, index) => (
+                {services.map((service) => (
                   <Section
-                    key={index}
+                    key={service.serviceNumber}
                     style={{
                       borderLeft: '4px solid #3b82f6',
                       paddingLeft: '15px',
@@ -659,14 +657,14 @@ export function NotificationEmailTemplate({
   actionUrl,
   actionLabel,
   type,
-}: {
+}: Readonly<{
   recipientName: string;
   title: string;
   message: string;
   actionUrl?: string;
   actionLabel?: string;
   type: 'info' | 'success' | 'warning' | 'error';
-}) {
+}>) {
   const typeColors = {
     info: '#3b82f6',
     success: '#10b981',

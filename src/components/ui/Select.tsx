@@ -1,6 +1,6 @@
 /**
  * Select Component
- * Native and custom dropdown with advanced features
+ * Native and custom dropdown
  */
 
 'use client';
@@ -26,6 +26,65 @@ const sizeClasses = {
   sm: 'h-8 text-xs',
   md: 'h-10 text-sm',
   lg: 'h-12 text-base',
+};
+
+// Helper component for dropdown content
+const DropdownContent: React.FC<{
+  loading: boolean;
+  filteredOptions: Option[];
+  emptyMessage: string;
+  groupedOptions: Record<string, Option[]>;
+  value: SelectProps['value'];
+  onSelect: (option: Option) => void;
+}> = ({ loading, filteredOptions, emptyMessage, groupedOptions, value, onSelect }) => {
+  if (loading) {
+    return <div className="px-3 py-2 text-sm text-neutral-500">Loading...</div>;
+  }
+
+  if (filteredOptions.length === 0) {
+    return <div className="px-3 py-2 text-sm text-neutral-500">{emptyMessage}</div>;
+  }
+
+  return (
+    <>
+      {Object.entries(groupedOptions).map(([group, groupOptions]) => (
+        <div key={group}>
+          {group !== 'default' && (
+            <div className="px-3 py-1 text-xs font-semibold text-neutral-500 uppercase">
+              {group}
+            </div>
+          )}
+          {groupOptions.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onSelect(option)}
+              disabled={option.disabled}
+              className={cn(
+                'w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 transition-colors',
+                'flex items-center justify-between',
+                option.disabled && 'opacity-50 cursor-not-allowed',
+                option.value === value && 'bg-primary-50 text-primary'
+              )}
+              role="option"
+              aria-selected={option.value === value}
+            >
+              <div className="flex items-center gap-2">
+                {option.icon && <span>{option.icon}</span>}
+                <div>
+                  <div>{option.label}</div>
+                  {option.description && (
+                    <div className="text-xs text-neutral-500">{option.description}</div>
+                  )}
+                </div>
+              </div>
+              {option.value === value && <Check size={16} />}
+            </button>
+          ))}
+        </div>
+      ))}
+    </>
+  );
 };
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -177,6 +236,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="relative w-full" ref={dropdownRef}>
         <button
+          type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           tabIndex={0}
           aria-expanded={isOpen}
@@ -223,6 +283,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               'absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-md shadow-lg',
               'max-h-60 overflow-auto'
             )}
+            role="listbox"
           >
             {searchable && (
               <div className="p-2 border-b border-neutral-200">
@@ -238,55 +299,22 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-9 pr-3 py-1.5 text-sm border border-neutral-200 rounded focus:border-primary focus:outline-none"
                     placeholder="Search options..."
+                    aria-label="Search options"
                   />
                 </div>
               </div>
             )}
 
-            <datalist>
-              {loading ? (
-                <div className="px-3 py-2 text-sm text-neutral-500">Loading...</div>
-              ) : filteredOptions.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-neutral-500">{emptyMessage}</div>
-              ) : (
-                Object.entries(groupedOptions).map(([group, groupOptions]) => (
-                  <div key={group}>
-                    {group !== 'default' && (
-                      <div className="px-3 py-1 text-xs font-semibold text-neutral-500 uppercase">
-                        {group}
-                      </div>
-                    )}
-                    {groupOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => handleSelect(option)}
-                        disabled={option.disabled}
-                        className={cn(
-                          'w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 transition-colors',
-                          'flex items-center justify-between',
-                          option.disabled && 'opacity-50 cursor-not-allowed',
-                          option.value === value && 'bg-primary-50 text-primary'
-                        )}
-                        role="option"
-                        aria-selected={option.value === value}
-                      >
-                        <div className="flex items-center gap-2">
-                          {option.icon && <span>{option.icon}</span>}
-                          <div>
-                            <div>{option.label}</div>
-                            {option.description && (
-                              <div className="text-xs text-neutral-500">{option.description}</div>
-                            )}
-                          </div>
-                        </div>
-                        {option.value === value && <Check size={16} />}
-                      </button>
-                    ))}
-                  </div>
-                ))
-              )}
-            </datalist>
+            <div role="group">
+              <DropdownContent
+                loading={loading}
+                filteredOptions={filteredOptions}
+                emptyMessage={emptyMessage}
+                groupedOptions={groupedOptions}
+                value={value}
+                onSelect={handleSelect}
+              />
+            </div>
           </div>
         )}
       </div>

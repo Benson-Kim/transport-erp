@@ -4,7 +4,7 @@
  */
 
 import { cn } from '@/lib/utils/cn';
-import { ReactNode } from 'react';
+import { ReactNode, useId } from 'react';
 
 export interface SkeletonProps {
   className?: string;
@@ -20,9 +20,10 @@ export function Skeleton({
   animation = 'pulse',
   width,
   height,
-}: SkeletonProps) {
+}: Readonly<SkeletonProps>) {
+  const formatSize = (size?: number | string) => (typeof size === 'number' ? `${size}px` : size);
   return (
-    <div
+    <output
       className={cn(
         'skeleton',
         variant === 'circular' && 'rounded-full',
@@ -32,11 +33,10 @@ export function Skeleton({
         className
       )}
       style={{
-        width: width ? (typeof width === 'number' ? `${width}px` : width) : undefined,
-        height: height ? (typeof height === 'number' ? `${height}px` : height) : undefined,
+        width: width ? formatSize(width) : undefined,
+        height: height ? formatSize(height) : undefined,
       }}
       aria-label="Loading..."
-      role="status"
     />
   );
 }
@@ -48,7 +48,8 @@ interface SkeletonGroupProps {
   children?: ReactNode;
 }
 
-export function SkeletonGroup({ count = 3, className, children }: SkeletonGroupProps) {
+export function SkeletonGroup({ count = 3, className, children }: Readonly<SkeletonGroupProps>) {
+  const baseId = useId();
   if (children) {
     return <div className={cn('space-y-3', className)}>{children}</div>;
   }
@@ -56,7 +57,7 @@ export function SkeletonGroup({ count = 3, className, children }: SkeletonGroupP
   return (
     <div className={cn('space-y-3', className)}>
       {Array.from({ length: count }).map((_, index) => (
-        <Skeleton key={index} className="h-4 w-full" />
+        <Skeleton key={`${baseId}-item-${index}`} className="h-4 w-full" />
       ))}
     </div>
   );

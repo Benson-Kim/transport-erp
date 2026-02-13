@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect } from 'react';
-// import { useRouter } from 'next/navigation';
 
 /**
  * Hook to warn users about unsaved changes when navigating away
@@ -13,41 +12,28 @@ export function useUnsavedChanges(
   isDirty: boolean,
   message: string = 'You have unsaved changes. Are you sure you want to leave?'
 ) {
-  // const router = useRouter();
-
   useEffect(() => {
     // Browser navigation (close tab, refresh, etc.)
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirty) {
         e.preventDefault();
-        e.returnValue = message;
-        return message;
+        return '';
       }
       return undefined;
     };
 
+    const handlePopState = () => {
+      if (isDirty && !globalThis.confirm(message)) {
+        globalThis.history.pushState(null, '', globalThis.location.href);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
+    globalThis.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      globalThis.removeEventListener('popstate', handlePopState);
     };
   }, [isDirty, message]);
-
-  // For Next.js navigation
-  // useEffect(() => {
-  //   if (!isDirty) return;
-
-  //   const handleRouteChange = () => {
-  //     if (isDirty && !window.confirm(message)) {
-  //       // This prevents navigation in Next.js
-  //       throw new Error('Route change cancelled');
-  //     }
-  //   };
-
-  //   // Note: This is a simplified version. For full Next.js 13+ support,
-  //   // you might need to use middleware or Route Handlers
-  //   return () => {
-  //     // Cleanup
-  //   };
-  // }, [isDirty, message, router]);
 }
