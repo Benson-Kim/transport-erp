@@ -55,15 +55,16 @@ export interface InvoiceEmailData {
     invoiceNumber: string;
     invoiceDate: string;
     dueDate: string;
-    totalAmount: string;
+    totalAmount: number;
     currency: string;
     viewUrl: string;
     downloadUrl: string;
     items: Array<{
+        id: string;
         description: string;
         quantity: number;
-        unitPrice: string;
-        total: string;
+        unitPrice: number;
+        total: number;
     }>;
 }
 

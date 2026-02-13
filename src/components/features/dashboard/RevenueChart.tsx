@@ -275,12 +275,9 @@ export function RevenueChart({
       description:
         "We couldn't fetch your revenue data. Please check your connection and try again.",
       variant: 'full' as const,
+      // Only add onRetry if onRefresh exists
+      ...(onRefresh && { onRetry: () => { void onRefresh(); } }),
     };
-
-    // Only add onRetry if onRefresh exists
-    if (onRefresh) {
-      errorStateProps.onRetry = onRefresh;
-    }
 
     return (
       <Card variant="elevated" padding="none">
@@ -313,7 +310,7 @@ export function RevenueChart({
             )
           }
         />
-        {}
+        { }
         <CardBody>
           {(() => {
             let primaryAction:

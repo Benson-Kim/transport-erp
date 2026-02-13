@@ -155,7 +155,7 @@ export function ServiceTimeline({ serviceId }: Readonly<ServiceTimelineProps>) {
                     {/* Metadata - show changes for updates */}
                     {activity.action === 'UPDATE' && activity.metadata?.changes && (
                       <div className="mt-1 space-y-1">
-                        {activity.metadata.changes.map((change, i) => (
+                        {activity.metadata.changes.map((change: any, i: string) => (
                           <div key={i} className="text-xs text-muted-foreground">
                             <span className="font-medium">{change.field}:</span>{' '}
                             <span className="line-through">{change.oldValue}</span>

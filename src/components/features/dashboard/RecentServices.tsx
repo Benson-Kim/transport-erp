@@ -129,7 +129,7 @@ export function RecentServices({
   const servicesTabsCounts = useMemo(() => {
     const stats = { all: 0, active: 0, completed: 0 };
 
-    const activeStatuses = new Set([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS]);
+    const activeStatuses = new Set<ServiceStatus>([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS]);
     services.forEach((s) => {
       stats.all++;
       if (activeStatuses.has(s.status)) {
@@ -234,12 +234,12 @@ export function RecentServices({
   // Calculate pagination
   const paginationConfig = showPagination
     ? {
-        page: currentPage,
-        pageSize: selectedPageSize,
-        total: services.length,
-        onPageChange: setCurrentPage,
-        onPageSizeChange: setSelectedPageSize,
-      }
+      page: currentPage,
+      pageSize: selectedPageSize,
+      total: services.length,
+      onPageChange: setCurrentPage,
+      onPageSizeChange: setSelectedPageSize,
+    }
     : undefined;
 
   // Header action
@@ -326,13 +326,9 @@ export function RecentServices({
       description:
         "We couldn't fetch your recent services. Please check your connection and try again.",
       variant: 'card' as const,
+      // Only add onRetry if onRefresh exists
+      ...(onRefresh && { onRetry: () => { void handleRefresh(); } }),
     };
-
-    if (onRefresh) {
-      errorStateProps.onRetry = () => {
-        handleRefresh();
-      };
-    }
 
     return (
       <Card variant="elevated" padding="none">
@@ -484,24 +480,24 @@ export function RecentServices({
                 action={
                   onCreateNew
                     ? {
-                        label: 'Create Service',
-                        onClick: onCreateNew,
-                        icon: <Plus size={16} />,
-                      }
+                      label: 'Create Service',
+                      onClick: onCreateNew,
+                      icon: <Plus size={16} />,
+                    }
                     : {
-                        label: 'Refresh',
-                        onClick: () => {
-                          handleRefresh();
-                        },
-                        icon: <RefreshCw size={16} />,
-                      }
+                      label: 'Refresh',
+                      onClick: () => {
+                        handleRefresh();
+                      },
+                      icon: <RefreshCw size={16} />,
+                    }
                 }
                 secondaryAction={
                   onImport
                     ? {
-                        label: 'Import Services',
-                        onClick: onImport,
-                      }
+                      label: 'Import Services',
+                      onClick: onImport,
+                    }
                     : undefined
                 }
               />
