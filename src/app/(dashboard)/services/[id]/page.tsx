@@ -26,7 +26,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function ServiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ServiceDetailPage({
+  params,
+}: Readonly<{ params: Promise<{ id: string }> }>) {
   const session = await auth();
   if (!session) redirect('/login');
 
