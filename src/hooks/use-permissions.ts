@@ -22,7 +22,7 @@ import { UserRole } from '@/app/generated/prisma';
  */
 export function usePermissions() {
   const { data: session, status } = useSession();
-  const userRole = session?.user?.role as UserRole | undefined;
+  const userRole = session?.user?.role;
 
   /**
    * Check if user has a specific permission

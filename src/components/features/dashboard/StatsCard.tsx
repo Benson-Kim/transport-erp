@@ -18,7 +18,7 @@ import {
   ArrowUp,
   RefreshCw,
 } from 'lucide-react';
-import { Card, Tooltip, Skeleton, Button } from '@/components/ui';
+import { Card, Tooltip, Button } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/formatting';
 import Link from 'next/link';
@@ -26,7 +26,6 @@ import { StatsCardsProps, StatsData } from '@/types/dashboard';
 
 export function StatsCards({
   stats,
-  loading = false,
   error = null,
   onRefresh,
   compact = false,
@@ -67,7 +66,9 @@ export function StatsCards({
           description: 'Successfully completed services',
           details: [
             `${stats.completedServices} services completed`,
-            `${((stats.completedServices / stats.totalServices) * 100).toFixed(1)}% completion rate`,
+            stats.totalServices > 0
+              ? `${formatPercentage(stats.completedServices / stats.totalServices)} completion rate`
+              : 'No services yet',
           ],
         },
       },
@@ -115,24 +116,6 @@ export function StatsCards({
     ],
     [stats]
   );
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i} padding="md">
-            <div className="flex items-center justify-between mb-4">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-8 w-8 rounded-lg" />
-            </div>
-            <Skeleton className="h-8 w-32 mb-2" />
-            <Skeleton className="h-3 w-20" />
-          </Card>
-        ))}
-      </div>
-    );
-  }
 
   // Error state
   if (error) {
@@ -266,12 +249,7 @@ export function StatsCards({
               </div>
 
               {/* Background Pattern */}
-              <div
-                className={cn(
-                  'absolute inset-0 flex items-center justify-center opacity-5 group-hover:opacity-10 transition-opacity',
-                  card.iconColor.replace('text-', 'text-')
-                )}
-              >
+              <div className="absolute inset-0 flex items-center justify-center opacity-5 group-hover:opacity-10 transition-opacity">
                 <card.icon className="h-24 w-24" />
               </div>
             </Card>

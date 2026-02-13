@@ -23,12 +23,14 @@ export function ErrorState({
   onRetry,
   variant = 'full',
   className,
-}: ErrorStateProps) {
-  const errorMessage = error
-    ? typeof error === 'string'
-      ? error
-      : error.message
-    : description || 'Something went wrong. Please try again.';
+}: Readonly<ErrorStateProps>) {
+  const getErrorMessage = () => {
+    if (typeof error === 'string') return error;
+
+    return error?.message ?? (description || 'Something went wrong. Please try again.');
+  };
+
+  const errorMessage = getErrorMessage();
 
   if (variant === 'inline') {
     return (

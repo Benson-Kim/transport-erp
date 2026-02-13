@@ -151,9 +151,9 @@ export function DropdownMenu({
           )}
         >
           <div className="py-1">
-            {items.map((item, index) => {
+            {items.map((item) => {
               if ('divider' in item && item.divider) {
-                return <div key={index} className="my-1 h-px bg-neutral-200" role="separator" />;
+                return <div key={item.id} className="my-1 h-px bg-neutral-200" role="separator" />;
               }
 
               const enabledIndex = items
@@ -192,11 +192,10 @@ export function DropdownMenu({
                   className={cn(
                     'flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-left',
                     'transition-colors relative',
-                    item.disabled
-                      ? 'text-neutral-400 cursor-not-allowed'
-                      : item.danger
-                        ? 'text-red-600 hover:bg-red-50'
-                        : 'text-neutral-700 hover:bg-neutral-100',
+                    item.disabled && 'text-neutral-400 cursor-not-allowed',
+                    item.danger
+                      ? 'text-red-600 hover:bg-red-50'
+                      : 'text-neutral-700 hover:bg-neutral-100',
                     isFocused && 'bg-neutral-100'
                   )}
                 >
@@ -244,11 +243,10 @@ export function DropdownMenu({
                               }}
                               className={cn(
                                 'flex w-full items-center gap-2 px-4 py-2 text-sm text-left transition-colors',
-                                sub.disabled
-                                  ? 'text-neutral-400 cursor-not-allowed'
-                                  : sub.danger
-                                    ? 'text-red-600 hover:bg-red-50'
-                                    : 'text-neutral-700 hover:bg-neutral-100'
+                                sub.disabled && 'text-neutral-400 cursor-not-allowed',
+                                sub.danger
+                                  ? 'text-red-600 hover:bg-red-50'
+                                  : 'text-neutral-700 hover:bg-neutral-100'
                               )}
                             >
                               {sub.icon && <span className="w-4">{sub.icon}</span>}

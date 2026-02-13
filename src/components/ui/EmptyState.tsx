@@ -64,10 +64,10 @@ export function EmptyState({
   action,
   secondaryAction,
   className,
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
   const config = presetConfigs[variant];
 
-  const displayIcon = icon !== undefined ? icon : config.icon;
+  const displayIcon = icon === undefined ? config.icon : icon;
   const displayTitle = title || config.title || 'No content';
   const displayDescription = description || config.description;
 
@@ -103,7 +103,7 @@ export function EmptyState({
 }
 
 // Common Empty State Presets
-export function NoDataEmptyState({ onAdd }: { onAdd?: () => void }) {
+export function NoDataEmptyState({ onAdd }: Readonly<{ onAdd?: () => void }>) {
   return (
     <EmptyState
       variant="no-data"
@@ -120,7 +120,7 @@ export function NoDataEmptyState({ onAdd }: { onAdd?: () => void }) {
   );
 }
 
-export function NoResultsEmptyState({ onClear }: { onClear?: () => void }) {
+export function NoResultsEmptyState({ onClear }: Readonly<{ onClear?: () => void }>) {
   return (
     <EmptyState
       variant="no-results"
@@ -136,7 +136,7 @@ export function NoResultsEmptyState({ onClear }: { onClear?: () => void }) {
   );
 }
 
-export function UploadEmptyState({ onUpload }: { onUpload: () => void }) {
+export function UploadEmptyState({ onUpload }: Readonly<{ onUpload: () => void }>) {
   return (
     <EmptyState
       icon={<Upload size={48} />}

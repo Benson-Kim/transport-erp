@@ -23,7 +23,7 @@ export function Card({
   children,
   className,
   ...props
-}: CardProps) {
+}: Readonly<CardProps>) {
   const paddingClasses = {
     none: '',
     sm: 'p-3',
@@ -75,7 +75,7 @@ export function CardHeader({
   children,
   className,
   ...props
-}: CardHeaderProps) {
+}: Readonly<CardHeaderProps>) {
   if (children) {
     return (
       <div className={cn('px-6 py-4 border-b border-neutral-200', className)} {...props}>
@@ -106,7 +106,7 @@ interface CardBodyProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
 }
 
-export function CardBody({ children, className, ...props }: CardBodyProps) {
+export function CardBody({ children, className, ...props }: Readonly<CardBodyProps>) {
   return (
     <div className={cn('p-6', className)} {...props}>
       {children}
@@ -120,7 +120,12 @@ interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
   align?: 'left' | 'center' | 'right';
 }
 
-export function CardFooter({ children, align = 'right', className, ...props }: CardFooterProps) {
+export function CardFooter({
+  children,
+  align = 'right',
+  className,
+  ...props
+}: Readonly<CardFooterProps>) {
   const alignClasses = {
     left: 'justify-start',
     center: 'justify-center',
@@ -159,7 +164,7 @@ function CardSkeleton() {
 }
 
 // Card Error State
-function CardError({ error }: { error: Error }) {
+function CardError({ error }: Readonly<{ error: Error }>) {
   return (
     <div className="text-center py-4">
       <p className="text-red-600 font-medium">Error loading content</p>

@@ -40,7 +40,12 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
     { className, variant, required, optional, helperText, error, success, children, ...props },
     ref
   ) => {
-    const computedVariant = error ? 'error' : success ? 'success' : variant;
+    const activeStatus = (error && 'error') || (success && 'success') || undefined;
+    const computedVariant = activeStatus ?? variant ?? 'default';
+    const helperColor =
+      (error && 'text-error-600 dark:text-error-400') ||
+      (success && 'text-success-600 dark:text-success-400') ||
+      'text-neutral-500 dark:text-neutral-400';
 
     return (
       <div className="space-y-1">
@@ -61,20 +66,7 @@ const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
             </span>
           )}
         </label>
-        {helperText && (
-          <p
-            className={cn(
-              'text-xs',
-              error
-                ? 'text-error-600 dark:text-error-400'
-                : success
-                  ? 'text-success-600 dark:text-success-400'
-                  : 'text-neutral-500 dark:text-neutral-400'
-            )}
-          >
-            {helperText}
-          </p>
-        )}
+        {helperText && <p className={cn('text-xs', helperColor)}>{helperText}</p>}
       </div>
     );
   }

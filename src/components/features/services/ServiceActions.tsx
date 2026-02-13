@@ -28,7 +28,7 @@ export function ServiceActions({
   trigger,
   onSuccess,
   autoOpen = false,
-}: ServiceActionsProps) {
+}: Readonly<ServiceActionsProps>) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(autoOpen);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,12 +62,13 @@ export function ServiceActions({
           router.push('/services');
           break;
 
-        case 'generate-loading-order':
+        case 'generate-loading-order': {
           const { url } = await generateLoadingOrder(service.id);
           window.open(url, '_blank');
           toast.success('Loading order generated');
           router.refresh();
           break;
+        }
 
         case 'archive':
           //   await archiveService(service.id);

@@ -21,7 +21,7 @@ export function ServiceStatusBadge({
   dot = false,
   pulse = false,
   className,
-}: ServiceStatusBadgeProps) {
+}: Readonly<ServiceStatusBadgeProps>) {
   const config = getStatusConfig(status);
 
   if (!config) {

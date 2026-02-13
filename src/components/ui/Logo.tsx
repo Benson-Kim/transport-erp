@@ -16,13 +16,71 @@ interface LogoProps {
   variant?: 'default' | 'white' | 'dark';
 }
 
+interface LogoContentProps {
+  className?: string | undefined;
+  showText: boolean;
+  size: 'sm' | 'md' | 'lg' | 'xl';
+  variant: 'default' | 'white' | 'dark';
+  colors: any;
+  sizes: any;
+}
+
+const LogoContent = ({
+  className,
+  showText,
+  size,
+  sizes,
+  variant,
+  colors,
+}: Readonly<LogoContentProps>) => (
+  <div className={cn('flex items-center gap-2', className)}>
+    {/* Logo Icon */}
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn(sizes[size].icon, colors[variant])}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 2L2 7L12 12L22 7L12 2Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 17L12 22L22 17"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 12L12 17L22 12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+
+    {/* Logo Text */}
+    {showText && (
+      <span className={cn('font-bold tracking-tight', sizes[size].text, colors[variant])}>
+        Enterprise
+      </span>
+    )}
+  </div>
+);
+
 export function Logo({
   className,
   showText = true,
   size = 'md',
   href = '/',
   variant = 'default',
-}: LogoProps) {
+}: Readonly<LogoProps>) {
   const sizes = {
     sm: {
       icon: 'h-6 w-6',
@@ -52,48 +110,6 @@ export function Logo({
     dark: 'text-neutral-900',
   };
 
-  const LogoContent = () => (
-    <div className={cn('flex items-center gap-2', className)}>
-      {/* Logo Icon */}
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={cn(sizes[size].icon, colors[variant])}
-        aria-hidden="true"
-      >
-        <path
-          d="M12 2L2 7L12 12L22 7L12 2Z"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M2 17L12 22L22 17"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M2 12L12 17L22 12"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-
-      {/* Logo Text */}
-      {showText && (
-        <span className={cn('font-bold tracking-tight', sizes[size].text, colors[variant])}>
-          Enterprise
-        </span>
-      )}
-    </div>
-  );
-
   if (href) {
     return (
       <Link
@@ -104,12 +120,28 @@ export function Logo({
         )}
         aria-label="Enterprise Dashboard Home"
       >
-        <LogoContent />
+        <LogoContent
+          className={className}
+          showText={showText}
+          size={size}
+          variant={variant}
+          colors={colors}
+          sizes={sizes}
+        />
       </Link>
     );
   }
 
-  return <LogoContent />;
+  return (
+    <LogoContent
+      className={className}
+      showText={showText}
+      size={size}
+      variant={variant}
+      colors={colors}
+      sizes={sizes}
+    />
+  );
 }
 
 /**
@@ -120,6 +152,6 @@ export function LogoMark({
   className,
   size = 'md',
   variant = 'default',
-}: Omit<LogoProps, 'showText' | 'href'>) {
+}: Readonly<Omit<LogoProps, 'showText' | 'href'>>) {
   return <Logo className={className ?? ''} size={size} variant={variant} showText={false} />;
 }

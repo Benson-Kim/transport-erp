@@ -330,7 +330,7 @@ export function RecentServices({
 
     if (onRefresh) {
       errorStateProps.onRetry = () => {
-        void handleRefresh();
+        handleRefresh();
       };
     }
 
@@ -491,7 +491,7 @@ export function RecentServices({
                     : {
                         label: 'Refresh',
                         onClick: () => {
-                          void handleRefresh();
+                          handleRefresh();
                         },
                         icon: <RefreshCw size={16} />,
                       }

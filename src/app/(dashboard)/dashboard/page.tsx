@@ -155,7 +155,7 @@ export default async function DashboardPage({ searchParams }: Readonly<Dashboard
             }
           >
             <Suspense fallback={<ServiceSkeleton.Stats />}>
-              <StatsCards stats={dashboardData.stats} loading={false} error={dataError} />
+              <StatsCards stats={dashboardData.stats} error={dataError} />
             </Suspense>
           </ErrorBoundary>
 

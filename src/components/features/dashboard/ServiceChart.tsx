@@ -79,7 +79,7 @@ export function ServicesChart({
   const isDark = theme === 'dark';
   const [isExporting, setIsExporting] = useState(false);
   const hoveredBarRef = useRef<string | null>(null);
-
+ 
   const colors = useMemo(
     () => ({
       completed: isDark ? '#10b981' : '#059669',

@@ -401,11 +401,10 @@ export function PricingCalculator({
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white font-medium text-center',
-                marginPercent >= 20
-                  ? 'text-green-600 border-green-200'
-                  : marginPercent >= 10
-                    ? 'text-yellow-600 border-yellow-200'
-                    : 'text-red-600 border-red-200'
+                marginPercent >= 20 && 'text-green-600 border-green-200',
+                marginPercent >= 10
+                  ? 'text-yellow-600 border-yellow-200'
+                  : 'text-red-600 border-red-200'
               )}
             >
               {formatPercentage(marginPercent)}
@@ -436,7 +435,8 @@ export function PricingCalculator({
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white text-center',
-                margin > 0 ? 'text-green-600' : margin < 0 ? 'text-red-600' : ''
+                margin > 0 && 'text-green-600',
+                margin < 0 ? 'text-red-600' : ''
               )}
             >
               {costAmount > 0 ? (margin / costAmount).toFixed(2) : '0.00'}x

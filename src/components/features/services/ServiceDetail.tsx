@@ -252,11 +252,8 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                   <dd
                     className={cn(
                       'font-bold text-lg',
-                      marginPercent >= 20
-                        ? 'text-green-600'
-                        : marginPercent >= 10
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
+                      marginPercent >= 20 && 'text-green-600',
+                      marginPercent >= 10 ? 'text-yellow-600' : 'text-red-600'
                     )}
                   >
                     {formatPercentage(marginPercent)}
