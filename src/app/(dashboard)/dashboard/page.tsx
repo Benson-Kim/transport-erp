@@ -6,19 +6,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
-// import { Info, Sparkles, RefreshCw, Plus, ArrowRight } from 'lucide-react';
 
 import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
-import {
-  ErrorBoundary,
-  Alert,
-  Card,
-  CardBody,
-} from '@/components/ui';
+import { ErrorBoundary, Alert, Card, CardBody } from '@/components/ui';
 import {
   DashboardDateRange,
-  DashboardSkeleton,
   QuickActions,
   RecentServices,
   RevenueChart,
@@ -32,6 +25,7 @@ import {
   NewUserWelcome,
   PerformanceTip,
 } from '@/components/features/dashboard';
+import { ServiceSkeleton } from '@/components/features/services';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',
@@ -46,7 +40,7 @@ interface DashboardPageProps {
   }>;
 }
 
-export default async function DashboardPage({ searchParams }: DashboardPageProps) {
+export default async function DashboardPage({ searchParams }: Readonly<DashboardPageProps>) {
   const params = await searchParams;
 
   // Check authentication
@@ -160,8 +154,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               <Alert variant="error">Failed to load statistics. Please refresh the page.</Alert>
             }
           >
-            <Suspense fallback={<DashboardSkeleton.Stats />}>
-              <StatsCards stats={dashboardData.stats} loading={false} error={dataError} />
+            <Suspense fallback={<ServiceSkeleton.Stats />}>
+              <StatsCards stats={dashboardData.stats} error={dataError} />
             </Suspense>
           </ErrorBoundary>
 
@@ -176,7 +170,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </Card>
               }
             >
-              <Suspense fallback={<DashboardSkeleton.Chart />}>
+              <Suspense fallback={<ServiceSkeleton.Chart />}>
                 <ServicesChart
                   data={dashboardData.servicesChart}
                   loading={false}
@@ -194,7 +188,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </Card>
               }
             >
-              <Suspense fallback={<DashboardSkeleton.Chart />}>
+              <Suspense fallback={<ServiceSkeleton.Chart />}>
                 <RevenueChart
                   data={dashboardData.revenueChart}
                   loading={false}
@@ -217,7 +211,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   </Card>
                 }
               >
-                <Suspense fallback={<DashboardSkeleton.Table />}>
+                <Suspense fallback={<ServiceSkeleton.Table />}>
                   <RecentServices
                     services={dashboardData.recentServices}
                     loading={false}

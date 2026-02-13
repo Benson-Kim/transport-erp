@@ -128,25 +128,6 @@ export const twoFactorSchema = z.object({
     .regex(/^\d+$/, 'Code must contain only numbers'),
 });
 
-/**
- * Validate email format
- */
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-/**
- * Sanitize user input
- */
-export function sanitizeInput(input: string): string {
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+=/gi, ''); // Remove event handlers
-}
-
 export type LoginFormData = z.input<typeof loginSchema>;
 export type LoginOutputData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;

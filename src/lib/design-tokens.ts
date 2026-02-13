@@ -229,7 +229,7 @@ export function getToken<P extends TokenPath<DesignTokens>>(path: P): PathValue<
       throw new Error(`Invalid token path: ${path}`);
     }
     current = (current as Record<string, unknown>)[seg];
-    if (typeof current === 'undefined') {
+    if (current === undefined) {
       throw new Error(`Token not found: ${path}`);
     }
   }
@@ -281,7 +281,7 @@ export const media = {
   },
   only: (bp: BreakpointName): string => {
     const keys = Object.keys(designTokens.breakpoints) as BreakpointName[];
-    const sorted = keys.sort(
+    const sorted = keys.toSorted(
       (a, b) => parsePx(designTokens.breakpoints[a]) - parsePx(designTokens.breakpoints[b])
     );
     const index = sorted.indexOf(bp);

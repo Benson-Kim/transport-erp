@@ -32,7 +32,7 @@ function triggerDownload(url: string, filename: string): void {
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
 
   // Clean up the URL after a delay to ensure download starts
   setTimeout(() => URL.revokeObjectURL(url), 100);
@@ -64,7 +64,7 @@ function escapeCSVCell(val: unknown): string {
 
   // Escape special characters
   if (/[",\r\n]/.test(str)) {
-    return `"${str.replace(/"/g, '""')}"`;
+    return `"${str.replaceAll('"', '""')}"`;
   }
 
   return str;
@@ -80,7 +80,7 @@ export function exportToCsv(
 ): void {
   const { headers, transformRow, onProgress } = options;
 
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     console.warn('Export functions can only be used in the browser');
     return;
   }
@@ -151,7 +151,7 @@ export async function exportToExcel(
 ): Promise<void> {
   const { headers, transformRow, onProgress } = options;
 
-  if (typeof window === 'undefined') {
+  if (globalThis.window === undefined) {
     console.warn('Export functions can only be used in the browser');
     return;
   }

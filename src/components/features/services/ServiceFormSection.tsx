@@ -14,7 +14,7 @@ export function ServiceFormSection({
   description,
   children,
   className,
-}: ServiceFormSectionProps) {
+}: Readonly<ServiceFormSectionProps>) {
   return (
     <Card className={className}>
       <CardBody>

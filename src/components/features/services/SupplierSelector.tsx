@@ -34,7 +34,7 @@ export function SupplierSelector({
   disabled = false,
   placeholder = 'Select supplier...',
   allowCreate = true,
-}: SupplierSelectorProps) {
+}: Readonly<SupplierSelectorProps>) {
   const router = useRouter();
 
   // Convert suppliers to Option format with groups
@@ -42,11 +42,11 @@ export function SupplierSelector({
     const supplierOptions: Option[] = suppliers.map((supplier) => ({
       value: supplier.id,
       label: supplier.name,
-      description: `${supplier.supplierCode}${supplier.email ? ` • ${supplier.email}` : ''}`,
-      group: supplier.isActive !== false ? 'Active Suppliers' : 'Inactive Suppliers',
+      description: [supplier.supplierCode, supplier.email].filter(Boolean).join(' • '),
+      group: supplier.isActive === false ? 'Inactive Suppliers' : 'Active Suppliers',
       disabled: false,
       icon: (
-        <Badge variant={supplier.isActive !== false ? 'active' : 'cancelled'} size="sm">
+        <Badge variant={supplier.isActive === false ? 'cancelled' : 'active'} size="sm">
           {supplier.supplierCode}
         </Badge>
       ),
@@ -85,7 +85,7 @@ export function SupplierSelector({
       clearable={!!value}
       onClear={() => onChange('')}
       disabled={disabled}
-      error={error ? error : ''}
+      error={error || ''}
       emptyMessage="No suppliers found"
       className={cn(error && 'border-red-500 ring-0 focus-visible:ring-red-500')}
     />

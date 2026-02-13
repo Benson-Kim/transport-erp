@@ -5,7 +5,6 @@
 
 'use server';
 
-import { AuthError } from 'next-auth';
 import {
   loginSchema,
   registerSchema,
@@ -35,8 +34,6 @@ import prisma from '@/lib/prisma/prisma';
 
 import { EmailTemplate } from '@/types/mail';
 import { emailService } from '@/lib/email';
-import { isRedirectError } from 'next/dist/client/components/redirect-error';
-
 
 function getBaseUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -47,35 +44,10 @@ function getBaseUrl(): string {
  */
 export async function getClientInfo() {
   const headersList = await headers();
-  const ipAddress = headersList.get('x-forwarded-for')?.split(',')[0]?.trim() || headersList.get('x-real-ip') || '';
+  const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
   const userAgent = headersList.get('user-agent') || '';
   return { ipAddress, userAgent };
 }
-
-/**
- * Extract error message from NextAuth AuthError
- * authorize() throws specific Error messages which are nested inside AuthError
- */
-function getAuthErrorMessage(error: AuthError): string {
-  // The original error from authorize() is nested in the cause chain
-  const cause = error.cause as { err?: Error } | undefined;
-  const originalMessage = cause?.err?.message;
-
-  if (originalMessage) {
-    return originalMessage;
-  }
-
-  // Fallback for known error types
-  switch (error.type) {
-    case 'CredentialsSignin':
-      return 'Invalid email or password';
-    case 'AccessDenied':
-      return 'Access denied';
-    default:
-      return 'Authentication failed';
-  }
-}
-
 
 /**
  * Sign in with credentials
@@ -83,29 +55,36 @@ function getAuthErrorMessage(error: AuthError): string {
 export async function signInWithCredentials(data: LoginFormData) {
   try {
     const { email, password, rememberMe } = loginSchema.parse(data);
+    const { ipAddress, userAgent } = await getClientInfo();
 
-    await signIn('credentials', {
+    const result = await signIn('credentials', {
       email,
       password,
       rememberMe: String(rememberMe ?? false),
+      ipAddress,
+      userAgent,
       redirect: false,
     });
+
+    if (result?.error) {
+      switch (result.error) {
+        case 'CredentialsSignin':
+          return { success: false, error: 'Invalid email or password' };
+        case 'AccessDenied':
+          return { success: false, error: 'Access denied' };
+        default:
+          return { success: false, error: result.error || 'Authentication failed' };
+      }
+    }
 
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
+    if (error instanceof Error) {
+      console.error('Sign in error:', error.message);
+      return { success: false, error: error.message };
     }
 
-    if (error instanceof AuthError) {
-      return {
-        success: false,
-        error: getAuthErrorMessage(error)
-      };
-    }
-
-    console.error('Sign in error:', error);
     return { success: false, error: 'An unexpected error occurred' };
   }
 }
@@ -161,7 +140,6 @@ export async function requestPasswordReset(data: ForgotPasswordFormData) {
     const { ipAddress, userAgent } = await getClientInfo();
     const baseUrl = getBaseUrl();
 
-
     const user = await prisma.user.findUnique({
       where: { email },
       select: { name: true },
@@ -172,16 +150,14 @@ export async function requestPasswordReset(data: ForgotPasswordFormData) {
     if (token && user) {
       // Send password reset email
       const resetUrl = `${baseUrl}/reset-password?token=${token}`;
-      await emailService.sendTemplate(EmailTemplate.PASSWORD_RESET, email,
-        {
-          name: user.name || 'User',
-          email,
-          resetUrl,
-          expiresIn: '1 hour',
-          ipAddress,
-          userAgent,
-        }
-      )
+      await emailService.sendTemplate(EmailTemplate.PASSWORD_RESET, email, {
+        name: user.name || 'User',
+        email,
+        resetUrl,
+        expiresIn: '1 hour',
+        ipAddress,
+        userAgent,
+      });
     }
 
     return {
@@ -292,20 +268,18 @@ export async function resendVerificationEmail(data: ForgotPasswordFormData) {
         select: { name: true },
       });
 
-      await emailService.sendTemplate(
-        EmailTemplate.VERIFICATION,
-        result.email,
-        {
-          name: user?.name || 'User',
-          email: result.email,
-          verificationUrl,
-          expiresIn: '24 hours',
-        })
+      await emailService.sendTemplate(EmailTemplate.VERIFICATION, result.email, {
+        name: user?.name || 'User',
+        email: result.email,
+        verificationUrl,
+        expiresIn: '24 hours',
+      });
     }
 
     return {
       success: true,
-      message: 'If an unverified account exists with this email, you will receive a verification link.',
+      message:
+        'If an unverified account exists with this email, you will receive a verification link.',
     };
   } catch (error) {
     console.error('Resend verification error:', error);

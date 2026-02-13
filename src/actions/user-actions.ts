@@ -162,9 +162,6 @@ export const createUser = withPermission(
     });
 
     // Send welcome email if requested
-    if (validatedData.sendWelcomeEmail) {
-      // await sendWelcomeEmail(user.email, user.name, validatedData.password);
-    }
 
     revalidatePath('/settings/users');
 

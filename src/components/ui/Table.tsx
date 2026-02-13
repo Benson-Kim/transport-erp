@@ -13,7 +13,7 @@ interface TableProps extends HTMLAttributes<HTMLTableElement> {
   fixed?: boolean;
 }
 
-export function Table({ children, fixed = false, className, ...props }: TableProps) {
+export function Table({ children, fixed = false, className, ...props }: Readonly<TableProps>) {
   return (
     <div className="relative overflow-auto">
       <table className={cn('table w-full', fixed && 'table-fixed', className)} {...props}>
@@ -29,7 +29,12 @@ interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {
   sticky?: boolean;
 }
 
-function TableHeader({ children, sticky = false, className, ...props }: TableHeaderProps) {
+function TableHeader({
+  children,
+  sticky = false,
+  className,
+  ...props
+}: Readonly<TableHeaderProps>) {
   return (
     <thead
       className={cn('bg-neutral-50', sticky && 'sticky top-0 z-10 bg-white shadow-sm', className)}
@@ -45,7 +50,7 @@ interface TableBodyProps extends HTMLAttributes<HTMLTableSectionElement> {
   children: ReactNode;
 }
 
-function TableBody({ children, className, ...props }: TableBodyProps) {
+function TableBody({ children, className, ...props }: Readonly<TableBodyProps>) {
   return (
     <tbody className={cn('divide-y divide-neutral-200', className)} {...props}>
       {children}
@@ -68,7 +73,7 @@ function TableRow({
   clickable = false,
   className,
   ...props
-}: TableRowProps) {
+}: Readonly<TableRowProps>) {
   return (
     <tr
       className={cn(
@@ -100,7 +105,7 @@ function TableHeaderCell({
   sticky = false,
   className,
   ...props
-}: TableHeaderCellProps) {
+}: Readonly<TableHeaderCellProps>) {
   return (
     <th
       className={cn(
@@ -140,7 +145,7 @@ function TableCell({
   truncate = false,
   className,
   ...props
-}: TableCellProps) {
+}: Readonly<TableCellProps>) {
   return (
     <td
       className={cn(
@@ -163,7 +168,7 @@ interface TableFooterProps extends HTMLAttributes<HTMLTableSectionElement> {
   children: ReactNode;
 }
 
-function TableFooter({ children, className, ...props }: TableFooterProps) {
+function TableFooter({ children, className, ...props }: Readonly<TableFooterProps>) {
   return (
     <tfoot className={cn('bg-neutral-50 font-medium', className)} {...props}>
       {children}

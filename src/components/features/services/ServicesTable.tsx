@@ -1,5 +1,3 @@
-
-
 // components/features/services/ServicesTable.tsx
 'use client';
 
@@ -23,17 +21,17 @@ import {
   Users,
   Building2,
 } from 'lucide-react';
-import { Button, Tooltip, Card, DropdownMenu, Amount } from '@/components/ui';
+import { Button, Tooltip, DropdownMenu, Amount, Card } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { ServiceData } from '@/types/service';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { format, formatDistanceToNow } from 'date-fns';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { BulkActions } from './BulkActions';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 import { toast } from '@/lib/toast';
 import { deleteService } from '@/actions/service-actions';
 import { hasPermission } from '@/lib/permissions';
+import { formatDate } from '@/lib/utils/date-formats';
+import { BulkActions } from './BulkActions';
 
 interface ServicesTableProps {
   services: ServiceData[];
@@ -45,7 +43,7 @@ interface ServicesTableProps {
   userRole: UserRole;
   loading?: boolean;
   error?: Error | null;
-  onRefresh?: () => void;
+  // onRefresh?: () => void;
 }
 
 export function ServicesTable({
@@ -59,7 +57,7 @@ export function ServicesTable({
   loading = false,
   error = null,
   // onRefresh,
-}: ServicesTableProps) {
+}: Readonly<ServicesTableProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -105,137 +103,7 @@ export function ServicesTable({
     [searchParams, router]
   );
 
-  // Define columns
-  const columns: Column<ServiceData>[] = [
-    {
-      key: 'serviceNumber',
-      header: 'Service #',
-      sortable: true,
-      sticky: true,
-      width: '120px',
-      accessor: (service) => (
-        <Tooltip content={`View service ${service.serviceNumber}`}>
-          <span className="font-medium text-primary hover:underline">{service.serviceNumber}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'date',
-      header: 'Date',
-      sortable: true,
-      width: '100px',
-      accessor: (service) => (
-        <Tooltip content={formatDistanceToNow(new Date(service.date), { addSuffix: true })}>
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <span className="text-sm">{format(new Date(service.date), 'dd MMM')}</span>
-          </div>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'client',
-      header: 'Client',
-      sortable: true,
-      minWidth: '150px',
-      accessor: (service) => (
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-sm font-medium truncate max-w-[150px]">{service.clientName}</div>
-            <div className="text-xs text-muted-foreground">{service.clientCode}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'supplier',
-      header: 'Supplier',
-      sortable: true,
-      minWidth: '150px',
-      accessor: (service) => (
-        <div className="flex items-center gap-2">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-sm font-medium truncate max-w-[150px]">{service.supplierName}</div>
-            <div className="text-xs text-muted-foreground">{service.supplierCode}</div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'driver',
-      header: 'Driver',
-      sortable: true,
-      width: '120px',
-      accessor: (service) => (
-        <div className="flex items-center gap-1.5">
-          <Truck className="h-3 w-3 text-muted-foreground" />
-          <span className="text-sm">
-            {service.driverName || <span className="text-muted-foreground italic">Not assigned</span>}
-          </span>
-        </div>
-      ),
-    },
-    {
-      key: 'vehiclePlate',
-      header: 'Registration',
-      width: '100px',
-      accessor: (service) => <span className="text-sm font-mono">{service.vehiclePlate || '-'}</span>,
-    },
-    {
-      key: 'cost',
-      header: 'Cost',
-      sortable: true,
-      align: 'right',
-      width: '100px',
-      accessor: (service) => (
-        <Tooltip content="Service cost">
-          <span className="text-sm font-medium tabular-nums">{formatCurrency(service.costAmount)}</span>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'sale',
-      header: 'Sale',
-      sortable: true,
-      align: 'right',
-      width: '100px',
-      accessor: (service) => (
-        <Tooltip content="Sale price">
-          <span className="text-sm font-medium tabular-nums">
-            {formatCurrency(service.saleAmount)}
-          </span>
-        </Tooltip>
-      ),
-    },
-    {
-      key: 'margin',
-      header: 'Margin',
-      sortable: true,
-      align: 'right',
-      width: '120px',
-      accessor: (service) => {
-        const marginPercent = service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
-        return (
-          <div className="flex flex-col items-end gap-0.5">
-            <Amount value={service.margin} />
-            <span className={cn('text-xs tabular-nums', marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70')}>
-              {formatPercentage(marginPercent)}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      sortable: true,
-      align: 'center',
-      width: '120px',
-      accessor: (service) => <ServiceStatusBadge status={service.status} size="sm" />,
-    },
-  ];
+  const columns = useMemo(() => getServiceColumns(), []);
 
   // Row actions
   const rowActions = useCallback(
@@ -336,7 +204,12 @@ export function ServicesTable({
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               <span className="text-muted-foreground">Avg Margin:</span>
-              <span className={cn('font-semibold', stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600')}>
+              <span
+                className={cn(
+                  'font-semibold',
+                  stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600'
+                )}
+              >
                 {formatPercentage(stats.avgMarginPercent)}
               </span>
             </div>
@@ -386,7 +259,9 @@ export function ServicesTable({
             <div className="py-12">
               <Truck size={48} className="mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-center text-lg font-medium">No services found</h3>
-              <p className="text-center text-sm text-muted-foreground mt-1">Try adjusting your filters or create a new service</p>
+              <p className="text-center text-sm text-muted-foreground mt-1">
+                Try adjusting your filters or create a new service
+              </p>
               <div className="flex justify-center mt-4">
                 <Button onClick={() => router.push('/services/new')} icon={<Plus size={16} />}>
                   Create Service
@@ -404,3 +279,143 @@ export function ServicesTable({
 export function ServicesTableSkeleton() {
   return <DataTable data={[]} columns={[]} loading loadingRows={5} />;
 }
+
+// Define columns
+const getServiceColumns = (): Column<ServiceData>[] => [
+  {
+    key: 'serviceNumber',
+    header: 'Service #',
+    sortable: true,
+    sticky: true,
+    width: '120px',
+    accessor: (service) => (
+      <Tooltip content={`View service ${service.serviceNumber}`}>
+        <span className="font-medium text-primary hover:underline">{service.serviceNumber}</span>
+      </Tooltip>
+    ),
+  },
+  {
+    key: 'date',
+    header: 'Date',
+    sortable: true,
+    width: '100px',
+    accessor: (service) => (
+      <Tooltip content={formatDate.relative(service.date)}>
+        <div className="flex items-center gap-1.5">
+          <Calendar className="h-3 w-3 text-muted-foreground" />
+          <span className="text-sm">{formatDate.dayMonth(service.date)}</span>
+        </div>
+      </Tooltip>
+    ),
+  },
+  {
+    key: 'client',
+    header: 'Client',
+    sortable: true,
+    minWidth: '150px',
+    accessor: (service) => (
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <div className="text-sm font-medium truncate max-w-[150px]">{service.clientName}</div>
+          <div className="text-xs text-muted-foreground">{service.clientCode}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'supplier',
+    header: 'Supplier',
+    sortable: true,
+    minWidth: '150px',
+    accessor: (service) => (
+      <div className="flex items-center gap-2">
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <div className="text-sm font-medium truncate max-w-[150px]">{service.supplierName}</div>
+          <div className="text-xs text-muted-foreground">{service.supplierCode}</div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: 'driver',
+    header: 'Driver',
+    sortable: true,
+    width: '120px',
+    accessor: (service) => (
+      <div className="flex items-center gap-1.5">
+        <Truck className="h-3 w-3 text-muted-foreground" />
+        <span className="text-sm">
+          {service.driverName || <span className="text-muted-foreground italic">Not assigned</span>}
+        </span>
+      </div>
+    ),
+  },
+  {
+    key: 'vehiclePlate',
+    header: 'Registration',
+    width: '100px',
+    accessor: (service) => <span className="text-sm font-mono">{service.vehiclePlate || '-'}</span>,
+  },
+  {
+    key: 'cost',
+    header: 'Cost',
+    sortable: true,
+    align: 'right',
+    width: '100px',
+    accessor: (service) => (
+      <Tooltip content="Service cost">
+        <span className="text-sm font-medium tabular-nums">
+          {formatCurrency(service.costAmount)}
+        </span>
+      </Tooltip>
+    ),
+  },
+  {
+    key: 'sale',
+    header: 'Sale',
+    sortable: true,
+    align: 'right',
+    width: '100px',
+    accessor: (service) => (
+      <Tooltip content="Sale price">
+        <span className="text-sm font-medium tabular-nums">
+          {formatCurrency(service.saleAmount)}
+        </span>
+      </Tooltip>
+    ),
+  },
+  {
+    key: 'margin',
+    header: 'Margin',
+    sortable: true,
+    align: 'right',
+    width: '120px',
+    accessor: (service) => {
+      const marginPercent =
+        service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
+      return (
+        <div className="flex flex-col items-end gap-0.5">
+          <Amount value={service.margin} />
+          <span
+            className={cn(
+              'text-xs tabular-nums',
+              marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70'
+            )}
+          >
+            {formatPercentage(marginPercent)}
+          </span>
+        </div>
+      );
+    },
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    sortable: true,
+    align: 'center',
+    width: '120px',
+    accessor: (service) => <ServiceStatusBadge status={service.status} size="sm" />,
+  },
+];

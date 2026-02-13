@@ -25,7 +25,7 @@ export function FormField({
   helperText,
   className,
   id,
-}: FormFieldProps) {
+}: Readonly<FormFieldProps>) {
   return (
     <div className={cn('space-y-2', className)}>
       {label && (

@@ -8,7 +8,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar, ChevronRight } from 'lucide-react';
 import {
-  format,
   subDays,
   startOfMonth,
   endOfMonth,
@@ -19,8 +18,10 @@ import {
 } from 'date-fns';
 import { cn } from '@/lib/utils/cn';
 import { Button } from '@/components/ui';
+import { formatDate } from '@/lib/utils/date-formats';
 
 export interface DateRangePickerProps {
+  id?: string;
   from?: string;
   to?: string;
   onSelect: (range: { from?: string; to?: string }) => void;
@@ -40,36 +41,36 @@ const presetRanges: PresetRange[] = [
   {
     label: 'Today',
     getValue: () => {
-      const today = format(new Date(), 'yyyy-MM-dd');
+      const today = formatDate.isoDate(new Date());
       return { from: today, to: today };
     },
   },
   {
     label: 'Yesterday',
     getValue: () => {
-      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const yesterday = formatDate.isoDate(subDays(new Date(), 1));
       return { from: yesterday, to: yesterday };
     },
   },
   {
     label: 'Last 7 days',
     getValue: () => ({
-      from: format(subDays(new Date(), 6), 'yyyy-MM-dd'),
-      to: format(new Date(), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(subDays(new Date(), 6)),
+      to: formatDate.isoDate(new Date()),
     }),
   },
   {
     label: 'Last 30 days',
     getValue: () => ({
-      from: format(subDays(new Date(), 29), 'yyyy-MM-dd'),
-      to: format(new Date(), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(subDays(new Date(), 29)),
+      to: formatDate.isoDate(new Date()),
     }),
   },
   {
     label: 'This month',
     getValue: () => ({
-      from: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-      to: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(startOfMonth(new Date())),
+      to: formatDate.isoDate(endOfMonth(new Date())),
     }),
   },
   {
@@ -77,16 +78,16 @@ const presetRanges: PresetRange[] = [
     getValue: () => {
       const lastMonth = subDays(startOfMonth(new Date()), 1);
       return {
-        from: format(startOfMonth(lastMonth), 'yyyy-MM-dd'),
-        to: format(endOfMonth(lastMonth), 'yyyy-MM-dd'),
+        from: formatDate.isoDate(startOfMonth(lastMonth)),
+        to: formatDate.isoDate(endOfMonth(lastMonth)),
       };
     },
   },
   {
     label: 'This year',
     getValue: () => ({
-      from: format(startOfYear(new Date()), 'yyyy-MM-dd'),
-      to: format(endOfYear(new Date()), 'yyyy-MM-dd'),
+      from: formatDate.isoDate(startOfYear(new Date())),
+      to: formatDate.isoDate(endOfYear(new Date())),
     }),
   },
 ];
@@ -100,7 +101,7 @@ export function DateRangePicker({
   maxDate,
   minDate,
   disabled = false,
-}: DateRangePickerProps) {
+}: Readonly<DateRangePickerProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [localFrom, setLocalFrom] = useState(from || '');
   const [localTo, setLocalTo] = useState(to || '');
@@ -168,47 +169,51 @@ export function DateRangePicker({
     buttonRef.current?.focus();
   };
 
+  const isValidDate = (dateStr: string): Date | null => {
+    try {
+      const date = parseISO(dateStr);
+      return isValid(date) ? date : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const formatDateRange = (
+    fromDate: Date,
+    toDate: Date,
+    fromStr: string,
+    tostr: string
+  ): string => {
+    // Same day
+    if (fromStr === tostr) {
+      return formatDate.short(fromDate);
+    }
+
+    // Same year
+    if (fromDate.getFullYear() === toDate.getFullYear()) {
+      return `${formatDate.dayMonth(fromDate)} - ${formatDate.short(toDate)}`;
+    }
+
+    // Different years
+    return `${formatDate.short(fromDate)} - ${formatDate.short(toDate)}`;
+  };
+
   const displayText = useMemo(() => {
     if (!from && !to) return placeholder;
 
-    try {
-      if (from && to) {
-        const fromDate = parseISO(from);
-        const toDate = parseISO(to);
+    const fromDate = from ? isValidDate(from) : null;
+    const toDate = to ? isValidDate(to) : null;
 
-        if (!isValid(fromDate) || !isValid(toDate)) {
-          return placeholder;
-        }
+    if (fromDate && toDate) {
+      return formatDateRange(fromDate, toDate, from!, to!);
+    }
 
-        // Same day
-        if (from === to) {
-          return format(fromDate, 'MMM d, yyyy');
-        }
+    if (fromDate) {
+      return `From ${formatDate.short(fromDate)}`;
+    }
 
-        // Same year
-        if (fromDate.getFullYear() === toDate.getFullYear()) {
-          return `${format(fromDate, 'MMM d')} - ${format(toDate, 'MMM d, yyyy')}`;
-        }
-
-        // Different years
-        return `${format(fromDate, 'MMM d, yyyy')} - ${format(toDate, 'MMM d, yyyy')}`;
-      }
-
-      if (from) {
-        const fromDate = parseISO(from);
-        if (isValid(fromDate)) {
-          return `From ${format(fromDate, 'MMM d, yyyy')}`;
-        }
-      }
-
-      if (to) {
-        const toDate = parseISO(to);
-        if (isValid(toDate)) {
-          return `Until ${format(toDate, 'MMM d, yyyy')}`;
-        }
-      }
-    } catch (e) {
-      console.error('Invalid date format', e);
+    if (toDate) {
+      return `Until ${formatDate.short(toDate)}`;
     }
 
     return placeholder;
@@ -260,7 +265,7 @@ export function DateRangePicker({
               className={cn(
                 'flex-1 px-4 py-2.5 text-sm font-medium transition-colors',
                 activeTab === 'preset'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[2px]'
+                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-0.5'
                   : 'text-neutral-600 hover:text-neutral-900'
               )}
             >
@@ -272,7 +277,7 @@ export function DateRangePicker({
               className={cn(
                 'flex-1 px-4 py-2.5 text-sm font-medium transition-colors',
                 activeTab === 'custom'
-                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-[2px]'
+                  ? 'text-primary-600 border-b-2 border-primary-600 -mb-0.5'
                   : 'text-neutral-600 hover:text-neutral-900'
               )}
             >
@@ -310,10 +315,14 @@ export function DateRangePicker({
             ) : (
               <div className="space-y-4 w-80">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  <label
+                    htmlFor="fromDate"
+                    className="block text-sm font-medium text-neutral-700 mb-1.5"
+                  >
                     From Date
                   </label>
                   <input
+                    id="fromDate"
                     type="date"
                     value={localFrom}
                     onChange={(e) => setLocalFrom(e.target.value)}
@@ -328,10 +337,14 @@ export function DateRangePicker({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+                  <label
+                    htmlFor="toDate"
+                    className="block text-sm font-medium text-neutral-700 mb-1.5"
+                  >
                     To Date
                   </label>
                   <input
+                    id="toDate"
                     type="date"
                     value={localTo}
                     onChange={(e) => setLocalTo(e.target.value)}
@@ -354,7 +367,7 @@ export function DateRangePicker({
                           (new Date(localTo).getTime() - new Date(localFrom).getTime()) /
                             (1000 * 60 * 60 * 24)
                         ) + 1;
-                      return `${days} day${days !== 1 ? 's' : ''} selected`;
+                      return `${days} day${days === 1 ? '' : 's'} selected`;
                     })()}
                   </div>
                 )}

@@ -33,6 +33,7 @@ import type {
   AccountLockedEmailData,
   TwoFactorEmailData,
 } from '@/types/mail';
+import { formatCurrency } from '../utils/formatting';
 
 /**
  * Shared email template styles and utilities
@@ -127,18 +128,13 @@ export function getBaseUrl(): string {
 // Get company details
 export function getCompanyDetails() {
   return {
-    name:
-      process.env.NEXT_PUBLIC_COMPANY_NAME || 'Road Freight ERP',
-    address:
-      process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '123 Business St • Madrid, Spain 28001',
-    taxId:
-      process.env.NEXT_PUBLIC_COMPANY_TAX_ID || 'B12345678',
-    supportEmail:
-      process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@roadfreight-erp.com',
-    billingEmail:
-      process.env.NEXT_PUBLIC_BILLING_EMAIL || 'billing@roadfreight-erp.com',
-  }
-};
+    name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'Road Freight ERP',
+    address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '123 Business St • Madrid, Spain 28001',
+    taxId: process.env.NEXT_PUBLIC_COMPANY_TAX_ID || 'B12345678',
+    supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@roadfreight-erp.com',
+    billingEmail: process.env.NEXT_PUBLIC_BILLING_EMAIL || 'billing@roadfreight-erp.com',
+  };
+}
 
 /**
  * Verification Email Template
@@ -148,7 +144,7 @@ export function VerificationEmailTemplate({
   email,
   verificationUrl,
   expiresIn,
-}: VerificationEmailData) {
+}: Readonly<VerificationEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
   return (
@@ -223,7 +219,7 @@ export function PasswordResetEmailTemplate({
   expiresIn,
   ipAddress,
   userAgent,
-}: PasswordResetEmailData) {
+}: Readonly<PasswordResetEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
@@ -281,26 +277,46 @@ export function PasswordResetEmailTemplate({
                 }}
               >
                 <Text
-                  style={{ ...styles.paragraph, fontSize: '14px', fontWeight: 'bold', color: '#991b1b' }}
+                  style={{
+                    ...styles.paragraph,
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: '#991b1b',
+                  }}
                 >
                   Security Information:
                 </Text>
                 {ipAddress && (
                   <Text
-                    style={{ ...styles.paragraph, fontSize: '13px', margin: '5px 0', color: '#991b1b' }}
+                    style={{
+                      ...styles.paragraph,
+                      fontSize: '13px',
+                      margin: '5px 0',
+                      color: '#991b1b',
+                    }}
                   >
                     IP Address: {ipAddress}
                   </Text>
                 )}
                 {userAgent && (
                   <Text
-                    style={{ ...styles.paragraph, fontSize: '13px', margin: '5px 0', color: '#991b1b' }}
+                    style={{
+                      ...styles.paragraph,
+                      fontSize: '13px',
+                      margin: '5px 0',
+                      color: '#991b1b',
+                    }}
                   >
                     Browser: {userAgent}
                   </Text>
                 )}
                 <Text
-                  style={{ ...styles.paragraph, fontSize: '13px', marginTop: '10px', color: '#991b1b' }}
+                  style={{
+                    ...styles.paragraph,
+                    fontSize: '13px',
+                    marginTop: '10px',
+                    color: '#991b1b',
+                  }}
                 >
                   If you didn&apos;t request this, please secure your account immediately.
                 </Text>
@@ -324,7 +340,12 @@ export function PasswordResetEmailTemplate({
 /**
  * Two-Factor Authentication Email Template
  */
-export function TwoFactorEmailTemplate({ name, email, code, expiresIn }: TwoFactorEmailData) {
+export function TwoFactorEmailTemplate({
+  name,
+  email,
+  code,
+  expiresIn,
+}: Readonly<TwoFactorEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
@@ -392,7 +413,7 @@ export function AccountLockedEmailTemplate({
   unlockUrl,
   supportUrl,
   lockedAt,
-}: AccountLockedEmailData) {
+}: Readonly<AccountLockedEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
@@ -430,7 +451,9 @@ export function AccountLockedEmailTemplate({
               <Text style={{ ...styles.paragraph, color: '#991b1b', marginBottom: '5px' }}>
                 Reason: {reason}
               </Text>
-              <Text style={{ ...styles.paragraph, fontSize: '14px', color: '#991b1b', marginBottom: 0 }}>
+              <Text
+                style={{ ...styles.paragraph, fontSize: '14px', color: '#991b1b', marginBottom: 0 }}
+              >
                 Locked at: {lockedAt}
               </Text>
             </Section>
@@ -445,7 +468,9 @@ export function AccountLockedEmailTemplate({
               </Button>
             </Section>
 
-            <Text style={styles.paragraph}>If you need assistance, please contact our support team:</Text>
+            <Text style={styles.paragraph}>
+              If you need assistance, please contact our support team:
+            </Text>
 
             <Section style={{ textAlign: 'center', marginTop: '20px' }}>
               <Button style={{ ...styles.button, backgroundColor: '#6b7280' }} href={supportUrl}>
@@ -470,7 +495,12 @@ export function AccountLockedEmailTemplate({
 /**
  * Welcome Email Template
  */
-export function WelcomeEmailTemplate({ name, email, loginUrl, features }: WelcomeEmailData) {
+export function WelcomeEmailTemplate({
+  name,
+  email,
+  loginUrl,
+  features,
+}: Readonly<WelcomeEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
@@ -499,8 +529,8 @@ export function WelcomeEmailTemplate({ name, email, loginUrl, features }: Welcom
             <Text style={styles.paragraph}>With {company.name}, you can:</Text>
 
             <ul style={{ paddingLeft: '20px' }}>
-              {features.map((feature, index) => (
-                <li key={index} style={{ ...styles.paragraph, margin: '8px 0' }}>
+              {features.map((feature) => (
+                <li key={feature} style={{ ...styles.paragraph, margin: '8px 0' }}>
                   {feature}
                 </li>
               ))}
@@ -564,16 +594,14 @@ export function InvoiceEmailTemplate({
   viewUrl,
   downloadUrl,
   items,
-}: InvoiceEmailData) {
+}: Readonly<InvoiceEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
   return (
     <Html>
       <Head />
-      <Preview>
-        Invoice {invoiceNumber} - {totalAmount} {currency}
-      </Preview>
+      <Preview>{`Invoice ${invoiceNumber} - ${formatCurrency(totalAmount, currency)}`}</Preview>
       <Tailwind>
         <Body style={styles.main}>
           <Container style={styles.container}>
@@ -626,7 +654,12 @@ export function InvoiceEmailTemplate({
                     Total Amount:
                   </Text>
                   <Text
-                    style={{ ...styles.paragraph, margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}
+                    style={{
+                      ...styles.paragraph,
+                      margin: '5px 0',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                    }}
                   >
                     {totalAmount} {currency}
                   </Text>
@@ -655,8 +688,8 @@ export function InvoiceEmailTemplate({
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                    {items.map((item) => (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '8px', fontSize: '14px' }}>{item.description}</td>
                         <td style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>
                           {item.quantity}
@@ -711,7 +744,8 @@ export function InvoiceEmailTemplate({
             <Text style={styles.footer}>
               {company.name} • {company.address}
               <br />
-              {company.taxId && <> Tax ID: {company.taxId} • </>}{company.billingEmail}
+              {company.taxId && <> Tax ID: {company.taxId} • </>}
+              {company.billingEmail}
             </Text>
           </Container>
         </Body>
@@ -730,7 +764,7 @@ export function LoadingOrderEmailTemplate({
   services,
   viewUrl,
   downloadUrl,
-}: LoadingOrderEmailData) {
+}: Readonly<LoadingOrderEmailData>) {
   const company = getCompanyDetails();
   const baseUrl = getBaseUrl();
 
@@ -767,9 +801,13 @@ export function LoadingOrderEmailTemplate({
               <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                 Order Details:
               </Text>
-              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Order Number: {orderNumber}</Text>
+              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>
+                Order Number: {orderNumber}
+              </Text>
               <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Date: {orderDate}</Text>
-              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>Services: {services.length}</Text>
+              <Text style={{ ...styles.paragraph, margin: '5px 0' }}>
+                Services: {services.length}
+              </Text>
             </Section>
 
             {services.length > 0 && (
@@ -777,9 +815,9 @@ export function LoadingOrderEmailTemplate({
                 <Text style={{ ...styles.paragraph, fontWeight: 'bold', marginTop: '20px' }}>
                   Services Included:
                 </Text>
-                {services.map((service, index) => (
+                {services.map((service) => (
                   <Section
-                    key={index}
+                    key={service.serviceNumber}
                     style={{
                       borderLeft: '4px solid #3b82f6',
                       paddingLeft: '15px',
@@ -789,7 +827,9 @@ export function LoadingOrderEmailTemplate({
                     <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                       {service.serviceNumber}
                     </Text>
-                    <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{service.description}</Text>
+                    <Text style={{ ...styles.paragraph, margin: '5px 0' }}>
+                      {service.description}
+                    </Text>
                     <Text style={{ ...styles.paragraph, margin: '5px 0', fontSize: '14px' }}>
                       Route: {service.origin} → {service.destination}
                     </Text>
@@ -848,7 +888,7 @@ export function NotificationEmailTemplate({
   actionUrl,
   actionLabel,
   type,
-}: NotificationEmailData) {
+}: Readonly<NotificationEmailData>) {
   const typeColors = {
     info: '#3b82f6',
     success: '#10b981',

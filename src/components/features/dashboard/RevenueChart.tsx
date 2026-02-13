@@ -38,6 +38,7 @@ import {
 } from '@/components/ui';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils/cn';
+import { ChartTooltip } from './ChartTooltip';
 
 interface ChartData {
   month: string;
@@ -46,14 +47,14 @@ interface ChartData {
   margin: number;
 }
 
-interface RevenueChartProps {
+type RevenueChartProps = Readonly<{
   data?: ChartData[];
   loading?: boolean;
   error?: Error | null;
   onRefresh?: () => void;
   onImportData?: () => void;
   showImportOption?: boolean;
-}
+}>;
 
 export function RevenueChart({
   data = [],
@@ -100,8 +101,8 @@ export function RevenueChart({
     // Calculate trend (comparing last month to previous)
     let trend = 0;
     if (data.length >= 2) {
-      const lastMonth = data[data.length - 1];
-      const previousMonth = data[data.length - 2];
+      const lastMonth = data.at(-1);
+      const previousMonth = data.at(-2);
 
       if (lastMonth && previousMonth && previousMonth.revenue > 0) {
         trend = ((lastMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100;
@@ -115,44 +116,9 @@ export function RevenueChart({
       avgMarginPercent,
       trend,
       periodStart: data[0]?.month || '',
-      periodEnd: data[data.length - 1]?.month || '',
+      periodEnd: data.at(-1)?.month || '',
     };
   }, [data]);
-
-  const CustomChartTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="rounded-lg border border-neutral-200 bg-background p-3 shadow-md">
-          <p className="font-medium text-sm mb-2">{label}</p>
-          <div className="space-y-1">
-            {payload.map((entry: any) => (
-              <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.stroke }} />
-                  <span className="text-muted-foreground">{entry.name}</span>
-                </div>
-                <span className="font-medium tabular-nums">{formatCurrency(entry.value)}</span>
-              </div>
-            ))}
-            {payload[0]?.payload && (
-              <div className="mt-2 pt-2 border-t">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Margin %</span>
-                  <span className="font-medium tabular-nums">
-                    {payload[0].payload.revenue > 0
-                      ? ((payload[0].payload.margin / payload[0].payload.revenue) * 100).toFixed(1)
-                      : '0.0'}
-                    %
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const handleExport = async () => {
     if (!data || data.length === 0) {
@@ -226,10 +192,8 @@ export function RevenueChart({
                 <div className="text-xs opacity-90">Compared to previous month</div>
                 {data.length >= 2 && (
                   <div className="text-xs opacity-90">
-                    {data[data.length - 2]?.month}:{' '}
-                    {formatCurrency(data[data.length - 2]?.revenue || 0)} →{' '}
-                    {data[data.length - 1]?.month}:{' '}
-                    {formatCurrency(data[data.length - 1]?.revenue || 0)}
+                    {data.at(-2)?.month}: {formatCurrency(data.at(-2)?.revenue || 0)} →{' '}
+                    {data.at(-1)?.month}: {formatCurrency(data.at(-1)?.revenue || 0)}
                   </div>
                 )}
               </div>
@@ -311,12 +275,9 @@ export function RevenueChart({
       description:
         "We couldn't fetch your revenue data. Please check your connection and try again.",
       variant: 'full' as const,
+      // Only add onRetry if onRefresh exists
+      ...(onRefresh && { onRetry: () => { void onRefresh(); } }),
     };
-
-    // Only add onRetry if onRefresh exists
-    if (onRefresh) {
-      errorStateProps.onRetry = onRefresh;
-    }
 
     return (
       <Card variant="elevated" padding="none">
@@ -349,35 +310,46 @@ export function RevenueChart({
             )
           }
         />
+        { }
         <CardBody>
-          <EmptyState
-            icon={<BarChart3 size={48} />}
-            title="No revenue data available"
-            description="Start tracking your revenue to see trends and insights here. You can import existing data or wait for the first transactions to appear."
-            action={
-              showImportOption && onImportData
-                ? {
-                    label: 'Import Data',
-                    onClick: onImportData,
-                    icon: <FileSpreadsheet size={16} />,
-                  }
-                : onRefresh
-                  ? {
-                      label: 'Refresh Data',
-                      onClick: onRefresh,
-                      icon: <RefreshCw size={16} />,
-                    }
-                  : undefined
+          {(() => {
+            let primaryAction:
+              | { label: string; onClick: () => void; icon?: React.ReactNode }
+              | undefined;
+
+            if (showImportOption && onImportData) {
+              primaryAction = {
+                label: 'Import Data',
+                onClick: onImportData,
+                icon: <FileSpreadsheet size={16} />,
+              };
+            } else if (onRefresh) {
+              primaryAction = {
+                label: 'Refresh Data',
+                onClick: onRefresh,
+                icon: <RefreshCw size={16} />,
+              };
             }
-            secondaryAction={
-              showImportOption && onImportData && onRefresh
-                ? {
-                    label: 'Refresh',
-                    onClick: onRefresh,
-                  }
-                : undefined
+
+            let secondaryAction: { label: string; onClick: () => void } | undefined;
+
+            if (showImportOption && onImportData && onRefresh) {
+              secondaryAction = {
+                label: 'Refresh',
+                onClick: onRefresh,
+              };
             }
-          />
+
+            return (
+              <EmptyState
+                icon={<BarChart3 size={48} />}
+                title="No revenue data available"
+                description="Start tracking your revenue to see trends and insights here. You can import existing data or wait for the first transactions to appear."
+                action={primaryAction}
+                secondaryAction={secondaryAction}
+              />
+            );
+          })()}
         </CardBody>
       </Card>
     );
@@ -449,7 +421,7 @@ export function RevenueChart({
               axisLine={false}
               tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
             />
-            <RechartsTooltip content={<CustomChartTooltip />} />
+            <RechartsTooltip content={<ChartTooltip />} />
             <Area
               type="monotone"
               dataKey="revenue"

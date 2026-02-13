@@ -48,7 +48,7 @@ export function Modal({
   className,
   ...ariaProps
 }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
   // Lock scroll when modal is open
@@ -69,7 +69,6 @@ export function Modal({
     if (isOpen) {
       previousActiveElement.current = document.activeElement as HTMLElement;
 
-      // Set initial focus
       setTimeout(() => {
         if (initialFocus?.current) {
           initialFocus.current.focus();
@@ -81,21 +80,12 @@ export function Modal({
         }
       }, 100);
     } else {
-      // Restore focus when closing
       previousActiveElement.current?.focus();
     }
   }, [isOpen, initialFocus]);
 
-  // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (closeOnBackdrop && e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   if (!isOpen) return null;
 
-  // Portal render
   return createPortal(
     <Fragment>
       {/* Backdrop */}
@@ -104,35 +94,40 @@ export function Modal({
           'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm',
           'animate-in fade-in duration-200'
         )}
-        onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
-      {/* Modal */}
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-        onClick={handleBackdropClick}
-      >
-        <div
+      {/* Modal Container */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+        {/* Backdrop click handler */}
+        {closeOnBackdrop && (
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-transparent"
+            onClick={onClose}
+            aria-label="Close dialog"
+            tabIndex={-1}
+          />
+        )}
+
+        {/* Modal */}
+        <dialog
           ref={modalRef}
-          role="dialog"
           aria-modal="true"
-          aria-label={ariaProps['aria-label'] || title}
-          aria-describedby={
-            ariaProps['aria-describedby'] || description ? 'modal-description' : undefined
-          }
+          aria-labelledby={title ? 'modal-title' : undefined}
+          aria-label={title ? undefined : ariaProps['aria-label']}
+          aria-describedby={description ? 'modal-description' : ariaProps['aria-describedby']}
           className={cn(
             'relative w-full bg-white rounded-lg shadow-modal',
             'animate-in zoom-in-95 fade-in duration-200',
             sizeClasses[size],
             className
           )}
-          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || showCloseButton) && (
             <ModalHeader showCloseButton={showCloseButton} onClose={onClose}>
-              {title}
+              {title && <span id="modal-title">{title}</span>}
             </ModalHeader>
           )}
 
@@ -145,7 +140,7 @@ export function Modal({
 
           {/* Content */}
           {children}
-        </div>
+        </dialog>
       </div>
     </Fragment>,
     document.body
@@ -165,12 +160,13 @@ export function ModalHeader({
   showCloseButton = true,
   onClose,
   className,
-}: ModalHeaderProps) {
+}: Readonly<ModalHeaderProps>) {
   return (
     <div className={cn('flex items-center justify-between p-6 pb-4', className)}>
       <h2 className="text-lg font-semibold text-neutral-900">{children}</h2>
       {showCloseButton && onClose && (
         <button
+          type="button"
           onClick={onClose}
           className={cn(
             'rounded-lg p-1 hover:bg-neutral-100 transition-colors',
@@ -178,7 +174,7 @@ export function ModalHeader({
           )}
           aria-label="Close dialog"
         >
-          <X size={20} className="text-neutral-500" />
+          <X size={20} className="text-neutral-500" aria-hidden="true" />
         </button>
       )}
     </div>
@@ -191,7 +187,7 @@ interface ModalBodyProps {
   className?: string;
 }
 
-export function ModalBody({ children, className }: ModalBodyProps) {
+export function ModalBody({ children, className }: Readonly<ModalBodyProps>) {
   return <div className={cn('px-6 py-4', className)}>{children}</div>;
 }
 
@@ -201,7 +197,7 @@ interface ModalFooterProps {
   className?: string;
 }
 
-export function ModalFooter({ children, className }: ModalFooterProps) {
+export function ModalFooter({ children, className }: Readonly<ModalFooterProps>) {
   return (
     <div
       className={cn(

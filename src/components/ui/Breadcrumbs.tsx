@@ -13,7 +13,7 @@ interface BreadcrumbsProps {
   showHome?: boolean;
 }
 
-export function Breadcrumbs({ className, showHome = true }: BreadcrumbsProps) {
+export function Breadcrumbs({ className, showHome = true }: Readonly<BreadcrumbsProps>) {
   const pathname = usePathname();
   const breadcrumbs = getBreadcrumbs(pathname);
 

@@ -22,14 +22,17 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Button, DropdownMenu, Tooltip, Checkbox, Amount } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
 import { ServiceData } from '@/types/service';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { format, formatDistanceToNow } from 'date-fns';
-import { toast } from '@/lib/toast';
+
 import { deleteService } from '@/actions/service-actions';
+
 import { hasPermission } from '@/lib/permissions';
+
+import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/date-formats';
+import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { toast } from '@/lib/toast';
 
 interface ServiceRowProps {
   service: ServiceData;
@@ -91,6 +94,7 @@ export const ServiceRow = memo(function ServiceRow({
       toast.success('Service deleted successfully');
       router.refresh();
     } catch (error) {
+      console.log(error);
       toast.error('Failed to delete service');
     }
   };
@@ -135,7 +139,7 @@ export const ServiceRow = memo(function ServiceRow({
       onClick: handleGenerateInvoice,
       disabled: service.status !== ServiceStatus.COMPLETED,
       tooltip:
-        service.status !== ServiceStatus.COMPLETED ? 'Service must be completed first' : undefined,
+        service.status === ServiceStatus.COMPLETED ? undefined : 'Service must be completed first',
     },
     canGenerateLoadingOrder && {
       id: 'loadingOrder',
@@ -204,10 +208,10 @@ export const ServiceRow = memo(function ServiceRow({
 
         {/* Date */}
         <td className="p-3">
-          <Tooltip content={formatDistanceToNow(new Date(service.date), { addSuffix: true })}>
+          <Tooltip content={formatDate.relative(service.date)}>
             <div className="flex items-center gap-1.5">
               <Calendar className="h-3 w-3 text-muted-foreground" />
-              <span className="text-sm">{format(new Date(service.date), 'dd MMM')}</span>
+              <span className="text-sm">{formatDate.dayMonth(service.date)}</span>
             </div>
           </Tooltip>
         </td>
@@ -365,17 +369,11 @@ export const ServiceRow = memo(function ServiceRow({
                 <dl className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Created:</dt>
-                    <dd>
-                      {service.createdAt &&
-                        format(new Date(service.createdAt), 'dd MMM yyyy HH:mm')}
-                    </dd>
+                    <dd>{service.createdAt && formatDate.dateTime(service.createdAt)}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Updated:</dt>
-                    <dd>
-                      {service.updatedAt &&
-                        format(new Date(service.updatedAt), 'dd MMM yyyy HH:mm')}
-                    </dd>
+                    <dd>{service.updatedAt && formatDate.dateTime(service.updatedAt)}</dd>
                   </div>
                 </dl>
               </div>

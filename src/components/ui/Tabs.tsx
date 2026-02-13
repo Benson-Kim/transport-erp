@@ -23,7 +23,13 @@ export interface TabsProps {
   className?: string;
 }
 
-export function Tabs({ tabs, defaultTab, onChange, variant = 'line', className }: TabsProps) {
+export function Tabs({
+  tabs,
+  defaultTab,
+  onChange,
+  variant = 'line',
+  className,
+}: Readonly<TabsProps>) {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
   const tabListRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +72,7 @@ export function Tabs({ tabs, defaultTab, onChange, variant = 'line', className }
 
       case 'End': {
         e.preventDefault();
-        const lastTab = enabledTabs[enabledTabs.length - 1];
+        const lastTab = enabledTabs.at(-1);
         if (lastTab) handleTabChange(lastTab.id);
         break;
       }

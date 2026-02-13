@@ -122,13 +122,12 @@ export function DataTable<T extends { id: string }>({
   compact = false,
   bordered = false,
   striped = false,
-}: DataTableProps<T>) {
+}: Readonly<DataTableProps<T>>) {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
     new Set(initialColumns.filter((col) => !col.hidden).map((col) => col.key))
   );
-  // const [showColumnMenu, setShowColumnMenu] = useState(false);
 
   // Refs
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -247,7 +246,7 @@ export function DataTable<T extends { id: string }>({
   if (error) {
     return (
       <div className={cn('w-full', className)}>
-        <ErrorState error={error} onRetry={() => window.location.reload()} />
+        <ErrorState error={error} onRetry={() => globalThis.location.reload()} />
       </div>
     );
   }
@@ -487,7 +486,7 @@ function DataTableRow<T extends { id: string }>({
   compact,
   striped,
   style,
-}: DataTableRowProps<T>) {
+}: Readonly<DataTableRowProps<T>>) {
   const className = typeof rowClassName === 'function' ? rowClassName(row) : rowClassName;
 
   return (
@@ -539,11 +538,11 @@ function LoadingTable({
   columns,
   rows,
   compact,
-}: {
+}: Readonly<{
   columns: Column<any>[];
   rows: number;
   compact?: boolean;
-}) {
+}>) {
   return (
     <Table>
       <Table.Header>
@@ -571,7 +570,7 @@ function LoadingTable({
 }
 
 // Error State Component
-function ErrorState({ error, onRetry }: { error: Error; onRetry?: () => void }) {
+function ErrorState({ error, onRetry }: Readonly<{ error: Error; onRetry?: () => void }>) {
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <div className="text-red-500 mb-4">

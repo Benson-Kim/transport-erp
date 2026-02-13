@@ -222,7 +222,7 @@ export async function resetPasswordWithToken(
       where: { token },
     });
 
-    if (!resetToken || !resetToken.identifier.startsWith(TOKEN_PREFIX.PASSWORD_RESET)) {
+    if (!resetToken?.identifier.startsWith(TOKEN_PREFIX.PASSWORD_RESET)) {
       return { success: false, error: 'Invalid token' };
     }
 
@@ -337,16 +337,12 @@ export async function createUser(data: {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
-  await emailService.sendTemplate(
-    EmailTemplate.VERIFICATION,
-    user.email,
-    {
-      name: user.name || 'User',
-      email: user.email,
-      verificationUrl,
-      expiresIn: '24 hours',
-    }
-  );
+  await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+    name: user.name || 'User',
+    email: user.email,
+    verificationUrl,
+    expiresIn: '24 hours',
+  });
 
   // Create audit log
   await prisma.auditLog.create({
@@ -419,7 +415,6 @@ export async function updatePassword(
     return { success: false, error: 'Failed to update password' };
   }
 }
-
 
 /**
  * Check if user has permission for an action

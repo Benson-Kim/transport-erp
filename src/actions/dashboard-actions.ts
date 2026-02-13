@@ -6,7 +6,7 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { ServiceStatus } from '@/app/generated/prisma';
+import { Service, ServiceStatus } from '@/app/generated/prisma';
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 import {
   calculatePercentageChange,
@@ -32,6 +32,10 @@ export const getDashboardData = unstable_cache(
   }): Promise<DashboardData> => {
     // Calculate date range
     const { startDate, endDate } = calculateDateRange(dateRange);
+    if (!startDate || !endDate) {
+      throw new Error('Invalid dashboard date range');
+    }
+
     const previousPeriod = {
       startDate: subDays(
         startDate,
@@ -179,7 +183,7 @@ export const getDashboardData = unstable_cache(
         Number(previousRevenue._avg.marginPercentage || 0),
         Number(currentRevenue._avg.marginPercentage || 0)
       ),
-      totalServices: currentServices.reduce((sum, s) => sum + s._count, 0),
+      totalServices: currentServices.reduce((sum: number, s: { _count: number }) => sum + s._count, 0),
     };
 
     // Aggregate monthly data for charts
@@ -187,11 +191,11 @@ export const getDashboardData = unstable_cache(
     const revenueChart = aggregateRevenueByMonth(monthlyData);
 
     // Format recent services
-    const formattedRecentServices = recentServices.map((service) => ({
+    const formattedRecentServices = recentServices.map((service: Service) => ({
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date.toISOString(),
-      clientName: service.client.name,
+      clientName: service.clientId,
       origin: service.origin,
       destination: service.destination,
       status: service.status,

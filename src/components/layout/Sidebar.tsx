@@ -16,7 +16,7 @@ interface SidebarProps {
   user: { name: string; email: string; role: string; avatar?: string };
 }
 
-export function Sidebar({ variant, collapsed = false, companyName, user }: SidebarProps) {
+export function Sidebar({ variant, collapsed = false, companyName, user }: Readonly<SidebarProps>) {
   const pathname = usePathname();
   const router = useRouter();
   const { toggleSidebarCollapse } = useLayout();
@@ -53,10 +53,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Sideb
         className={base}
       >
         <Icon
-          className={cn(
-            'icon-sm)] flex-shrink-0',
-            collapsed && variant === 'tablet' && 'icon-md)]'
-          )}
+          className={cn('icon-sm)] shrink-0', collapsed && variant === 'tablet' && 'icon-md)]')}
         />
         {(!collapsed || variant === 'desktop') && (
           <>
@@ -120,7 +117,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Sideb
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
-          <ul className="space-y-1">{navigation.map(renderItem)}</ul>
+          <ul className="space-y-1">{navigation.map((element) => renderItem(element))}</ul>
         </nav>
 
         {/* User */}

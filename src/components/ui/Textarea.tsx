@@ -50,7 +50,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       const textarea = internalRef.current;
       textarea.style.height = 'auto';
       const scrollHeight = textarea.scrollHeight;
-      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+      const lineHeight = Number.parseInt(getComputedStyle(textarea).lineHeight);
       const maxHeight = lineHeight * maxRows;
 
       textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;

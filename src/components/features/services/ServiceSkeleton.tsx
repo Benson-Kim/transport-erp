@@ -3,13 +3,14 @@
  * Loading states for services page sections
  */
 
+import { JSX } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 
 export const ServiceSkeleton = {
-  Stats: () => (
+  Stats: (): JSX.Element => (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {[...Array(4)].map((_, i) => (
+      {[1, 2, 3, 4].map((i) => (
         <Card key={i} variant="bordered">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <Skeleton className="h-4 w-24" />
@@ -24,7 +25,7 @@ export const ServiceSkeleton = {
     </div>
   ),
 
-  Chart: () => (
+  Chart: (): JSX.Element => (
     <Card>
       <CardHeader>
         <Skeleton className="h-6 w-32" />
@@ -36,14 +37,14 @@ export const ServiceSkeleton = {
     </Card>
   ),
 
-  Table: () => (
+  Table: (): JSX.Element => (
     <Card>
       <CardHeader>
         <Skeleton className="h-6 w-32" />
       </CardHeader>
       <CardBody className="p-0">
         <div className="space-y-2 p-4">
-          {[...Array(5)].map((_, i) => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <Skeleton key={i} className="h-12 w-full" />
           ))}
         </div>

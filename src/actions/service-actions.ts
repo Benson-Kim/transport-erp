@@ -518,8 +518,8 @@ export async function getServiceActivity(
         // Parse changes from old/new values
         if (activity.oldValues && activity.newValues) {
           const changes = [];
-          const oldVals = activity.oldValues as any;
-          const newVals = activity.newValues as any;
+          const oldVals = activity.oldValues as Record<string, unknown>;
+          const newVals = activity.newValues as Record<string, unknown>;
 
           // Check common fields for changes
           const fieldsToCheck = ['costAmount', 'saleAmount', 'status', 'origin', 'destination'];
@@ -549,7 +549,7 @@ export async function getServiceActivity(
         description = 'Service archived';
         break;
       default:
-        description = activity.action.replaceAll(/_/g, ' ').toLowerCase();
+        description = activity.action.replaceAll('_', ' ').toLowerCase();
     }
 
     return {

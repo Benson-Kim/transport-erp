@@ -1,22 +1,21 @@
 // components/features/services/ServiceSidebar.tsx
 'use client';
 
-import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
+import { UserRole, ServiceStatus } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 // import { RelatedDocuments } from './RelatedDocuments';
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
+import { formatDate } from '@/lib/utils/date-formats';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
-import { ServiceStatus } from '@/app/generated/prisma';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {
   service: any;
   userRole: UserRole;
 }
 
-export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
+export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarProps>) {
   const canViewInternal = hasPermission(userRole, 'services', 'view');
   const config = SERVICE_STATUS_CONFIG[service.status as ServiceStatus];
 
@@ -33,14 +32,16 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Current Status</span>
-              <Badge variant={config.variant}>{service.status.replace(/_/g, ' ')}</Badge>
+              <Badge variant={config?.variant ?? 'default'}>
+                {service.status.replaceAll('_', ' ')}
+              </Badge>
             </div>
 
             {service.completedAt && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Completed Date</span>
                 <span className="text-sm font-medium">
-                  {format(new Date(service.completedAt), 'dd MMM yyyy')}
+                  {formatDate.compact(service.completedAt)}
                 </span>
               </div>
             )}
@@ -78,9 +79,7 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
               <div className="flex items-start justify-between">
                 <dt className="text-muted-foreground">Created</dt>
                 <dd className="text-right">
-                  <div className="font-medium">
-                    {format(new Date(service.createdAt), 'dd MMM yyyy HH:mm')}
-                  </div>
+                  <div className="font-medium">{formatDate.dateTime(service.createdAt)}</div>
                   {service.createdBy && (
                     <div className="text-xs text-muted-foreground">by {service.createdBy.name}</div>
                   )}
@@ -91,9 +90,7 @@ export function ServiceSidebar({ service, userRole }: ServiceSidebarProps) {
                 <div className="flex items-start justify-between">
                   <dt className="text-muted-foreground">Last Modified</dt>
                   <dd className="text-right">
-                    <div className="font-medium">
-                      {format(new Date(service.updatedAt), 'dd MMM yyyy HH:mm')}
-                    </div>
+                    <div className="font-medium">{formatDate.dateTime(service.updatedAt)}</div>
                     {service.assignedTo && (
                       <div className="text-xs text-muted-foreground">
                         by {service.assignedTo.name}

@@ -4,7 +4,7 @@
  */
 
 'use client';
-import { ReactNode, useState, useRef, useEffect } from 'react';
+import { ReactNode, useState, useRef, useEffect, useId, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils/cn';
 
@@ -22,13 +22,14 @@ export function Tooltip({
   position = 'top',
   delay = 200,
   className,
-}: TooltipProps) {
+}: Readonly<TooltipProps>) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const triggerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tooltipId = useId();
 
-  const calculatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!triggerRef.current) return { x: 0, y: 0 };
 
     const rect = triggerRef.current.getBoundingClientRect();
@@ -58,21 +59,30 @@ export function Tooltip({
       default:
         return { x: 0, y: 0 };
     }
-  };
+  }, [position]);
 
-  const handleMouseEnter = () => {
+  const showTooltip = useCallback(() => {
     timeoutRef.current = setTimeout(() => {
       setCoords(calculatePosition());
       setIsVisible(true);
     }, delay);
-  };
+  }, [calculatePosition, delay]);
 
-  const handleMouseLeave = () => {
+  const hideTooltip = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     setIsVisible(false);
-  };
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape' && isVisible) {
+        hideTooltip();
+      }
+    },
+    [isVisible, hideTooltip]
+  );
 
   useEffect(() => {
     return () => {
@@ -91,19 +101,25 @@ export function Tooltip({
 
   return (
     <>
-      <div
+      <button
         ref={triggerRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="inline-block"
+        type="button"
+        className="inline-flex appearance-none bg-transparent border-0 p-0 cursor-default"
+        onMouseEnter={showTooltip}
+        onMouseLeave={hideTooltip}
+        onFocus={showTooltip}
+        onBlur={hideTooltip}
+        onKeyDown={handleKeyDown}
+        aria-describedby={isVisible ? tooltipId : undefined}
       >
         {children}
-      </div>
+      </button>
 
       {isVisible &&
         content &&
         createPortal(
           <div
+            id={tooltipId}
             role="tooltip"
             className={cn(
               'fixed z-50 px-2 py-1 text-xs font-medium text-white bg-neutral-900 rounded',
@@ -121,11 +137,12 @@ export function Tooltip({
             <div
               className={cn(
                 'absolute w-2 h-2 bg-neutral-900 transform rotate-45',
-                position === 'top' && 'bottom-[-4px] left-1/2 -translate-x-1/2',
-                position === 'bottom' && 'top-[-4px] left-1/2 -translate-x-1/2',
-                position === 'left' && 'right-[-4px] top-1/2 -translate-y-1/2',
-                position === 'right' && 'left-[-4px] top-1/2 -translate-y-1/2'
+                position === 'top' && '-bottom-1 left-1/2 -translate-x-1/2',
+                position === 'bottom' && '-top-1 left-1/2 -translate-x-1/2',
+                position === 'left' && '-right-1 top-1/2 -translate-y-1/2',
+                position === 'right' && '-left-1 top-1/2 -translate-y-1/2'
               )}
+              aria-hidden="true"
             />
           </div>,
           document.body

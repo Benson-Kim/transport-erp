@@ -71,6 +71,7 @@ const nextConfig: NextConfig = {
           options: { svgo: true, titleProp: true, ref: true },
         },
       ],
+
     });
 
     if (!isServer) {
@@ -79,8 +80,16 @@ const nextConfig: NextConfig = {
         fs: false,
         net: false,
         tls: false,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
       };
     }
+
+    config.plugins.push(
+      new (require('webpack')).NormalModuleReplacementPlugin(/^node:/, (resource: any) => {
+        resource.request = resource.request.replace(/^node:/, '');
+      })
+    );
 
     return config;
   },

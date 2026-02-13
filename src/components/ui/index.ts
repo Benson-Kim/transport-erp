@@ -7,7 +7,6 @@ export * from './DateRangePicker';
 export * from './DropdownMenu';
 export * from './ErrorBoundary';
 export * from './ErrorState';
-export * from './PermissionGuard';
 export * from './Alert';
 export * from './Card';
 export * from './EmptyState';

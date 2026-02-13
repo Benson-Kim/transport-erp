@@ -1,7 +1,7 @@
 // components/layout/MainLayout.tsx
 'use client';
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils/cn';
 import { useMediaQuery } from '@/hooks';
@@ -16,7 +16,7 @@ export const useLayout = () => {
   return ctx;
 };
 
-export function MainLayout({ children, user, companyName }: MainLayoutProps) {
+export function MainLayout({ children, user, companyName }: Readonly<MainLayoutProps>) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -41,33 +41,36 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
     }
   }, [isTablet]);
 
-  const toggleSidebar = () => {
+  const toggleSidebar = useCallback(() => {
     setIsSidebarOpen((isSidebarOpen) => !isSidebarOpen);
-  };
+  }, []);
 
-  const toggleSidebarCollapse = () => {
+  const toggleSidebarCollapse = useCallback(() => {
     if (isTablet) {
       const newState = !isSidebarCollapsed;
       setIsSidebarCollapsed(newState);
       localStorage.setItem('sidebar-collapsed', String(newState));
     }
-  };
+  }, []);
 
-  const closeSidebar = () => {
+  const closeSidebar = useCallback(() => {
     setIsSidebarOpen(false);
-  };
+  }, []);
 
-  const contextValue: LayoutContextValue = {
-    isSidebarOpen,
-    isSidebarCollapsed,
-    toggleSidebar,
-    toggleSidebarCollapse,
-    closeSidebar,
-  };
+  const contextValue = useMemo<LayoutContextValue>(
+    () => ({
+      isSidebarOpen,
+      isSidebarCollapsed,
+      toggleSidebar,
+      toggleSidebarCollapse,
+      closeSidebar,
+    }),
+    [isSidebarOpen, isSidebarCollapsed, toggleSidebar, toggleSidebarCollapse, closeSidebar]
+  );
 
   return (
     <LayoutContext.Provider value={contextValue}>
-      <div className="min-h-screen bg-[var(--neutral-50)]">
+      <div className="min-h-screen bg-(--neutral-50)">
         {/* Desktop Sidebar - Always visible */}
         {isDesktop && <Sidebar variant="desktop" companyName={companyName} user={user} />}
 
@@ -95,11 +98,9 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
         <div
           className={cn(
             'min-h-screen transition-all duration-300',
-            isDesktop && 'xl:ml-[var(--sidebar-desktop)]',
+            isDesktop && 'xl:ml-(--sidebar-desktop)',
             isTablet &&
-              (isSidebarCollapsed
-                ? 'md:ml-[var(--sidebar-collapsed)]'
-                : 'md:ml-[var(--sidebar-tablet)]'),
+              (isSidebarCollapsed ? 'md:ml-(--sidebar-collapsed)' : 'md:ml-(--sidebar-tablet)'),
             isMobile && 'w-full'
           )}
         >
@@ -107,7 +108,7 @@ export function MainLayout({ children, user, companyName }: MainLayoutProps) {
           <TopBar user={user} companyName={companyName} showHamburger={!isDesktop} />
 
           {/* Page Content */}
-          <main className="px-[var(--space-4)] py-[var(--space-6)] md:px-[var(--space-6)] lg:px-[var(--space-8)]">
+          <main className="px-(--space-4) py-(--space-6) md:px-(--space-6) lg:px-(--space-8)">
             <div className="mx-auto max-w-[1400px]">{children}</div>
           </main>
         </div>

@@ -30,13 +30,9 @@ export function Spinner({
   color = 'primary',
   className,
   label = 'Loading...',
-}: SpinnerProps) {
+}: Readonly<SpinnerProps>) {
   return (
-    <div
-      role="status"
-      aria-label={label}
-      className={cn('inline-flex items-center justify-center', className)}
-    >
+    <output aria-label={label} className={cn('inline-flex items-center justify-center', className)}>
       <svg
         className={cn('animate-spin', sizes[size], colors[color])}
         xmlns="http://www.w3.org/2000/svg"
@@ -58,7 +54,7 @@ export function Spinner({
         />
       </svg>
       <span className="sr-only">{label}</span>
-    </div>
+    </output>
   );
 }
 
@@ -73,7 +69,7 @@ export function LoadingOverlay({
   isLoading,
   label = 'Loading...',
   className,
-}: LoadingOverlayProps) {
+}: Readonly<LoadingOverlayProps>) {
   if (!isLoading) return null;
 
   return (

@@ -7,7 +7,6 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
 import {
   Badge,
   Button,
@@ -31,7 +30,6 @@ import {
   FileText,
   TrendingUp,
   Download,
-  // Filter,
   Calendar,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -39,6 +37,7 @@ import { ServiceStatus } from '@/app/generated/prisma';
 import { useRouter } from 'next/navigation';
 import { formatCurrency } from '@/lib/utils/formatting';
 import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface Service {
   id: string;
@@ -74,7 +73,7 @@ export function RecentServices({
   onCreateNew,
   onImport,
   advanced = false,
-}: RecentServicesProps) {
+}: Readonly<RecentServicesProps>) {
   const router = useRouter();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -127,6 +126,21 @@ export function RecentServices({
 
   services = advanced ? filteredServices : services;
 
+  const servicesTabsCounts = useMemo(() => {
+    const stats = { all: 0, active: 0, completed: 0 };
+
+    const activeStatuses = new Set<ServiceStatus>([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS]);
+    services.forEach((s) => {
+      stats.all++;
+      if (activeStatuses.has(s.status)) {
+        stats.active++;
+      } else if (s.status === ServiceStatus.COMPLETED) {
+        stats.completed++;
+      }
+    });
+    return stats;
+  }, [services]);
+
   // Calculate stats
   const stats = useMemo(() => {
     if (!services || services.length === 0) {
@@ -162,112 +176,14 @@ export function RecentServices({
         await onRefresh();
       } else {
         // Default refresh behavior
-        window.location.reload();
+        globalThis.location.reload();
       }
     } finally {
       setIsRefreshing(false);
     }
   }, [onRefresh]);
 
-  // Define columns for DataTable
-  const columns: Column<Service>[] = useMemo(
-    () => [
-      {
-        key: 'serviceNumber',
-        header: 'Service #',
-        accessor: (row) => (
-          <Tooltip content="View service details" position="top">
-            <Link
-              href={`/services/${row.id}`}
-              className="font-medium text-sm hover:text-primary transition-colors inline-flex items-center gap-1 group"
-            >
-              {row.serviceNumber}
-              <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Link>
-          </Tooltip>
-        ),
-        sortable: true,
-        width: '150px',
-      },
-      {
-        key: 'date',
-        header: (
-          <div className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            <span>Date</span>
-          </div>
-        ),
-        accessor: (row) => (
-          <Tooltip content={format(new Date(row.date), 'EEEE, MMMM d, yyyy')} position="top">
-            <span className="text-sm text-muted-foreground cursor-help">
-              {format(new Date(row.date), 'MMM d, yyyy')}
-            </span>
-          </Tooltip>
-        ),
-        sortable: true,
-        width: '120px',
-      },
-      {
-        key: 'clientName',
-        header: 'Client',
-        accessor: (row) => <div className="text-sm font-medium">{row.clientName}</div>,
-        sortable: true,
-        minWidth: '150px',
-      },
-      {
-        key: 'route',
-        header: 'Route',
-        accessor: (row) => (
-          <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <span className="font-medium">{row.origin}</span>
-            <ArrowRight className="h-3 w-3 text-neutral-400" />
-            <span className="font-medium">{row.destination}</span>
-          </div>
-        ),
-        minWidth: '200px',
-      },
-      {
-        key: 'status',
-        header: 'Status',
-        accessor: (row) => (
-          <Tooltip content={getStatusDescription(row.status)} position="top">
-            <div className="inline-block">
-              <Badge
-                variant={getStatusVariant(row.status)}
-                icon={getStatusIcon(row.status)}
-                size="sm"
-                pulse={row.status === ServiceStatus.IN_PROGRESS}
-              >
-                {row.status.replace('_', ' ')}
-              </Badge>
-            </div>
-          </Tooltip>
-        ),
-        sortable: true,
-        width: '140px',
-      },
-      {
-        key: 'amount',
-        header: 'Amount',
-        accessor: (row) => (
-          <Tooltip
-            content={`${row.currency} ${row.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            position="top"
-          >
-            <span className="text-sm font-semibold tabular-nums cursor-help">
-              {row.currency === 'EUR' ? '€' : row.currency}
-              {row.amount.toLocaleString()}
-            </span>
-          </Tooltip>
-        ),
-        sortable: true,
-        sortKey: 'amount',
-        align: 'right',
-        width: '120px',
-      },
-    ],
-    []
-  );
+  const columns = useMemo(() => getServiceColumns(), []);
 
   // Row actions
   const rowActions = useCallback(
@@ -410,11 +326,9 @@ export function RecentServices({
       description:
         "We couldn't fetch your recent services. Please check your connection and try again.",
       variant: 'card' as const,
+      // Only add onRetry if onRefresh exists
+      ...(onRefresh && { onRetry: () => { void handleRefresh(); } }),
     };
-
-    if (onRefresh) {
-      errorStateProps.onRetry = handleRefresh;
-    }
 
     return (
       <Card variant="elevated" padding="none">
@@ -494,29 +408,14 @@ export function RecentServices({
                   key={tab}
                   onClick={() => setSelectedTab(tab)}
                   className={cn(
-                    'cursor-pointer px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-[2px]',
+                    'cursor-pointer px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-0.5',
                     selectedTab === tab
                       ? 'text-primary border-primary'
                       : 'text-muted-foreground border-transparent hover:text-foreground'
                   )}
                 >
                   {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  <span className="ml-2 text-xs opacity-60">
-                    (
-                    {tab === 'all'
-                      ? services.length
-                      : tab === 'active'
-                        ? services.filter((s) =>
-                          (
-                            [
-                              ServiceStatus.CONFIRMED,
-                              ServiceStatus.IN_PROGRESS,
-                            ] as ServiceStatus[]
-                          ).includes(s.status)
-                        ).length
-                        : services.filter((s) => s.status === ServiceStatus.COMPLETED).length}
-                    )
-                  </span>
+                  <span className="ml-2 text-xs opacity-60">({servicesTabsCounts[tab]})</span>
                 </button>
               ))}
             </div>
@@ -587,7 +486,9 @@ export function RecentServices({
                     }
                     : {
                       label: 'Refresh',
-                      onClick: handleRefresh,
+                      onClick: () => {
+                        handleRefresh();
+                      },
                       icon: <RefreshCw size={16} />,
                     }
                 }
@@ -613,3 +514,107 @@ export function RecentServices({
     </div>
   );
 }
+
+// Define columns for DataTable
+const getServiceColumns = (): Column<Service>[] => [
+  {
+    key: 'serviceNumber',
+    header: 'Service #',
+    accessor: (row) => <ServiceNumberCell id={row.id} serviceNumber={row.serviceNumber} />,
+    sortable: true,
+    width: '150px',
+  },
+  {
+    key: 'date',
+    header: (
+      <div className="flex items-center gap-1">
+        <Calendar className="h-3 w-3" />
+        <span>Date</span>
+      </div>
+    ),
+    accessor: (row) => <DateCell date={row.date} />,
+    sortable: true,
+    width: '120px',
+  },
+  {
+    key: 'clientName',
+    header: 'Client',
+    accessor: (row) => <ClientNameCell clientName={row.clientName} />,
+    sortable: true,
+    minWidth: '150px',
+  },
+  {
+    key: 'route',
+    header: 'Route',
+    accessor: (row) => <RouteCell origin={row.origin} destination={row.destination} />,
+    minWidth: '200px',
+  },
+  {
+    key: 'status',
+    header: 'Status',
+    accessor: (row) => <StatusCell status={row.status} />,
+    sortable: true,
+    width: '140px',
+  },
+  {
+    key: 'amount',
+    header: 'Amount',
+    accessor: (row) => <AmountCell amount={row.amount} currency={row.currency} />,
+    sortable: true,
+    sortKey: 'amount',
+    align: 'right',
+    width: '120px',
+  },
+];
+
+const ServiceNumberCell = ({ id, serviceNumber }: { id: string; serviceNumber: string }) => (
+  <Tooltip content="View service details" position="top">
+    <Link
+      href={`/services/${id}`}
+      className="font-medium text-sm hover:text-primary transition-colors inline-flex items-center gap-1 group"
+    >
+      {serviceNumber || '---'}
+      <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0 transition-all duration-200" />
+    </Link>
+  </Tooltip>
+);
+
+const DateCell = ({ date }: { date: string }) => (
+  <Tooltip content={formatDate.full(date)} position="top">
+    <span className="text-sm text-muted-foreground cursor-help">{formatDate.short(date)}</span>
+  </Tooltip>
+);
+
+const ClientNameCell = ({ clientName }: { clientName: string }) => (
+  <div className="text-sm font-medium">{clientName}</div>
+);
+const RouteCell = ({ origin, destination }: { origin: string; destination: string }) => (
+  <div className="text-sm text-muted-foreground flex items-center gap-1.5">
+    <span className="font-medium">{origin}</span>
+    <ArrowRight className="h-3 w-3 text-neutral-400" />
+    <span className="font-medium">{destination}</span>
+  </div>
+);
+
+const StatusCell = ({ status }: { status: ServiceStatus }) => (
+  <Tooltip content={getStatusDescription(status)} position="top">
+    <div className="inline-block">
+      <Badge
+        variant={getStatusVariant(status)}
+        icon={getStatusIcon(status)}
+        size="sm"
+        pulse={status === ServiceStatus.IN_PROGRESS}
+      >
+        {status.replaceAll('_', ' ').toLowerCase()}
+      </Badge>
+    </div>
+  </Tooltip>
+);
+
+const AmountCell = ({ amount, currency }: { amount: number; currency: string }) => (
+  <Tooltip content={formatCurrency(amount, currency)} position="top">
+    <span className="text-sm font-semibold tabular-nums cursor-help">
+      {formatCurrency(amount, currency)}
+    </span>
+  </Tooltip>
+);

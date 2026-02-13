@@ -30,7 +30,7 @@ interface UsersListProps {
   users: User[];
 }
 
-export function UsersList({ users }: UsersListProps) {
+export function UsersList({ users }: Readonly<UsersListProps>) {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const toggleUserSelection = (userId: string) => {

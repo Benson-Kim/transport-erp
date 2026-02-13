@@ -8,11 +8,11 @@ import { useLayout } from './MainLayout';
 import { signOut } from 'next-auth/react';
 import { TopBarProps } from '@/types/nav';
 
-export function TopBar({ user, companyName, showHamburger }: TopBarProps) {
+export function TopBar({ user, companyName, showHamburger }: Readonly<TopBarProps>) {
   const router = useRouter();
   const { toggleSidebar, toggleSidebarCollapse } = useLayout();
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 767;
+  const isMobile = globalThis.window !== undefined && window.innerWidth <= 767;
 
   const handleLogout = async () => {
     try {

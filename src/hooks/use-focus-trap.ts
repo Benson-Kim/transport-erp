@@ -25,11 +25,9 @@ export function useFocusTrap(ref: RefObject<HTMLElement>, isActive: boolean) {
           lastElement?.focus();
           e.preventDefault();
         }
-      } else {
-        if (document.activeElement === lastElement) {
-          firstElement?.focus();
-          e.preventDefault();
-        }
+      } else if (document.activeElement === lastElement) {
+        firstElement?.focus();
+        e.preventDefault();
       }
     };
 

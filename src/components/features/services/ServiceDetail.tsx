@@ -1,7 +1,6 @@
 // components/features/services/ServiceDetail.tsx
 'use client';
 
-import { format } from 'date-fns';
 import { Card, CardBody, Badge } from '@/components/ui';
 import {
   Calendar,
@@ -16,14 +15,14 @@ import {
   TrendingDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatDistance } from '@/lib/utils/dashboard-helpers';
-// import { formatCurrency, formatDistance } from '@/lib/utils/service-detail-helpers';
+import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServiceDetailProps {
   service: any;
 }
 
-export function ServiceDetail({ service }: ServiceDetailProps) {
+export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
   // Calculate totals with VAT
   const costTotalWithVat = Number(service.costAmount) + Number(service.costVatAmount);
   const saleTotalWithVat = Number(service.saleAmount) + Number(service.saleVatAmount);
@@ -49,7 +48,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                 <Calendar className="h-4 w-4 mr-1" />
                 Date
               </dt>
-              <dd className="font-medium">{format(new Date(service.date), 'PPP')}</dd>
+              <dd className="font-medium">{formatDate.readable(service.date)}</dd>
             </div>
 
             <div>
@@ -182,7 +181,9 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <dd>{formatCurrency(service.costAmount, service.costCurrency)}</dd>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <dt className="text-muted-foreground">VAT ({service.costVatRate}%)</dt>
+                  <dt className="text-muted-foreground">
+                    VAT ({formatPercentage(service.costVatRate)})
+                  </dt>
                   <dd>{formatCurrency(service.costVatAmount, service.costCurrency)}</dd>
                 </div>
                 <div className="flex justify-between font-medium pt-2 border-t">
@@ -201,7 +202,9 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <dd>{formatCurrency(service.saleAmount, service.saleCurrency)}</dd>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <dt className="text-muted-foreground">VAT ({service.saleVatRate}%)</dt>
+                  <dt className="text-muted-foreground">
+                    VAT ({formatPercentage(service.saleVatRate)})
+                  </dt>
                   <dd>{formatCurrency(service.saleVatAmount, service.saleCurrency)}</dd>
                 </div>
                 <div className="flex justify-between font-medium pt-2 border-t">
@@ -228,7 +231,7 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <h3 className="font-medium">Margin Analysis</h3>
                 </div>
                 <Badge variant={margin >= 0 ? 'completed' : 'cancelled'} size="sm">
-                  {marginPercent.toFixed(1)}%
+                  {formatPercentage(marginPercent)}
                 </Badge>
               </div>
 
@@ -249,14 +252,11 @@ export function ServiceDetail({ service }: ServiceDetailProps) {
                   <dd
                     className={cn(
                       'font-bold text-lg',
-                      marginPercent >= 20
-                        ? 'text-green-600'
-                        : marginPercent >= 10
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
+                      marginPercent >= 20 && 'text-green-600',
+                      marginPercent >= 10 ? 'text-yellow-600' : 'text-red-600'
                     )}
                   >
-                    {marginPercent.toFixed(2)}%
+                    {formatPercentage(marginPercent)}
                   </dd>
                 </div>
                 <div>

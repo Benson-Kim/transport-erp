@@ -6,6 +6,7 @@ import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-r
 import { cn } from '@/lib/utils/cn';
 import { ServiceFormData } from '@/lib/validations/service-schema';
 import { Option } from '@/types/ui';
+import { formatPercentage } from '@/lib/utils/formatting';
 
 interface PricingCalculatorProps {
   form: UseFormReturn<ServiceFormData>;
@@ -48,7 +49,11 @@ const getCurrencySymbol = (currency: string) => {
   return curr?.icon || '€';
 };
 
-export function PricingCalculator({ form, margin, marginPercent }: PricingCalculatorProps) {
+export function PricingCalculator({
+  form,
+  margin,
+  marginPercent,
+}: Readonly<PricingCalculatorProps>) {
   const {
     control,
     watch,
@@ -364,7 +369,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Gross Margin */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Gross Margin</label>
+            <p className="block text-xs text-muted-foreground mb-1">Gross Margin</p>
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white font-medium text-center',
@@ -387,7 +392,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
 
           {/* Margin Percentage */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               Margin %
               <Tooltip content="(Sale - Cost) / Sale × 100">
                 <Info className="h-3 w-3 ml-1" />
@@ -396,20 +401,19 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white font-medium text-center',
-                marginPercent >= 20
-                  ? 'text-green-600 border-green-200'
-                  : marginPercent >= 10
-                    ? 'text-yellow-600 border-yellow-200'
-                    : 'text-red-600 border-red-200'
+                marginPercent >= 20 && 'text-green-600 border-green-200',
+                marginPercent >= 10
+                  ? 'text-yellow-600 border-yellow-200'
+                  : 'text-red-600 border-red-200'
               )}
             >
-              {marginPercent.toFixed(2)}%
+              {formatPercentage(marginPercent)}
             </div>
           </div>
 
           {/* Markup */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               Markup %
               <Tooltip content="(Sale - Cost) / Cost × 100">
                 <Info className="h-3 w-3 ml-1" />
@@ -422,7 +426,7 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
 
           {/* ROI */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1 flex items-center">
+            <label className="text-xs text-muted-foreground mb-1 flex items-center">
               ROI
               <Tooltip content="Return on Investment">
                 <Info className="h-3 w-3 ml-1" />
@@ -431,7 +435,8 @@ export function PricingCalculator({ form, margin, marginPercent }: PricingCalcul
             <div
               className={cn(
                 'px-3 py-2 border rounded-lg bg-white text-center',
-                margin > 0 ? 'text-green-600' : margin < 0 ? 'text-red-600' : ''
+                margin > 0 && 'text-green-600',
+                margin < 0 ? 'text-red-600' : ''
               )}
             >
               {costAmount > 0 ? (margin / costAmount).toFixed(2) : '0.00'}x

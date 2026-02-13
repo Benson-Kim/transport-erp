@@ -8,9 +8,7 @@ import prisma from '@/lib/prisma/prisma';
 import { UserRole } from '@/app/generated/prisma';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
-import NextAuth, {
-  type NextAuthConfig,
-} from 'next-auth';
+import NextAuth, { type NextAuthConfig } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 
 import Google from 'next-auth/providers/google';
@@ -22,8 +20,7 @@ import { loginSchema } from '@/lib/validations/auth-schema';
 import { emailService } from '../email';
 import { EmailTemplate } from '@/types/mail';
 
-const baseUrl =
-  process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
  * NextAuth configuration
@@ -60,7 +57,6 @@ export const authConfig = {
         }
 
         try {
-
           // Validate input
           const validatedFields = loginSchema.parse({
             email: credentials.email,
@@ -79,12 +75,8 @@ export const authConfig = {
           const rateLimitResult = await rateLimiter.check(validatedFields.email, 5, 15 * 60 * 1000);
 
           if (!rateLimitResult.success) {
-            const minutes = Math.ceil(
-              rateLimitResult.retryAfter / 60000
-            )
-            throw new Error(
-              `Too many login attempts. Please try again in ${minutes} minutes.`
-            );
+            const minutes = Math.ceil(rateLimitResult.retryAfter / 60000);
+            throw new Error(`Too many login attempts. Please try again in ${minutes} minutes.`);
           }
 
           // Find user by email
@@ -104,7 +96,7 @@ export const authConfig = {
             },
           });
 
-          if (!user || !user.password) {
+          if (!user?.password) {
             await rateLimiter.increment(validatedFields.email);
             throw new Error('Invalid email or password');
           }
@@ -122,14 +114,12 @@ export const authConfig = {
           if (!user.emailVerified) {
             const token = await generateVerificationToken(user.email);
 
-            await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email,
-              {
-                name: user.name || 'User',
-                email: user.email,
-                verificationUrl: `${baseUrl}/verify-email?token=${token}`,
-                expiresIn: '24 hours'
-              }
-            );
+            await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+              name: user.name || 'User',
+              email: user.email,
+              verificationUrl: `${baseUrl}/verify-email?token=${token}`,
+              expiresIn: '24 hours',
+            });
 
             throw new Error('Email not verified. We have sent you a new verification link.');
           }
@@ -219,7 +209,7 @@ export const authConfig = {
 
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email },
-        select: { id: true, isActive: true }
+        select: { id: true, isActive: true },
       });
 
       // Block disabled accounts
@@ -244,7 +234,6 @@ export const authConfig = {
 
     // JWT callback
     async jwt({ token, user, trigger, session }) {
-
       if (user) {
         token['id'] = user.id;
         token['role'] = user.role;
@@ -260,9 +249,7 @@ export const authConfig = {
 
         for (const key of allowed) {
           if (key in (session as Record<string, unknown>)) {
-            (token as Record<string, unknown>)[key] = (
-              session as Record<string, unknown>
-            )[key];
+            (token as Record<string, unknown>)[key] = (session as Record<string, unknown>)[key];
           }
         }
       }
@@ -273,20 +260,12 @@ export const authConfig = {
     // Session callback
     async session({ session, token }) {
       if (session.user) {
-        session.user.id =
-          (token['id'] as string) ??
-          (token['sub'] as string) ??
-          session.user.id;
-        session.user.role =
-          (token['role'] as UserRole) ?? UserRole.VIEWER;
-        session.user.emailVerified =
-          (token['emailVerified'] as Date | null) ?? null;
-        session.user.twoFactorEnabled =
-          Boolean(token['twoFactorEnabled']);
-        session.user.department =
-          (token['department'] as string | null) ?? null;
-        session.user.avatar =
-          (token['avatar'] as string | null) ?? null;
+        session.user.id = (token['id'] as string) ?? (token['sub'] as string) ?? session.user.id;
+        session.user.role = (token['role'] as UserRole) ?? UserRole.VIEWER;
+        session.user.emailVerified = (token['emailVerified'] as Date | null) ?? null;
+        session.user.twoFactorEnabled = Boolean(token['twoFactorEnabled']);
+        session.user.department = (token['department'] as string | null) ?? null;
+        session.user.avatar = (token['avatar'] as string | null) ?? null;
       }
 
       return session;
@@ -329,23 +308,19 @@ export const authConfig = {
       }
     },
 
-
     async createUser({ user }) {
       if (user?.email) {
-        await emailService.sendTemplate(
-          EmailTemplate.WELCOME,
-          user.email,
-          {
-            name: user.name || 'User',
-            email: user.email,
-            loginUrl: `${baseUrl}/login`,
-            features: [
-              'Manage transport services and routes',
-              'Track invoices and payments',
-              'Generate loading orders',
-              'View reports and analytics',
-            ],
-          });
+        await emailService.sendTemplate(EmailTemplate.WELCOME, user.email, {
+          name: user.name || 'User',
+          email: user.email,
+          loginUrl: `${baseUrl}/login`,
+          features: [
+            'Manage transport services and routes',
+            'Track invoices and payments',
+            'Generate loading orders',
+            'View reports and analytics',
+          ],
+        });
       }
     },
   },
@@ -353,7 +328,6 @@ export const authConfig = {
   // Security options
   useSecureCookies: process.env.NODE_ENV === 'production',
   debug: process.env.NODE_ENV === 'development',
-
 } satisfies NextAuthConfig;
 
 /**

@@ -17,9 +17,9 @@ import {
   Building2,
   ArrowRight,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/date-formats';
+import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
 
 interface ServicesMobileViewProps {
   services: ServiceData[];
@@ -35,7 +35,7 @@ export function ServicesMobileView({
   currentPage,
   pageSize,
   userRole,
-}: ServicesMobileViewProps) {
+}: Readonly<ServicesMobileViewProps>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set());
@@ -82,12 +82,10 @@ export function ServicesMobileView({
               <CardBody className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selectedServices.has(service.id)}
-                        onCheckedChange={() => handleSelect(service.id)}
-                      />
-                    </div>
+                    <Checkbox
+                      checked={selectedServices.has(service.id)}
+                      onCheckedChange={() => handleSelect(service.id)}
+                    />
                     <div>
                       <p className="font-semibold text-primary">{service.serviceNumber}</p>
                       <ServiceStatusBadge status={service.status} size="sm" />
@@ -109,7 +107,7 @@ export function ServicesMobileView({
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span>{format(new Date(service.date), 'dd MMM yyyy')}</span>
+                    <span>{formatDate.compact(service.date)}</span>
                   </div>
 
                   <div className="flex items-center gap-2">
