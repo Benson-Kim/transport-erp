@@ -3,9 +3,9 @@
  */
 
 import { compare } from 'bcryptjs';
+
 import prisma from '../prisma/prisma';
 import { UserRole } from '@/app/generated/prisma';
-
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
 import NextAuth, {
@@ -19,10 +19,11 @@ import type { JWT as DefaultJWT } from 'next-auth/jwt';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 
-import { sendVerificationEmail, sendWelcomeEmail } from '../email';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { generateVerificationToken } from './auth-helpers';
 import { loginSchema } from '@/lib/validations/auth-schema';
+import { emailService } from '../email';
+import { EmailTemplate } from '@/types/mail';
 
 // Local helper types to narrow token and session shapes
 type AppJWT = DefaultJWT & {
@@ -53,14 +54,14 @@ type AppSession = NextAuthSession & {
   };
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 /**
  * NextAuth configuration
  */
 export const authConfig = {
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
-  // adapter: PrismaAdapter(prisma),
-
   session: {
     strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -77,16 +78,14 @@ export const authConfig = {
 
   // Authentication providers
   providers: [
-    // Credentials provider for email/password
     Credentials({
-      // id: 'credentials',
       name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
-      async authorize(credentials, req): Promise<NextAuthUser | null> {
+      async authorize(credentials, req) {
         try {
           if (!credentials) {
             throw new Error('Missing credentials');
@@ -110,11 +109,8 @@ export const authConfig = {
           const rateLimitResult = await rateLimiter.check(validatedFields.email, 5, 15 * 60 * 1000);
 
           if (!rateLimitResult.success) {
-            throw new Error(
-              `Too many login attempts. Please try again in ${Math.ceil(
-                rateLimitResult.retryAfter / 60000
-              )} minutes.`
-            );
+            const minutes = Math.ceil(rateLimitResult.retryAfter / 60000);
+            throw new Error(`Too many login attempts. Please try again in ${minutes} minutes.`);
           }
 
           // Find user by email
@@ -151,7 +147,14 @@ export const authConfig = {
 
           if (!user.emailVerified) {
             const token = await generateVerificationToken(user.email);
-            await sendVerificationEmail(user.email, token);
+
+            await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+              name: user.name || 'User',
+              email: user.email,
+              verificationUrl: `${baseUrl}/verify-email?token=${token}`,
+              expiresIn: '24 hours',
+            });
+
             throw new Error('Email not verified. We have sent you a new verification link.');
           }
 
@@ -187,7 +190,8 @@ export const authConfig = {
             name: user.name,
             role: user.role,
             emailVerified: user.emailVerified,
-            twoFactorEnabled: user.twoFactorEnabled,
+            twoFactorEnabled: user.twoFactorEnabled ?? false,
+            isActive: user.isActive,
             department: user.department,
             avatar: user.avatar,
           } as unknown as NextAuthUser;
@@ -209,7 +213,7 @@ export const authConfig = {
           response_type: 'code',
         },
       },
-      profile(profile: any) {
+      profile(profile) {
         return {
           id: profile.sub,
           name: profile.name,
@@ -218,6 +222,7 @@ export const authConfig = {
           avatar: profile.picture,
           role: UserRole.VIEWER, // Default role for OAuth users
           twoFactorEnabled: false,
+          isActive: true,
           department: null,
         };
       },
@@ -228,44 +233,34 @@ export const authConfig = {
   callbacks: {
     // Sign in callback
     async signIn({ user, account }) {
-      // If provider is not credentials, handle OAuth flow
-      if (account?.provider !== 'credentials') {
-        if (!user?.email) return false;
-
-        const existingUser = await prisma.user.findUnique({
-          where: { email: user.email },
-        });
-
-        // Reject sign in for disabled accounts
-        if (existingUser && !existingUser.isActive) {
-          return false;
-        }
-
-        // Create audit log for OAuth login if user exists
-        if (existingUser) {
-          await prisma.auditLog.create({
-            data: {
-              userId: existingUser.id,
-              action: 'LOGIN',
-              tableName: 'users',
-              recordId: existingUser.id,
-              metadata: { provider: account?.provider },
-            },
-          });
-        }
-
-        return true;
+      if (account?.provider === 'credentials') {
+        // confirm emailVerified
+        return !!user?.emailVerified;
       }
 
-      // For credentials provider, ensure emailVerified
+      // OAuth sign-ins are allowed, but we check if the email is verified in the profile callback
       if (!user?.email) return false;
 
       const existingUser = await prisma.user.findUnique({
         where: { email: user.email },
+        select: { id: true, isActive: true },
       });
 
-      if (!existingUser?.emailVerified) {
+      // Block disabled accounts
+      if (existingUser && !existingUser.isActive) {
         return false;
+      }
+
+      if (existingUser) {
+        await prisma.auditLog.create({
+          data: {
+            userId: existingUser.id,
+            action: 'LOGIN',
+            tableName: 'users',
+            recordId: existingUser.id,
+            metadata: { provider: account?.provider },
+          },
+        });
       }
 
       return true;
@@ -273,54 +268,47 @@ export const authConfig = {
 
     // JWT callback
     async jwt({ token, user, trigger, session }) {
-      const t = token as AppJWT;
-
       if (user) {
-        const u = user as AppUser;
-        t.id = u.id ?? t.id;
-        t.role = u.role ?? t.role;
-        t.emailVerified = u.emailVerified ?? null;
-        t.twoFactorEnabled = u.twoFactorEnabled ?? false;
-        t.department = u.department ?? null;
-        t.avatar = u.avatar ?? null;
+        token['id'] = user.id;
+        token['role'] = user.role;
+        token['emailVerified'] = user.emailVerified;
+        token['twoFactorEnabled'] = user.twoFactorEnabled;
+        token['department'] = user.department;
+        token['avatar'] = user.avatar;
       }
 
       if (trigger === 'update' && session) {
         // Avoid reassigning token, update in place
-        Object.assign(t, session);
+        const allowed = ['name', 'avatar', 'department'];
+
+        for (const key of allowed) {
+          if (key in (session as Record<string, unknown>)) {
+            (token as Record<string, unknown>)[key] = (session as Record<string, unknown>)[key];
+          }
+        }
       }
 
-      return t;
+      return token;
     },
 
     // Session callback
     async session({ session, token }) {
-      const t = token as AppJWT;
-      const s = session as AppSession;
-
-      if (s.user) {
-        // Ensure a string id
-        const subValue = token.sub;
-        const userId = typeof subValue === 'string' ? subValue : s.user.id;
-        s.user.id = typeof t.id === 'string' ? t.id : userId;
-
-        // Set required/custom fields
-        s.user.role = t.role ?? s.user.role ?? UserRole.VIEWER;
-        s.user.emailVerified = t.emailVerified ?? null;
-        s.user.twoFactorEnabled = Boolean(t.twoFactorEnabled);
-        s.user.department = t.department ?? null;
-        s.user.avatar = t.avatar ?? null;
+      if (session.user) {
+        session.user.id = (token['id'] as string) ?? (token['sub'] as string) ?? session.user.id;
+        session.user.role = (token['role'] as UserRole) ?? UserRole.VIEWER;
+        session.user.emailVerified = (token['emailVerified'] as Date | null) ?? null;
+        session.user.twoFactorEnabled = Boolean(token['twoFactorEnabled']);
+        session.user.department = (token['department'] as string | null) ?? null;
+        session.user.avatar = (token['avatar'] as string | null) ?? null;
       }
 
-      return s;
+      return session;
     },
 
     // Redirect callback
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`;
 
-      // Allows callback URLs on the same origin
       try {
         if (new URL(url).origin === baseUrl) return url;
       } catch {
@@ -333,25 +321,13 @@ export const authConfig = {
 
   // Events
   events: {
-    async signIn({ user, account }) {
-      console.log(
-        `User ${user?.email ?? user?.id} signed in via ${account?.provider ?? 'unknown'}`
-      );
-    },
     async signOut(message) {
-      // message is a union: { session } | { token }
       let userId: string | undefined;
 
-      if ('session' in message) {
-        const s = message.session;
-        // AdapterSession doesn't have session.user, it has session.userId
-        if (s && typeof (s as any).userId === 'string') {
-          userId = (s as any).userId as string;
-        }
+      if ('session' in message && message.session) {
+        userId = (message.session as { userId?: string }).userId;
       } else if ('token' in message && message.token) {
-        const t = message.token as AppJWT;
-        userId =
-          (typeof t.id === 'string' && t.id) || (typeof t.sub === 'string' ? t.sub : undefined);
+        userId = (message.token['id'] as string) ?? message.token.sub;
       }
 
       if (userId) {
@@ -365,20 +341,26 @@ export const authConfig = {
         });
       }
     },
+
     async createUser({ user }) {
       if (user?.email) {
-        await sendWelcomeEmail(user.email, user.name || 'User');
+        await emailService.sendTemplate(EmailTemplate.WELCOME, user.email, {
+          name: user.name || 'User',
+          email: user.email,
+          loginUrl: `${baseUrl}/login`,
+          features: [
+            'Manage transport services and routes',
+            'Track invoices and payments',
+            'Generate loading orders',
+            'View reports and analytics',
+          ],
+        });
       }
-    },
-    async linkAccount({ user, account }) {
-      console.log(`Account ${account.provider} linked for user ${user.email}`);
     },
   },
 
   // Security options
   useSecureCookies: process.env.NODE_ENV === 'production',
-
-  // Debug mode
   debug: process.env.NODE_ENV === 'development',
 } satisfies NextAuthConfig;
 

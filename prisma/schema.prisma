@@ -1,23 +1,20 @@
 // Enterprise Dashboard Database Schema
 // PostgreSQL with Prisma ORM
-// Version: 1.0.0
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearchPostgres", "views"]
+  previewFeatures = ["views"]
   binaryTargets   = ["native"]
   output          = "../src/app/generated/prisma"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
 }
 
-// =============================================
 // ENUMS
-// =============================================
 
 enum UserRole {
   SUPER_ADMIN
@@ -80,9 +77,7 @@ enum DocumentType {
   OTHER
 }
 
-// =============================================
 // AUTHENTICATION MODELS (NextAuth.js v5)
-// =============================================
 
 model Account {
   id                String  @id @default(cuid())
@@ -126,9 +121,42 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// =============================================
+model EmailQueue {
+  id          String    @id @default(cuid())
+  template    String
+  to          String
+  data        Json
+  priority    String    @default("normal")
+  status      String    @default("pending") // pending, scheduled, sent, failed
+  attempts    Int       @default(0)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  messageId   String?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, scheduledAt])
+  @@index([priority, createdAt])
+  @@map("email_queue")
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  messageId String?
+  to        String
+  subject   String
+  status    String // sent, failed, bounced
+  error     String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([to, createdAt])
+  @@index([status, createdAt])
+  @@map("email_logs")
+}
+
 // CORE BUSINESS MODELS
-// =============================================
 
 model User {
   id            String    @id @default(cuid())
@@ -664,9 +692,7 @@ model Document {
   @@map("documents")
 }
 
-// =============================================
 // SYSTEM MODELS
-// =============================================
 
 model AuditLog {
   id        String      @id @default(cuid())

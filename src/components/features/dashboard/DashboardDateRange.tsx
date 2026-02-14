@@ -37,7 +37,7 @@ export function DashboardDateRange() {
   return (
     <div className="flex items-center gap-2">
       <Calendar className="h-4 w-4 text-muted-foreground" />
-      <div className="w-[160px]">
+      <div className="w-40">
         <Select
           options={rangeOptions}
           value={range}

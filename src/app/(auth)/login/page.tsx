@@ -64,15 +64,6 @@ export default async function LoginPage() {
             >
               Forgot your password?
             </Link>
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-              >
-                Sign up
-              </Link>
-            </div>
           </div>
         </div>
 

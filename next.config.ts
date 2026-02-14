@@ -1,4 +1,3 @@
-// next.config.ts
 import type { NextConfig } from 'next';
 import createBundleAnalyzer from '@next/bundle-analyzer';
 
@@ -6,7 +5,6 @@ const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
 });
 
-// Security headers for production
 const securityHeaders: { key: string; value: string }[] = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
   { key: 'X-XSS-Protection', value: '1; mode=block' },
@@ -16,17 +14,13 @@ const securityHeaders: { key: string; value: string }[] = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
 ];
 
-// Derive the exact ImageFormat[] type from NextConfig
 type NextImageFormats = NonNullable<NonNullable<NextConfig['images']>['formats']>;
 const imageFormats: NextImageFormats = ['image/avif', 'image/webp'];
 
 const nextConfig: NextConfig = {
-  // Enable React strict mode for better development warnings
   reactStrictMode: true,
 
-  // Experimental features
   experimental: {
-    // Server Actions configuration
     serverActions: {
       bodySizeLimit: '2mb',
       allowedOrigins: (process.env['ALLOWED_ORIGINS']
@@ -34,11 +28,9 @@ const nextConfig: NextConfig = {
         .map((s) => s.trim())
         .filter(Boolean) as string[]) || ['localhost:3000'],
     },
-    // Optimize package imports
     optimizePackageImports: ['lucide-react', 'recharts', 'date-fns'],
   },
 
-  // Image optimization configuration
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.amazonaws.com' },
@@ -49,7 +41,6 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // Headers configuration
   async headers() {
     if (process.env['NODE_ENV'] !== 'production') return [];
     return [
@@ -60,7 +51,6 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Redirects configuration
   async redirects() {
     return [
       {
@@ -71,9 +61,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Webpack configuration
   webpack: (config, { isServer }) => {
-    // Import SVGs as React components via SVGR
     config.module.rules.push({
       test: /\.svg$/i,
       issuer: /\.[jt]sx?$/,
@@ -83,7 +71,6 @@ const nextConfig: NextConfig = {
           options: { svgo: true, titleProp: true, ref: true },
         },
       ],
-
     });
 
     if (!isServer) {
@@ -98,7 +85,7 @@ const nextConfig: NextConfig = {
     }
 
     config.plugins.push(
-      new (require('webpack')).NormalModuleReplacementPlugin(/^node:/, (resource: any) => {
+      new (require('webpack').NormalModuleReplacementPlugin)(/^node:/, (resource: any) => {
         resource.request = resource.request.replace(/^node:/, '');
       })
     );
@@ -106,29 +93,22 @@ const nextConfig: NextConfig = {
     return config;
   },
 
-  // Environment variables to expose to the browser
   env: {
     NEXT_PUBLIC_APP_URL: process.env['NEXT_PUBLIC_APP_URL'],
     NEXT_PUBLIC_APP_NAME: process.env['NEXT_PUBLIC_APP_NAME'],
   },
 
-  // PoweredByHeader removes the X-Powered-By header
   poweredByHeader: false,
 
-  // Compress responses
   compress: true,
 
-  // Generate ETags for pages
   generateEtags: true,
 
-  // Page extensions
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
 
-  // Trailing slash configuration
   trailingSlash: false,
 
-  // Output configuration
-  output: "standalone",
+  output: 'standalone',
 };
 
 export default withBundleAnalyzer(nextConfig);
