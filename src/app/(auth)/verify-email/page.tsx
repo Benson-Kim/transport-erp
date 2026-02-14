@@ -1,98 +1,167 @@
 /**
- * Login Page
- * User authentication page with credentials and OAuth options
+ * Verify Email Page
+ * Processes the email verification token from the URL
  */
 
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getServerAuth } from '@/lib/auth';
+
+import { CheckCircle, XCircle } from 'lucide-react';
+
+import { getServerAuth, verifyEmailToken } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
-import { LoginForm, OAuthButtons } from '@/components/features/auth';
+import { Button } from '@/components/ui';
+import { AuthFormFooter } from '@/components/features/auth';
 
 export const metadata: Metadata = {
-  title: 'Sign In | Enterprise Dashboard',
-  description: 'Sign in to your account',
+  title: 'Verify Email | Enterprise Dashboard',
+  description: 'Verify your email address to activate your account',
 };
 
-export default async function LoginPage() {
+interface VerifyEmailPageProps {
+  searchParams: Promise<{ token?: string }>;
+}
+
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {
     redirect('/dashboard');
   }
 
+  const { token } = await searchParams;
+
+  if (!token) {
+    return (
+      <VerifyEmailLayout>
+        <ErrorState
+          title="Missing verification Link"
+          description="This email verification link is invalid. Please request a new one."
+        />
+      </VerifyEmailLayout>
+    );
+  }
+
+  // Verify the token server-side
+  const result = await verifyEmailToken(token);
+
+  if (!result.success) {
+    return (
+      <VerifyEmailLayout>
+        <ErrorState
+          title="Verification failed"
+          description={
+            result.error === 'Token expired'
+              ? 'This verification link has expired. Please request a new one.'
+              : 'This verification link is invalid. Please request a new one.'
+          }
+          showResend
+        />
+      </VerifyEmailLayout>
+    );
+  }
+
+  // success
+  return (
+    <VerifyEmailLayout>
+      <SuccessState {...(result.email ? { email: result.email } : {})} />
+    </VerifyEmailLayout>
+  );
+}
+
+function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-neutral-50 to-neutral-100 px-4 py-12 dark:from-neutral-950 dark:to-neutral-900">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo */}
         <div className="flex flex-col items-center">
           <Logo className="h-12 w-auto" />
-          <h1 className="mt-6 text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Welcome back
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            Sign in to your account to continue
-          </p>
         </div>
 
-        {/* Login Card */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
-          {/* Login Form */}
-          <LoginForm />
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-neutral-500 dark:bg-neutral-950 dark:text-neutral-400">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* OAuth Buttons */}
-          <OAuthButtons />
-
-          {/* Links */}
-          <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-primary-600 hover:text-primary-500 dark:text-primary-400"
-            >
-              Forgot your password?
-            </Link>
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-              >
-                Sign up
-              </Link>
-            </div>
-          </div>
+          {children}
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Footer 
-        <div className="text-center text-xs text-neutral-500 dark:text-neutral-400">
-          By signing in, you agree to our{' '}
-          <Link
-            href="/terms"
-            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
-          >
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link
-            href="/privacy"
-            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
-          >
-            Privacy Policy
-          </Link>
-        </div>*/}
+function SuccessState({ email }: { email?: string }) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+          <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+          Email verified
+        </h1>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          {email ? (
+            <>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">{email}</span>{' '}
+              has been verified successfully.
+            </>
+          ) : (
+            'Your email has been verified successfully.'
+          )}
+        </p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          You can now sign in to your account.
+        </p>
+      </div>
+
+      <Button asChild className="w-full">
+        <Link href="/login">Sign in to your account</Link>
+      </Button>
+    </div>
+  );
+}
+
+function ErrorState({
+  title,
+  description,
+  showResend = false,
+}: {
+  title: string;
+  description: string;
+  showResend?: boolean;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+          <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+          {title}
+        </h1>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
+      </div>
+
+      <div className="flex flex-col space-y-3">
+        {showResend && (
+          <Button asChild variant="secondary" className="w-full">
+            <Link href="/resend-verification">Resend verification email</Link>
+          </Button>
+        )}
+
+        <AuthFormFooter />
+
+        {/* <Button asChild variant="ghost" className="w-full">
+          <Link href="/login">Back to sign in</Link>
+        </Button>
+        </div>
+        
+        <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
+        Need help?{' '}
+        <Link
+          href="/support"
+          className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
+        >
+          Contact support
+        </Link>
+      </p> */}
       </div>
     </div>
   );
