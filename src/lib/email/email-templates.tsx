@@ -33,7 +33,8 @@ import type {
   AccountLockedEmailData,
   TwoFactorEmailData,
 } from '@/types/mail';
-import { formatCurrency } from '../utils/formatting';
+import { formatCurrency, formatNumber } from '../utils/formatting';
+import { formatDate } from '../utils/date-formats';
 
 /**
  * Shared email template styles and utilities
@@ -647,7 +648,9 @@ export function InvoiceEmailTemplate({
                   <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
                     Due Date:
                   </Text>
-                  <Text style={{ ...styles.paragraph, margin: '5px 0' }}>{dueDate}</Text>
+                  <Text style={{ ...styles.paragraph, margin: '5px 0' }}>
+                    {formatDate.readable(dueDate)}
+                  </Text>
                 </Column>
                 <Column>
                   <Text style={{ ...styles.paragraph, margin: '5px 0', fontWeight: 'bold' }}>
@@ -661,7 +664,7 @@ export function InvoiceEmailTemplate({
                       fontWeight: 'bold',
                     }}
                   >
-                    {totalAmount} {currency}
+                    {formatCurrency(totalAmount, currency)}
                   </Text>
                 </Column>
               </Row>
@@ -692,13 +695,13 @@ export function InvoiceEmailTemplate({
                       <tr key={item.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '8px', fontSize: '14px' }}>{item.description}</td>
                         <td style={{ padding: '8px', textAlign: 'center', fontSize: '14px' }}>
-                          {item.quantity}
+                          {formatNumber(item.quantity)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', fontSize: '14px' }}>
-                          {item.unitPrice}
+                          {formatCurrency(item.unitPrice, currency)}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', fontSize: '14px' }}>
-                          {item.total}
+                          {formatCurrency(item.total, currency)}
                         </td>
                       </tr>
                     ))}
