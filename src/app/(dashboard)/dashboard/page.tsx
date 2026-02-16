@@ -88,12 +88,6 @@ export default async function DashboardPage({ searchParams }: Readonly<Dashboard
   const isNewUser = dashboardData.stats.totalServices === 0 && !dataError;
   const userName = session.user.name?.split(' ')[0] || 'User';
 
-  // Refresh action
-  // async function refreshDashboard() {
-  //   'use server';
-  //   // Revalidate the dashboard data
-  //   revalidatePath('/dashboard', 'page');
-  // }
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">

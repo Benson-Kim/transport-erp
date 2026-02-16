@@ -57,7 +57,7 @@ export async function signInWithCredentials(data: LoginFormData) {
     const { email, password, rememberMe } = loginSchema.parse(data);
     const { ipAddress, userAgent } = await getClientInfo();
 
-    const result = await signIn('credentials', {
+    await signIn('credentials', {
       email,
       password,
       rememberMe: String(rememberMe ?? false),
@@ -66,23 +66,33 @@ export async function signInWithCredentials(data: LoginFormData) {
       redirect: false,
     });
 
-    if (result?.error) {
-      switch (result.error) {
-        case 'CredentialsSignin':
-          return { success: false, error: 'Invalid email or password' };
-        case 'AccessDenied':
-          return { success: false, error: 'Access denied' };
-        default:
-          return { success: false, error: result.error || 'Authentication failed' };
-      }
-    }
-
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
     if (error instanceof Error) {
-      console.error('Sign in error:', error.message);
-      return { success: false, error: error.message };
+      const message = error.message;
+
+      if (message.includes('CredentialsSignin') || message.includes('Read more at')) {
+        return { success: false, error: 'Invalid email or password' };
+      }
+      if (message.includes('Too many login attempts')) {
+        return { success: false, error: message };
+      }
+
+      if (message.includes('Account is disabled')) {
+        return { success: false, error: 'Account is disabled. Please contact support.' };
+      }
+
+      if (message.includes('Email not verified')) {
+        return { success: false, error: 'Email not verified. We have sent you a new verification link.' };
+      }
+
+      if (message === 'NEXT_REDIRECT') {
+        return { success: true };
+      }
+
+      console.error('Sign in error:', message);
+      return { success: false, error: 'Authentication failed. Please try again.' };
     }
 
     return { success: false, error: 'An unexpected error occurred' };

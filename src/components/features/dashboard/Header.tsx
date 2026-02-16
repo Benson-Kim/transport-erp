@@ -5,6 +5,7 @@ import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PageHeader, Alert, Button, Card, CardBody, EmptyState } from '@/components/ui';
 import { formatPercentage } from '@/lib/utils/formatting';
+import { refreshDashboardData } from '@/actions/dashboard-actions';
 
 interface DashboardHeaderProps {
   userName: string;
@@ -27,13 +28,12 @@ export function DashboardHeader({ userName, isNewUser, description }: DashboardH
 }
 
 export function DashboardRefreshButton() {
-  const router = useRouter();
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={() => router.refresh()}
+      onClick={() => refreshDashboardData()}
       icon={<RefreshCw className="h-4 w-4" />}
     >
       <span className="hidden sm:inline">Refresh</span>

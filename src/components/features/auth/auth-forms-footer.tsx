@@ -3,6 +3,8 @@
  * Reusable footer for auth pages with optional back link and support link
  */
 
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

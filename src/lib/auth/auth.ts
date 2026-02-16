@@ -11,10 +11,8 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import NextAuth, {
   type NextAuthConfig,
   type User as NextAuthUser,
-  type Session as NextAuthSession,
 } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
-import type { JWT as DefaultJWT } from 'next-auth/jwt';
 
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
@@ -24,35 +22,6 @@ import { generateVerificationToken } from './auth-helpers';
 import { loginSchema } from '@/lib/validations/auth-schema';
 import { emailService } from '../email';
 import { EmailTemplate } from '@/types/mail';
-
-// Local helper types to narrow token and session shapes
-type AppJWT = DefaultJWT & {
-  id?: string;
-  role?: UserRole;
-  emailVerified?: Date | null;
-  twoFactorEnabled?: boolean;
-  department?: string | null;
-  avatar?: string | null;
-};
-
-type AppUser = NextAuthUser & {
-  role?: UserRole;
-  emailVerified?: Date | null;
-  twoFactorEnabled?: boolean;
-  department?: string | null;
-  avatar?: string | null;
-};
-
-type AppSession = NextAuthSession & {
-  user: NextAuthSession['user'] & {
-    id: string;
-    role?: UserRole;
-    emailVerified?: Date | null;
-    twoFactorEnabled?: boolean;
-    department?: string | null;
-    avatar?: string | null;
-  };
-};
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -196,7 +165,7 @@ export const authConfig = {
             avatar: user.avatar,
           } as unknown as NextAuthUser;
         } catch (error) {
-          console.error('Authentication error:', error);
+          console.error(error);
           return null;
         }
       },
