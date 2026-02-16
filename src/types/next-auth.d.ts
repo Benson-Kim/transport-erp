@@ -1,10 +1,11 @@
-import { DefaultSession } from 'next-auth';
+import { DefaultSession, DefaultUser } from 'next-auth';
 import { AdapterUser } from '@auth/core/adapters';
 import { UserRole } from '@/app/generated/prisma';
+import { DefaultJWT } from '@auth/core/jwt';
 
 // Extend next-auth session & user
 declare module 'next-auth' {
-  interface Session {
+  interface Session extends DefaultSession {
     user: {
       id: string;
       email: string;
@@ -14,28 +15,30 @@ declare module 'next-auth' {
       twoFactorEnabled: boolean;
       department?: string | null;
       avatar?: string | null;
-    } & DefaultSession['user'];
+    };
+    // & DefaultSession['user'];
   }
 
-  interface User {
-    id: string;
-    email: string;
-    name: string;
+  interface User extends DefaultUser {
+    // id: string;
+    // email: string;
+    // name: string;
     role: UserRole;
     emailVerified: Date | null;
     twoFactorEnabled: boolean;
     department?: string | null;
     avatar?: string | null;
+    isActive: boolean;
   }
 }
 
 // Extend next-auth JWT
 declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string;
-    role: UserRole;
-    emailVerified: Date | null;
-    twoFactorEnabled: boolean;
+  interface JWT extends DefaultJWT {
+    id?: string;
+    role?: UserRole;
+    emailVerified?: Date | null;
+    twoFactorEnabled?: boolean;
     department?: string | null;
     avatar?: string | null;
   }

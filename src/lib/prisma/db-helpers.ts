@@ -149,12 +149,12 @@ export async function processBatch<T, R>(
 type IsolationLevel = 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable';
 
 export async function withTransaction<T>(
-  fn: (tx: Prisma.TransactionClient) => Promise<T>
+  fn: (tx: typeof prisma) => Promise<T>
 ): Promise<T> {
   return prisma.$transaction(
-    async (tx: Prisma.TransactionClient) => {
+    async (tx) => {
       try {
-        return await fn(tx);
+        return await fn(tx as typeof prisma);
       } catch (error) {
         console.error('Transaction failed:', error);
         throw error;

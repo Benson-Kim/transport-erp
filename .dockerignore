@@ -1,12 +1,54 @@
+# Dependencies
 node_modules
-npm-debug.log
-Dockerfile
-docker-compose.yml
-.dockerignore
-.env
+npm-debug.log*
+
+# Build output
+.next
+out
+dist
+build
+
+# Version control
 .git
 .gitignore
-.next/cache
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
 .vscode
+.idea
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Testing
 coverage
-dist
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.*
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Misc
+scripts
+husky
+.husky
+.eslintcache

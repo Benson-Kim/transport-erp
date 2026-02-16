@@ -26,20 +26,54 @@ import {
   resetPasswordWithToken,
   updatePassword,
   verifyEmailToken,
+  regenerateVerificationToken,
 } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { sendVerificationEmail } from '@/lib/email';
+import prisma from '@/lib/prisma/prisma';
+
+import { EmailTemplate } from '@/types/mail';
+import { emailService } from '@/lib/email';
+
+function getBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
 
 /**
  * Get client IP and user agent
  */
 export async function getClientInfo() {
   const headersList = await headers();
-  const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
+  const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
   const userAgent = headersList.get('user-agent') || '';
-  return { ip, userAgent };
+  return { ipAddress, userAgent };
 }
+
+const AUTH_ERROR_MAP: Record<string, string> = {
+  CredentialsSignin: 'Invalid email or password',
+  'Read more at': 'Invalid email or password',
+  'Account is disabled': 'Account is disabled. Please contact support.',
+  'Email not verified': 'Email not verified. We have sent you a new verification link.',
+};
+
+const getAuthErrorMessage = (message: string): string | null => {
+  if (message.includes('Too many login attempts')) {
+    return message;
+  }
+
+  if (message === 'NEXT_REDIRECT') {
+    return null; // Indicates success
+  }
+
+  for (const [key, errorMessage] of Object.entries(AUTH_ERROR_MAP)) {
+    if (message.includes(key)) {
+      return errorMessage;
+    }
+  }
+
+  console.error('Sign in error:', message);
+  return 'Authentication failed. Please try again.';
+};
 
 /**
  * Sign in with credentials
@@ -47,41 +81,30 @@ export async function getClientInfo() {
 export async function signInWithCredentials(data: LoginFormData) {
   try {
     const { email, password, rememberMe } = loginSchema.parse(data);
-    const { ip, userAgent } = await getClientInfo();
+    const { ipAddress, userAgent } = await getClientInfo();
 
-    const result = await signIn('credentials', {
+    await signIn('credentials', {
       email,
       password,
-      rememberMe,
-      ip,
+      rememberMe: String(rememberMe ?? false),
+      ipAddress,
       userAgent,
       redirect: false,
     });
 
-    // if (!result) {
-    //   return { success: false, error: 'Authentication failed' };
-    // }
-
-    if (result?.error) {
-      switch (result.error) {
-        case 'CredentialsSignin':
-          return { success: false, error: 'Invalid email or password' };
-        case 'AccessDenied':
-          return { success: false, error: 'Access denied' };
-        default:
-          return { success: false, error: result.error || 'Authentication failed' };
-      }
-    }
-
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('Sign in error:', error.message);
-      return { success: false, error: error.message };
+    if (!(error instanceof Error)) {
+      return { success: false, error: 'An unexpected error occurred' };
     }
 
-    return { success: false, error: 'An unexpected error occurred' };
+    const errorMessage = getAuthErrorMessage(error.message);
+    if (errorMessage === null) {
+      return { success: true };
+    }
+
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -100,14 +123,11 @@ export async function registerUser(data: RegisterFormData) {
     const validatedData = registerSchema.parse(data);
 
     // Create user account
-    const { user, verificationToken } = await createUser({
+    await createUser({
       email: validatedData.email,
       password: validatedData.password,
       name: validatedData.name,
     });
-
-    // Send verification email
-    await sendVerificationEmail(user.email, verificationToken);
 
     return {
       success: true,
@@ -135,17 +155,30 @@ export async function signOutUser() {
  */
 export async function requestPasswordReset(data: ForgotPasswordFormData) {
   try {
-    const validatedData = forgotPasswordSchema.parse(data);
+    const { email } = forgotPasswordSchema.parse(data);
+    const { ipAddress, userAgent } = await getClientInfo();
+    const baseUrl = getBaseUrl();
 
-    // Generate reset token (doesn't reveal if email exists)
-    const token = await generatePasswordResetToken(validatedData.email);
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { name: true },
+    });
 
-    if (token) {
+    const token = await generatePasswordResetToken(email);
+
+    if (token && user) {
       // Send password reset email
-      // await sendPasswordResetEmail(validatedData.email, token);
+      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+      await emailService.sendTemplate(EmailTemplate.PASSWORD_RESET, email, {
+        name: user.name || 'User',
+        email,
+        resetUrl,
+        expiresIn: '1 hour',
+        ipAddress,
+        userAgent,
+      });
     }
 
-    // Always return success to prevent email enumeration
     return {
       success: true,
       message: 'If an account exists with this email, you will receive a password reset link.',
@@ -161,9 +194,9 @@ export async function requestPasswordReset(data: ForgotPasswordFormData) {
  */
 export async function resetPassword(token: string, data: ResetPasswordFormData) {
   try {
-    const validatedData = resetPasswordSchema.parse(data);
+    const { password } = resetPasswordSchema.parse(data);
 
-    const result = await resetPasswordWithToken(token, validatedData.password);
+    const result = await resetPasswordWithToken(token, password);
 
     if (!result.success) {
       return { success: false, error: result.error || 'Failed to reset password' };
@@ -233,5 +266,42 @@ export async function verifyEmail(token: string) {
   } catch (error) {
     console.error('Email verification error:', error);
     return { success: false, error: 'Failed to verify email' };
+  }
+}
+
+/**
+ * Resend verification email
+ */
+export async function resendVerificationEmail(data: ForgotPasswordFormData) {
+  try {
+    const { email } = forgotPasswordSchema.parse(data);
+    const baseUrl = getBaseUrl();
+    const result = await regenerateVerificationToken(email);
+
+    if (result) {
+      const verificationUrl = `${baseUrl}/verify-email?token=${result.token}`;
+
+      // Get user name for template
+      const user = await prisma.user.findUnique({
+        where: { email: result.email },
+        select: { name: true },
+      });
+
+      await emailService.sendTemplate(EmailTemplate.VERIFICATION, result.email, {
+        name: user?.name || 'User',
+        email: result.email,
+        verificationUrl,
+        expiresIn: '24 hours',
+      });
+    }
+
+    return {
+      success: true,
+      message:
+        'If an unverified account exists with this email, you will receive a verification link.',
+    };
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    return { success: false, error: 'Failed to resend verification email' };
   }
 }

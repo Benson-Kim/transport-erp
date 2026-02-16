@@ -6,7 +6,7 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { Service, ServiceStatus } from '@/app/generated/prisma';
+import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 import {
   calculatePercentageChange,
@@ -17,7 +17,18 @@ import {
 import prisma from '@/lib/prisma/prisma';
 import { DashboardData, DashboardDateRange } from '@/types/dashboard';
 
+type ServiceGroupResult = {
+  status: ServiceStatus;
+  _count: { _all: number };
+};
 
+type RecentServices = Prisma.ServiceGetPayload<{
+  include: {
+    client: {
+      select: { name: true };
+    };
+  };
+}>;
 
 /**
  * Get dashboard data with caching
@@ -64,7 +75,7 @@ export const getDashboardData = unstable_cache(
           deletedAt: null,
         },
         _count: true,
-      }),
+      }) as unknown as Promise<ServiceGroupResult[]>,
 
       // Previous period services
       prisma.service.groupBy({
@@ -77,7 +88,7 @@ export const getDashboardData = unstable_cache(
           deletedAt: null,
         },
         _count: true,
-      }),
+      }) as unknown as Promise<ServiceGroupResult[]>,
 
       // Current period revenue
       prisma.service.aggregate({
@@ -136,7 +147,7 @@ export const getDashboardData = unstable_cache(
           date: 'desc',
         },
         take: 10,
-      }),
+      }) as Promise<RecentServices[]>,
 
       // Monthly data for charts (last 6 months)
       prisma.service.findMany({
@@ -159,13 +170,13 @@ export const getDashboardData = unstable_cache(
 
     // Calculate stats
     const currentActive =
-      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
+      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all || 0;
     const currentCompleted =
-      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count || 0;
+      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all || 0;
     const previousActive =
-      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count || 0;
+      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all || 0;
     const previousCompleted =
-      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count || 0;
+      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all || 0;
 
     const stats = {
       activeServices: currentActive,
@@ -183,7 +194,7 @@ export const getDashboardData = unstable_cache(
         Number(previousRevenue._avg.marginPercentage || 0),
         Number(currentRevenue._avg.marginPercentage || 0)
       ),
-      totalServices: currentServices.reduce((sum: number, s: { _count: number }) => sum + s._count, 0),
+      totalServices: currentServices.reduce((sum, s) => sum + s._count._all, 0),
     };
 
     // Aggregate monthly data for charts
@@ -191,11 +202,11 @@ export const getDashboardData = unstable_cache(
     const revenueChart = aggregateRevenueByMonth(monthlyData);
 
     // Format recent services
-    const formattedRecentServices = recentServices.map((service: Service) => ({
+    const formattedRecentServices = recentServices.map((service) => ({
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date.toISOString(),
-      clientName: service.clientId,
+      clientName: service.client?.name || service.clientId,
       origin: service.origin,
       destination: service.destination,
       status: service.status,

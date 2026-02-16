@@ -53,6 +53,8 @@ export function LoginForm() {
     } catch (error) {
       console.error('Login error:', error);
       setError('root', { message: 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -80,9 +82,9 @@ export function LoginForm() {
           />
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+            className=" absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             icon={showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
           />
         </div>

@@ -4,7 +4,6 @@
  */
 
 import { create } from 'zustand';
-import { randomUUID } from 'node:crypto';
 
 export interface Toast {
   id: string;
@@ -29,7 +28,7 @@ export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
 
   addToast: (toast) => {
-    const id = randomUUID();
+    const id = crypto.randomUUID();
     const newToast = { ...toast, id };
 
     set((state) => ({
