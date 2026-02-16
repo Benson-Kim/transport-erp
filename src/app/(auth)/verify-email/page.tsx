@@ -23,7 +23,7 @@ interface VerifyEmailPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+export default async function VerifyEmailPage({ searchParams }: Readonly<VerifyEmailPageProps>) {
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {
@@ -70,7 +70,7 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
   );
 }
 
-function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
+function VerifyEmailLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-neutral-50 to-neutral-100 px-4 py-12 dark:from-neutral-950 dark:to-neutral-900">
       <div className="w-full max-w-md space-y-8">
@@ -86,7 +86,7 @@ function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SuccessState({ email }: { email?: string }) {
+function SuccessState({ email }: Readonly<{ email?: string }>) {
   return (
     <div className="space-y-6">
       <div className="space-y-4 text-center">
@@ -122,11 +122,11 @@ function ErrorState({
   title,
   description,
   showResend = false,
-}: {
+}: Readonly<{
   title: string;
   description: string;
   showResend?: boolean;
-}) {
+}>) {
   return (
     <div className="space-y-6">
       <div className="space-y-4 text-center">

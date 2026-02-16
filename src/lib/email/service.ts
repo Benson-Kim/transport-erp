@@ -106,6 +106,65 @@ export class EmailService {
   /**
    * Send raw email with environment guards
    */
+
+  /* Handle simulated email send when sending is disabled */
+  private async handleSimulatedSend(
+    recipients: string[],
+    options: EmailOptions
+  ): Promise<EmailSendResult> {
+    this.log('info', `[${this.config.environment}] Email not sent (sending disabled):`, {
+      to: recipients,
+      subject: options.subject,
+    });
+
+    if (this.config.logging.enabled) {
+      await this.logEmail({
+        to: recipients.join(', '),
+        subject: options.subject,
+        status: 'sent',
+        metadata: {
+          ...options.metadata,
+          environment: this.config.environment,
+          simulated: true,
+        },
+      });
+    }
+
+    return {
+      id: `sim_${Date.now()}`,
+      success: true,
+      message: `Email simulated in ${this.config.environment}`,
+      timestamp: new Date(),
+    };
+  }
+
+  /** * Build email payload for Resend */
+  private buildEmailPayload(recipients: string[], options: EmailOptions): CreateEmailOptions {
+    let cc: string[] | undefined;
+    if (options.cc) {
+      cc = Array.isArray(options.cc) ? options.cc : [options.cc];
+    }
+
+    let bcc: string[] | undefined;
+    if (options.bcc) {
+      bcc = Array.isArray(options.bcc) ? options.bcc : [options.bcc];
+    }
+
+    return {
+      from: `${this.config.from.name} <${this.config.from.email}>`,
+      to: recipients,
+      cc,
+      bcc,
+      subject: options.subject,
+      html: options.html,
+      text: options.text,
+      replyTo: options.replyTo || this.config.replyTo,
+      headers: options.headers,
+      attachments: options.attachments,
+      tags: options.tags,
+    } as CreateEmailOptions & ({ html: string } | { text: string });
+  }
+
   public async send(options: EmailOptions): Promise<EmailSendResult> {
     try {
       const recipients = this.resolveRecipients(options.to);
@@ -135,31 +194,7 @@ export class EmailService {
 
       // If sending is disabled, log and return success
       if (!this.config.sending.enabled) {
-        this.log('info', `[${this.config.environment}] Email not sent (sending disabled):`, {
-          to: recipients,
-          subject: options.subject,
-        });
-
-        // Still log to DB if logging is enabled
-        if (this.config.logging.enabled) {
-          await this.logEmail({
-            to: recipients.join(', '),
-            subject: options.subject,
-            status: 'sent',
-            metadata: {
-              ...options.metadata,
-              environment: this.config.environment,
-              simulated: true,
-            },
-          });
-        }
-
-        return {
-          id: `sim_${Date.now()}`,
-          success: true,
-          message: `Email simulated in ${this.config.environment}`,
-          timestamp: new Date(),
-        };
+        this.handleSimulatedSend(recipients, options);
       }
 
       // Validate Resend client
@@ -167,28 +202,7 @@ export class EmailService {
         throw new Error('Resend API key not configured. Set RESEND_API_KEY environment variable.');
       }
 
-      // Build payload
-      const cc = options.cc ? (Array.isArray(options.cc) ? options.cc : [options.cc]) : undefined;
-      const bcc = options.bcc
-        ? Array.isArray(options.bcc)
-          ? options.bcc
-          : [options.bcc]
-        : undefined;
-
-      const payload: CreateEmailOptions = {
-        from: `${this.config.from.name} <${this.config.from.email}>`,
-        to: recipients,
-        cc,
-        bcc,
-        subject: options.subject,
-        html: options.html,
-        text: options.text,
-        replyTo: options.replyTo || this.config.replyTo,
-        headers: options.headers,
-        attachments: options.attachments,
-        tags: options.tags,
-      } as CreateEmailOptions & ({ html: string } | { text: string });
-
+      const payload = this.buildEmailPayload(recipients, options);
       const { data, error } = await this.resend.emails.send(payload);
 
       if (error) {
@@ -492,8 +506,15 @@ export class EmailService {
     if (level === 'debug' && !this.config.logging.debug) return;
 
     const prefix = `[EmailService][${this.config.environment}]`;
-    const logFn = level === 'error' ? console.error : level === 'warn' ? console.warn : console.log;
+    const loggers = {
+      error: console.error,
+      warn: console.warn,
+      info: console.log,
+      debug: console.debug,
+    };
 
-    logFn(`${prefix} ${message}`, data !== undefined ? data : '');
+    const logFn = loggers[level] || console.log;
+
+    logFn(`${prefix} ${message}`, data ?? '');
   }
 }

@@ -20,7 +20,9 @@ interface ResetPasswordPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function ResetPasswordPage({ searchParams }: ResetPasswordPageProps) {
+export default async function ResetPasswordPage({
+  searchParams,
+}: Readonly<ResetPasswordPageProps>) {
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {

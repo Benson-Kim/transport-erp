@@ -20,7 +20,7 @@ interface CheckEmailPageProps {
   searchParams: Promise<{ email?: string }>;
 }
 
-export default async function CheckEmailPage({ searchParams }: CheckEmailPageProps) {
+export default async function CheckEmailPage({ searchParams }: Readonly<CheckEmailPageProps>) {
   const { email } = await searchParams;
 
   return (

@@ -24,7 +24,7 @@ export function AuthFormFooter({
   hideBackLink = false,
   supportHref = '/support',
   hideSupportLink = false,
-}: AuthFormFooterProps) {
+}: Readonly<AuthFormFooterProps>) {
   // Nothing to render
   if (hideBackLink && hideSupportLink) return null;
 
