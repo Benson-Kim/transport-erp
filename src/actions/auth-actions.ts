@@ -49,6 +49,32 @@ export async function getClientInfo() {
   return { ipAddress, userAgent };
 }
 
+const AUTH_ERROR_MAP: Record<string, string> = {
+  CredentialsSignin: 'Invalid email or password',
+  'Read more at': 'Invalid email or password',
+  'Account is disabled': 'Account is disabled. Please contact support.',
+  'Email not verified': 'Email not verified. We have sent you a new verification link.',
+};
+
+const getAuthErrorMessage = (message: string): string | null => {
+  if (message.includes('Too many login attempts')) {
+    return message;
+  }
+
+  if (message === 'NEXT_REDIRECT') {
+    return null; // Indicates success
+  }
+
+  for (const [key, errorMessage] of Object.entries(AUTH_ERROR_MAP)) {
+    if (message.includes(key)) {
+      return errorMessage;
+    }
+  }
+
+  console.error('Sign in error:', message);
+  return 'Authentication failed. Please try again.';
+};
+
 /**
  * Sign in with credentials
  */
@@ -69,33 +95,16 @@ export async function signInWithCredentials(data: LoginFormData) {
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
-    if (error instanceof Error) {
-      const message = error.message;
-
-      if (message.includes('CredentialsSignin') || message.includes('Read more at')) {
-        return { success: false, error: 'Invalid email or password' };
-      }
-      if (message.includes('Too many login attempts')) {
-        return { success: false, error: message };
-      }
-
-      if (message.includes('Account is disabled')) {
-        return { success: false, error: 'Account is disabled. Please contact support.' };
-      }
-
-      if (message.includes('Email not verified')) {
-        return { success: false, error: 'Email not verified. We have sent you a new verification link.' };
-      }
-
-      if (message === 'NEXT_REDIRECT') {
-        return { success: true };
-      }
-
-      console.error('Sign in error:', message);
-      return { success: false, error: 'Authentication failed. Please try again.' };
+    if (!(error instanceof Error)) {
+      return { success: false, error: 'An unexpected error occurred' };
     }
 
-    return { success: false, error: 'An unexpected error occurred' };
+    const errorMessage = getAuthErrorMessage(error.message);
+    if (errorMessage === null) {
+      return { success: true };
+    }
+
+    return { success: false, error: errorMessage };
   }
 }
 
