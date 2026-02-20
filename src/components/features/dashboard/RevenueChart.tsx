@@ -6,16 +6,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import {
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
+
 import {
   Download,
   Euro,
@@ -28,6 +19,17 @@ import {
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
+
+import {
   Button,
   Tooltip,
   EmptyState,
@@ -36,9 +38,9 @@ import {
   CardHeader,
   CardBody,
 } from '@/components/ui';
-import { formatCurrency } from '@/lib/utils/formatting';
 import { cn } from '@/lib/utils/cn';
 import { ChartTooltip } from './ChartTooltip';
+import { formatCurrency } from '@/lib/utils/formatting';
 
 interface ChartData {
   month: string;
@@ -139,7 +141,7 @@ export function RevenueChart({
           row.revenue,
           row.cost,
           row.margin,
-          row.revenue > 0 ? ((row.margin / row.revenue) * 100).toFixed(2) + '%' : '0%',
+          row.revenue > 0 ? `${((row.margin / row.revenue) * 100).toFixed(2)}%` : '0%',
         ]),
       ]
         .map((row) => row.join(','))
@@ -276,7 +278,11 @@ export function RevenueChart({
         "We couldn't fetch your revenue data. Please check your connection and try again.",
       variant: 'full' as const,
       // Only add onRetry if onRefresh exists
-      ...(onRefresh && { onRetry: () => { void onRefresh(); } }),
+      ...(onRefresh && {
+        onRetry: () => {
+          void onRefresh();
+        },
+      }),
     };
 
     return (
@@ -310,7 +316,7 @@ export function RevenueChart({
             )
           }
         />
-        { }
+        {}
         <CardBody>
           {(() => {
             let primaryAction:

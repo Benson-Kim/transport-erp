@@ -4,6 +4,7 @@
  */
 
 import { format } from 'date-fns';
+
 import { toast } from '@/lib/toast';
 
 type Row = Record<string, unknown>;
@@ -236,4 +237,12 @@ export async function exportToExcel(
     // Fallback to CSV
     exportToCsv(rows, filename.replace(/\.xlsx$/i, '.csv'), options);
   }
+}
+
+export function getEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
+  return value;
 }

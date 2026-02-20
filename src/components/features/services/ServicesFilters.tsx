@@ -6,7 +6,10 @@
 'use client';
 
 import { useState, useCallback, useTransition, useEffect, useMemo } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
+
+import { subDays, startOfWeek, startOfMonth } from 'date-fns';
 import {
   Search,
   X,
@@ -26,6 +29,13 @@ import {
   Trash2,
   FileStack,
 } from 'lucide-react';
+
+import {
+  bulkUpdateServices,
+  bulkDeleteServices,
+  generateBulkLoadingOrders,
+} from '@/actions/service-actions';
+import type { ServiceStatus } from '@/app/generated/prisma';
 import {
   Badge,
   Button,
@@ -38,21 +48,15 @@ import {
   DropdownMenu,
   Checkbox,
 } from '@/components/ui';
-import { ServiceStatus } from '@/app/generated/prisma';
 import { useDebounce } from '@/hooks';
-import { toast } from '@/lib/toast';
-import { exportToExcel } from '@/lib/utils/export';
-import { cn } from '@/lib/utils/cn';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import {
-  bulkUpdateServices,
-  bulkDeleteServices,
-  generateBulkLoadingOrders,
-} from '@/actions/service-actions';
 import { getStatusLabel, SERVICE_STATUS_CONFIG, STATUS_URL_MAP } from '@/lib/service-helpers';
-import { ServicesFiltersProps } from '@/types/service';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
-import { subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { exportToExcel } from '@/lib/utils/export';
+import type { ServicesFiltersProps } from '@/types/service';
+
+import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 export function ServicesFilters({
   clients,
@@ -383,7 +387,7 @@ export function ServicesFilters({
       const client = clients.find((c) => c.id === currentFilters.clientId);
       filters.push({
         key: 'clientId',
-        label: `Client: ${client?.name || 'Unknown'}`,
+        label: `Client: ${client?.name ?? 'Unknown'}`,
         icon: <Users className="h-3 w-3" />,
       });
     }
@@ -391,7 +395,7 @@ export function ServicesFilters({
       const supplier = suppliers.find((s) => s.id === currentFilters.supplierId);
       filters.push({
         key: 'supplierId',
-        label: `Supplier: ${supplier?.name || 'Unknown'}`,
+        label: `Supplier: ${supplier?.name ?? 'Unknown'}`,
         icon: <Building2 className="h-3 w-3" />,
       });
     }
@@ -754,8 +758,8 @@ export function ServicesFilters({
                   from={currentFilters.dateFrom}
                   to={currentFilters.dateTo}
                   onSelect={(range) => {
-                    updateFilter('dateFrom', range.from || '');
-                    updateFilter('dateTo', range.to || '');
+                    updateFilter('dateFrom', range.from ?? '');
+                    updateFilter('dateTo', range.to ?? '');
                   }}
                 />
               </div>

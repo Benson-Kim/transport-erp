@@ -2,12 +2,9 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole } from '@/app/generated/prisma';
-import { ServiceData } from '@/types/service';
-import { Card, CardBody, Button, Pagination, Checkbox } from '@/components/ui';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { BulkActions } from './BulkActions';
+
 import {
   Calendar,
   MapPin,
@@ -17,9 +14,16 @@ import {
   Building2,
   ArrowRight,
 } from 'lucide-react';
+
+import type { UserRole } from '@/app/generated/prisma';
+import { Card, CardBody, Button, Pagination, Checkbox } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { formatDate } from '@/lib/utils/date-formats';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceData } from '@/types/service';
+
+import { BulkActions } from './BulkActions';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServicesMobileViewProps {
   services: ServiceData[];

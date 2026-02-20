@@ -3,9 +3,11 @@
  * Accessible radio button group
  */
 
-import { InputHTMLAttributes, forwardRef } from 'react';
+import type { InputHTMLAttributes} from 'react';
+import { forwardRef } from 'react';
+
 import { cn } from '@/lib/utils/cn';
-import { Option } from '@/types/ui';
+import type { Option } from '@/types/ui';
 
 export interface RadioProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   options: Option[];
@@ -27,8 +29,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
       ...props
     },
     ref
-  ) => {
-    return (
+  ) => (
       <div className="w-full">
         <div
           className={cn(
@@ -81,8 +82,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(
           </div>
         )}
       </div>
-    );
-  }
+    )
 );
 
 Radio.displayName = 'Radio';

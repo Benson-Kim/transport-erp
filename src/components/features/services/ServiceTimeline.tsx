@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
-import { getServiceActivity } from '@/actions/service-actions';
+
 import {
   Activity,
   Plus,
@@ -17,6 +16,9 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+
+import { getServiceActivity } from '@/actions/service-actions';
+import { Card, CardBody, Button, Spinner, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
 

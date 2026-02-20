@@ -2,8 +2,9 @@
 'use client';
 
 import { useState, useCallback, useTransition, useMemo } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole, ServiceStatus } from '@/app/generated/prisma';
+
 import {
   TrendingUp,
   TrendingDown,
@@ -21,17 +22,20 @@ import {
   Users,
   Building2,
 } from 'lucide-react';
-import { Button, Tooltip, DropdownMenu, Amount, Card } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import { ServiceData } from '@/types/service';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import { DataTable, type Column } from '@/components/ui/DataTable';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { toast } from '@/lib/toast';
+
 import { deleteService } from '@/actions/service-actions';
+import { ServiceStatus, type UserRole } from '@/app/generated/prisma';
+import { Button, Tooltip, Card, DropdownMenu, Amount } from '@/components/ui';
+import { DataTable, type Column } from '@/components/ui/DataTable';
 import { hasPermission } from '@/lib/permissions';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
+import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceData } from '@/types/service';
+
 import { BulkActions } from './BulkActions';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServicesTableProps {
   services: ServiceData[];
@@ -347,7 +351,7 @@ const getServiceColumns = (): Column<ServiceData>[] => [
       <div className="flex items-center gap-1.5">
         <Truck className="h-3 w-3 text-muted-foreground" />
         <span className="text-sm">
-          {service.driverName || <span className="text-muted-foreground italic">Not assigned</span>}
+          {service.driverName ?? <span className="text-muted-foreground italic">Not assigned</span>}
         </span>
       </div>
     ),
@@ -356,7 +360,7 @@ const getServiceColumns = (): Column<ServiceData>[] => [
     key: 'vehiclePlate',
     header: 'Registration',
     width: '100px',
-    accessor: (service) => <span className="text-sm font-mono">{service.vehiclePlate || '-'}</span>,
+    accessor: (service) => <span className="text-sm font-mono">{service.vehiclePlate ?? '-'}</span>,
   },
   {
     key: 'cost',

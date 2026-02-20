@@ -4,10 +4,13 @@
  */
 
 'use client';
-import { InputHTMLAttributes, forwardRef, useState } from 'react';
+import type { InputHTMLAttributes} from 'react';
+import { forwardRef, useState } from 'react';
+
 import { Clock } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize } from '@/types/ui';
+import type { ComponentSize } from '@/types/ui';
 
 export interface TimeInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size'> {
@@ -32,10 +35,10 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
 
       // Auto-format as user types
       if (value.length === 2 && !value.includes(':')) {
-        value = value + ':';
+        value = `${value  }:`;
       }
       if (showSeconds && value.length === 5 && value.split(':').length === 2) {
-        value = value + ':';
+        value = `${value  }:`;
       }
 
       setInputValue(value);

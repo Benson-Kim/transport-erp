@@ -2,11 +2,13 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
+
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils/cn';
-import { useMediaQuery } from '@/hooks';
+
 import { Sidebar, MobileMenu, TopBar } from '@/components/layout';
-import { LayoutContextValue, MainLayoutProps } from '@/types/nav';
+import { useMediaQuery } from '@/hooks';
+import { cn } from '@/lib/utils/cn';
+import type { LayoutContextValue, MainLayoutProps } from '@/types/nav';
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 

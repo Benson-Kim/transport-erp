@@ -1,6 +1,6 @@
 'use client';
 
-import { ServiceStatus } from '@/app/generated/prisma';
+import type { ServiceStatus } from '@/app/generated/prisma';
 import { Badge } from '@/components/ui';
 import { getStatusConfig } from '@/lib/service-helpers';
 import { cn } from '@/lib/utils/cn';

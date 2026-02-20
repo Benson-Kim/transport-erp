@@ -3,9 +3,10 @@
  * Flexible container component with variants
  */
 
-import { ReactNode, HTMLAttributes } from 'react';
-import { cn } from '@/lib/utils/cn';
+import type { ReactNode, HTMLAttributes } from 'react';
+
 import { Skeleton } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'bordered' | 'elevated';

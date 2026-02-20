@@ -1,11 +1,14 @@
 // components/features/dashboard/DashboardClientComponents.tsx
 'use client';
 
-import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+
+import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
+
 import { PageHeader, Alert, Button, Card, CardBody, EmptyState } from '@/components/ui';
 import { formatPercentage } from '@/lib/utils/formatting';
-import Link from 'next/link';
+
 
 interface ServicesHeaderProps {
   description: string;

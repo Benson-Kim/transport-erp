@@ -3,7 +3,7 @@
  * @module email-types
  */
 
-import { Tag } from 'resend';
+import type { Tag } from 'resend';
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 export type Environment = 'development' | 'staging' | 'production' | 'test';

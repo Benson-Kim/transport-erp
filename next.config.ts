@@ -1,5 +1,7 @@
-import type { NextConfig } from 'next';
+// next.config.ts
 import createBundleAnalyzer from '@next/bundle-analyzer';
+
+import type { NextConfig } from 'next';
 
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
@@ -41,7 +43,7 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  async headers() {
+  headers() {
     if (process.env['NODE_ENV'] !== 'production') return [];
     return [
       {
@@ -51,7 +53,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  async redirects() {
+  redirects() {
     return [
       {
         source: '/',

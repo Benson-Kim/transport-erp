@@ -3,10 +3,12 @@
  * Placeholder for empty content with actions
  */
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
+
 import { Search, Database, Lock, AlertCircle, Plus, Upload } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+
 import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
 
 export interface EmptyStateProps {
   variant?: 'no-data' | 'no-results' | 'no-access' | 'error' | 'custom';

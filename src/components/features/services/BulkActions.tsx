@@ -6,16 +6,16 @@
 'use client';
 
 import { useState } from 'react';
-import { UserRole } from '@/app/generated/prisma';
 import { Trash2, CheckCircle, FileText, AlertTriangle, Info } from 'lucide-react';
-import { hasPermission } from '@/lib/permissions';
 import {
   bulkUpdateServices,
   bulkDeleteServices,
   generateBulkLoadingOrders,
 } from '@/actions/service-actions';
-import { toast } from '@/lib/toast';
+import type { UserRole } from '@/app/generated/prisma';
 import { Alert, Button, Modal } from '@/components/ui';
+import { hasPermission } from '@/lib/permissions';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils/cn';
 
 interface BulkActionsProps {

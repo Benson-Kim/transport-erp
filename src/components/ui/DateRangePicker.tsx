@@ -6,7 +6,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, ChevronRight } from 'lucide-react';
+
 import {
   subDays,
   startOfMonth,
@@ -16,8 +16,10 @@ import {
   isValid,
   parseISO,
 } from 'date-fns';
-import { cn } from '@/lib/utils/cn';
+import { Calendar, ChevronRight } from 'lucide-react';
+
 import { Button } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
 
 export interface DateRangePickerProps {
@@ -103,16 +105,16 @@ export function DateRangePicker({
   disabled = false,
 }: Readonly<DateRangePickerProps>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [localFrom, setLocalFrom] = useState(from || '');
-  const [localTo, setLocalTo] = useState(to || '');
+  const [localFrom, setLocalFrom] = useState(from ?? '');
+  const [localTo, setLocalTo] = useState(to ?? '');
   const [activeTab, setActiveTab] = useState<'preset' | 'custom'>('preset');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Update local state when props change
   useEffect(() => {
-    setLocalFrom(from || '');
-    setLocalTo(to || '');
+    setLocalFrom(from ?? '');
+    setLocalTo(to ?? '');
   }, [from, to]);
 
   // Handle click outside
@@ -219,7 +221,7 @@ export function DateRangePicker({
     return placeholder;
   }, [from, to, placeholder]);
 
-  const hasValue = from || to;
+  const hasValue = from ?? to;
 
   return (
     <div className={cn('relative inline-block', className)} ref={dropdownRef}>
@@ -327,7 +329,7 @@ export function DateRangePicker({
                     value={localFrom}
                     onChange={(e) => setLocalFrom(e.target.value)}
                     min={minDate}
-                    max={maxDate || localTo}
+                    max={maxDate ?? localTo}
                     className={cn(
                       'w-full px-3 py-2 text-sm border rounded-lg transition-colors',
                       'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
@@ -348,7 +350,7 @@ export function DateRangePicker({
                     type="date"
                     value={localTo}
                     onChange={(e) => setLocalTo(e.target.value)}
-                    min={minDate || localFrom}
+                    min={minDate ?? localFrom}
                     max={maxDate}
                     className={cn(
                       'w-full px-3 py-2 text-sm border rounded-lg transition-colors',

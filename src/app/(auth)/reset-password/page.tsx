@@ -3,13 +3,13 @@
  * Allows users to set a new password using a token from their email link
  */
 
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { getServerAuth } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { AuthFormFooter, ResetPasswordForm } from '@/components/features/auth';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Reset Password | Enterprise Dashboard',

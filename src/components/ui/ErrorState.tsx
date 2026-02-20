@@ -4,8 +4,9 @@
  */
 
 import { AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+
 import { Alert, Button } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
 
 export interface ErrorStateProps {
   error?: Error | string | null;

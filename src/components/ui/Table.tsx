@@ -3,9 +3,11 @@
  * Base table components with composable structure
  */
 
-import { ReactNode, HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
-import { cn } from '@/lib/utils/cn';
+import type { ReactNode, HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
+
 import { ArrowDown, ArrowUp } from 'lucide-react';
+
+import { cn } from '@/lib/utils/cn';
 
 // Table Root
 interface TableProps extends HTMLAttributes<HTMLTableElement> {

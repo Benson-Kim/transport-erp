@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
+
 import { usePathname, useRouter } from 'next/navigation';
-import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils/cn';
+
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+
+import { cn } from '@/lib/utils/cn';
+import type { NavItem } from '@/types/nav';
+
 import { navigation } from './navigation-config';
-import { NavItem } from '@/types/nav';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -65,7 +69,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
         </button>
 
         {hasChildren && (
-          <ul className="mt-1 space-y-1">{item.children!.map((c) => renderItem(c, depth + 1))}</ul>
+          <ul className="mt-1 space-y-1">{item.children?.map((c) => renderItem(c, depth + 1))}</ul>
         )}
       </li>
     );

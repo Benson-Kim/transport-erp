@@ -4,10 +4,10 @@
  */
 
 import { Suspense } from 'react';
+
 import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 
-import { auth } from '@/lib/auth';
 import { getDashboardData } from '@/actions/dashboard-actions';
 import { ErrorBoundary, Alert, Card, CardBody } from '@/components/ui';
 import {
@@ -26,6 +26,7 @@ import {
   PerformanceTip,
 } from '@/components/features/dashboard';
 import { ServiceSkeleton } from '@/components/features/services';
+import { auth } from '@/lib/auth';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Enterprise Dashboard',
@@ -87,7 +88,6 @@ export default async function DashboardPage({ searchParams }: Readonly<Dashboard
   // Check if user is new (no data)
   const isNewUser = dashboardData.stats.totalServices === 0 && !dataError;
   const userName = session.user.name?.split(' ')[0] || 'User';
-
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
@@ -210,7 +210,7 @@ export default async function DashboardPage({ searchParams }: Readonly<Dashboard
                     services={dashboardData.recentServices}
                     loading={false}
                     error={dataError}
-                    advanced={true}
+                    advanced
                   />
                 </Suspense>
               </ErrorBoundary>

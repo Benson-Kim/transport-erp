@@ -6,24 +6,6 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import {
-  Card,
-  CardBody,
-  CardHeader,
-  Button,
-  Tooltip,
-  EmptyState,
-  ErrorState,
-} from '@/components/ui';
 
 import {
   Download,
@@ -36,8 +18,27 @@ import {
   Activity,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { formatNumber } from '@/lib/utils/formatting';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from 'recharts';
+
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Tooltip,
+  EmptyState,
+  ErrorState,
+} from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
+import { formatNumber } from '@/lib/utils/formatting';
 
 interface ChartData {
   month: string;
@@ -79,7 +80,7 @@ export function ServicesChart({
   const isDark = theme === 'dark';
   const [isExporting, setIsExporting] = useState(false);
   const hoveredBarRef = useRef<string | null>(null);
- 
+
   const colors = useMemo(
     () => ({
       completed: isDark ? '#10b981' : '#059669',
@@ -108,8 +109,8 @@ export function ServicesChart({
 
     const sorted = [...data].sort((a, b) => b.total - a.total);
     return {
-      best: sorted[0]?.month || null,
-      worst: sorted.at(-1)?.month || null,
+      best: sorted[0]?.month ?? null,
+      worst: sorted.at(-1)?.month ?? null,
     };
   };
 
@@ -414,7 +415,7 @@ export const ServiceChartTooltip: React.FC<ServiceChartTooltipProps> = ({
   const firstPayload = payload[0]?.payload;
   if (!firstPayload) return null;
 
-  const total = firstPayload.total;
+  const { total } = firstPayload;
   const completionRate = total > 0 ? ((firstPayload.completed / total) * 100).toFixed(1) : '0.0';
 
   return (
@@ -503,8 +504,8 @@ const HeaderAction = ({ data, stats, isExporting, onExport }: Readonly<HeaderAct
               <div className="text-xs opacity-90">Month-over-month change</div>
               {data.length >= 2 && (
                 <div className="text-xs opacity-90">
-                  {data.at(-2)?.month}: {data.at(-2)?.total || 0} → {data.at(-1)?.month}:{' '}
-                  {data.at(-1)?.total || 0}
+                  {data.at(-2)?.month}: {data.at(-2)?.total ?? 0} → {data.at(-1)?.month}:{' '}
+                  {data.at(-1)?.total ?? 0}
                 </div>
               )}
             </div>

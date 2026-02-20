@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+
 import { signInWithProvider } from '@/actions/auth-actions';
 import { Button } from '@/components/ui';
 import { toast } from '@/lib/toast';

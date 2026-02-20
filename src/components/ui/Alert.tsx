@@ -3,9 +3,13 @@
  * Inline alert messages with variants
  */
 
-import { ReactNode, isValidElement, createElement } from 'react';
+import type { ReactNode } from 'react';
+import { isValidElement, createElement } from 'react';
+
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface AlertProps {

@@ -3,8 +3,10 @@
  * Loading placeholder with shimmer animation
  */
 
+import type { ReactNode } from 'react';
+import { useId } from 'react';
+
 import { cn } from '@/lib/utils/cn';
-import { ReactNode, useId } from 'react';
 
 export interface SkeletonProps {
   className?: string;
@@ -56,8 +58,8 @@ export function SkeletonGroup({ count = 3, className, children }: Readonly<Skele
 
   return (
     <div className={cn('space-y-3', className)}>
-      {Array.from({ length: count }).map((_, index) => (
-        <Skeleton key={`${baseId}-item-${index}`} className="h-4 w-full" />
+      {Array.from({ length: count }).map((_) => (
+        <Skeleton key={`${baseId}-item`} className="h-4 w-full" />
       ))}
     </div>
   );

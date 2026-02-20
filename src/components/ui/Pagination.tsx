@@ -3,10 +3,12 @@
  * Page navigation with keyboard support
  */
 
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
-import { Button, Select } from '@/components/ui';
 import { useId } from 'react';
+
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+
+import { Button, Select } from '@/components/ui';
+import { cn } from '@/lib/utils/cn';
 
 export interface PaginationProps {
   currentPage: number;
@@ -121,10 +123,10 @@ export function Pagination({
           <ChevronLeft size={16} />
         </Button>
 
-        {getPageNumbers().map((page, index) => {
+        {getPageNumbers().map((page) => {
           if (page === '...') {
             return (
-              <span key={`${baseId}-ellipsis-${index}`} className="px-2 text-neutral-400">
+              <span key={`${baseId}-ellipsis`} className="px-2 text-neutral-400">
                 <MoreHorizontal size={16} />
               </span>
             );

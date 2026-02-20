@@ -1,7 +1,9 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { requireAuth } from '@/lib/auth';
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   const session = await requireAuth();
   const companyName = 'Transport ERP';
 

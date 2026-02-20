@@ -3,12 +3,19 @@
  * Populates the database with sample data for development and testing
  */
 
+import crypto from 'node:crypto';
+
+import { hash } from 'bcryptjs';
+import { addDays, subDays } from 'date-fns';
+
 import {
   PrismaClient,
   UserRole,
   ServiceStatus,
   InvoiceStatus,
   PaymentStatus,
+} from '@/app/generated/prisma';
+import type {
   Company,
   Client,
   Supplier,
@@ -20,9 +27,6 @@ import {
   AuditLog,
   User,
 } from '@/app/generated/prisma';
-import { hash } from 'bcryptjs';
-import crypto from 'node:crypto';
-import { addDays, subDays } from 'date-fns';
 
 const prisma = new PrismaClient();
 

@@ -2,23 +2,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm, Controller, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { ServiceStatus, UserRole } from '@/app/generated/prisma';
 
-import { ServiceFormSection } from './ServiceFormSection';
-import { PricingCalculator } from './PricingCalculator';
-import { ClientSelector } from './ClientSelector';
-import { SupplierSelector } from './SupplierSelector';
-import { useAutoSave, useUnsavedChanges } from '@/hooks';
-import { serviceSchema, ServiceFormData } from '@/lib/validations/service-schema';
-import { createService, updateService, deleteService } from '@/actions/service-actions';
-import { hasPermission } from '@/lib/permissions';
-import { toast } from '@/lib/toast';
+import { useRouter } from 'next/navigation';
+
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Save, AlertCircle, Trash2 } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
-import { formatDate } from '@/lib/utils/date-formats';
+import { Controller, useForm, useWatch } from 'react-hook-form';
+
+import { createService, updateService, deleteService } from '@/actions/service-actions';
+import type { UserRole } from '@/app/generated/prisma';
+import { ServiceStatus } from '@/app/generated/prisma';
 import {
   Alert,
   Badge,
@@ -31,6 +24,18 @@ import {
   Input,
   Textarea,
 } from '@/components/ui';
+import { useAutoSave, useUnsavedChanges } from '@/hooks';
+import { hasPermission } from '@/lib/permissions';
+import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils/cn';
+import { formatDate } from '@/lib/utils/date-formats';
+import type { ServiceFormData } from '@/lib/validations/service-schema';
+import { serviceSchema } from '@/lib/validations/service-schema';
+
+import { ClientSelector } from './ClientSelector';
+import { PricingCalculator } from './PricingCalculator';
+import { ServiceFormSection } from './ServiceFormSection';
+import { SupplierSelector } from './SupplierSelector';
 
 interface ServiceFormProps {
   mode: 'create' | 'edit' | 'duplicate';

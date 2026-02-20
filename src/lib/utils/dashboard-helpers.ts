@@ -5,7 +5,9 @@
  */
 
 import { startOfMonth, subDays } from 'date-fns';
+
 import { ServiceStatus } from '@/app/generated/prisma';
+
 import { formatDate, toDate } from './date-formats';
 
 /**
@@ -148,9 +150,9 @@ export function aggregateRevenueByMonth(
     ) {
       const monthKey = formatDate.monthYear(startOfMonth(service.date));
       if (monthlyData[monthKey]) {
-        monthlyData[monthKey].revenue += Number(service.saleAmount || 0);
-        monthlyData[monthKey].cost += Number(service.costAmount || 0);
-        monthlyData[monthKey].margin += Number(service.margin || 0);
+        monthlyData[monthKey].revenue += Number(service.saleAmount ?? 0);
+        monthlyData[monthKey].cost += Number(service.costAmount ?? 0);
+        monthlyData[monthKey].margin += Number(service.margin ?? 0);
       }
     }
   });

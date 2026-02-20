@@ -2,8 +2,9 @@
 'use client';
 
 import { useState, useCallback, useTransition, useMemo, useRef, useEffect } from 'react';
+
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserRole } from '@/app/generated/prisma';
+
 import {
   ChevronUp,
   ChevronDown,
@@ -13,6 +14,8 @@ import {
   Truck,
   Plus,
 } from 'lucide-react';
+
+import type { UserRole } from '@/app/generated/prisma';
 import {
   Checkbox,
   Pagination,
@@ -25,8 +28,9 @@ import {
   Alert,
 } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { ServiceData } from '@/types/service';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceData } from '@/types/service';
+
 import { BulkActions } from './BulkActions';
 import { ServiceRow } from './ServiceRow';
 

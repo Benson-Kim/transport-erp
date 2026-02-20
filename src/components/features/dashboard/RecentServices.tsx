@@ -6,19 +6,9 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+
 import Link from 'next/link';
-import {
-  Badge,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  DataTable,
-  EmptyState,
-  ErrorState,
-  Column,
-  Tooltip,
-} from '@/components/ui';
+import { useRouter } from 'next/router';
 import {
   ArrowRight,
   Truck,
@@ -32,12 +22,25 @@ import {
   Download,
   Calendar,
 } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+
 import { ServiceStatus } from '@/app/generated/prisma';
-import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/utils/formatting';
+import type { Column } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  DataTable,
+  EmptyState,
+  ErrorState,
+  Tooltip,
+} from '@/components/ui';
 import { getStatusDescription, getStatusIcon, getStatusVariant } from '@/lib/service-helpers';
+
+import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
+import { formatCurrency } from '@/lib/utils/formatting';
 
 interface Service {
   id: string;
@@ -129,7 +132,10 @@ export function RecentServices({
   const servicesTabsCounts = useMemo(() => {
     const stats = { all: 0, active: 0, completed: 0 };
 
-    const activeStatuses = new Set<ServiceStatus>([ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS]);
+    const activeStatuses = new Set<ServiceStatus>([
+      ServiceStatus.CONFIRMED,
+      ServiceStatus.IN_PROGRESS,
+    ]);
     services.forEach((s) => {
       stats.all++;
       if (activeStatuses.has(s.status)) {
@@ -234,12 +240,12 @@ export function RecentServices({
   // Calculate pagination
   const paginationConfig = showPagination
     ? {
-      page: currentPage,
-      pageSize: selectedPageSize,
-      total: services.length,
-      onPageChange: setCurrentPage,
-      onPageSizeChange: setSelectedPageSize,
-    }
+        page: currentPage,
+        pageSize: selectedPageSize,
+        total: services.length,
+        onPageChange: setCurrentPage,
+        onPageSizeChange: setSelectedPageSize,
+      }
     : undefined;
 
   // Header action
@@ -327,7 +333,11 @@ export function RecentServices({
         "We couldn't fetch your recent services. Please check your connection and try again.",
       variant: 'card' as const,
       // Only add onRetry if onRefresh exists
-      ...(onRefresh && { onRetry: () => { void handleRefresh(); } }),
+      ...(onRefresh && {
+        onRetry: () => {
+          void handleRefresh();
+        },
+      }),
     };
 
     return (
@@ -454,9 +464,9 @@ export function RecentServices({
             loading={loading}
             error={error}
             // Selection
-            selectable={true}
+            selectable
             // Sorting
-            sortable={true}
+            sortable
             defaultSort={{ key: 'date', direction: 'desc' }}
             // Actions
             onRowClick={(row) => router.push(`/services/${row.id}`)}
@@ -465,11 +475,11 @@ export function RecentServices({
             // Pagination
             {...(paginationConfig && { pagination: paginationConfig })}
             // Features
-            searchable={true}
+            searchable
             searchPlaceholder="Search by service number, client, or route..."
-            exportable={true}
-            columnToggle={true}
-            stickyHeader={true}
+            exportable
+            columnToggle
+            stickyHeader
             // Empty state
             emptyState={
               <EmptyState
@@ -480,24 +490,24 @@ export function RecentServices({
                 action={
                   onCreateNew
                     ? {
-                      label: 'Create Service',
-                      onClick: onCreateNew,
-                      icon: <Plus size={16} />,
-                    }
+                        label: 'Create Service',
+                        onClick: onCreateNew,
+                        icon: <Plus size={16} />,
+                      }
                     : {
-                      label: 'Refresh',
-                      onClick: () => {
-                        handleRefresh();
-                      },
-                      icon: <RefreshCw size={16} />,
-                    }
+                        label: 'Refresh',
+                        onClick: () => {
+                          handleRefresh();
+                        },
+                        icon: <RefreshCw size={16} />,
+                      }
                 }
                 secondaryAction={
                   onImport
                     ? {
-                      label: 'Import Services',
-                      onClick: onImport,
-                    }
+                        label: 'Import Services',
+                        onClick: onImport,
+                      }
                     : undefined
                 }
               />
@@ -505,9 +515,9 @@ export function RecentServices({
             // Loading
             loadingRows={5}
             // Styling
-            compact={true}
+            compact
             bordered={false}
-            striped={true}
+            striped
           />
         </CardBody>
       </Card>

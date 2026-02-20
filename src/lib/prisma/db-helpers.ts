@@ -3,7 +3,8 @@
  * Common utilities for database operations
  */
 
-import { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
+import type { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
+
 import prisma from './prisma';
 
 /**

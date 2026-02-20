@@ -25,6 +25,7 @@ export * from './Skeleton';
 export * from './Table';
 export * from './TimeInput';
 export * from './Spinner';
+export * from './Switch';
 export * from './Pagination';
 export * from './Tooltip';
 export * from './Radio';

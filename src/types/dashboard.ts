@@ -1,51 +1,13 @@
-import { ServiceStatus } from "@/app/generated/prisma";
+import type { ServiceStatus } from '@/app/generated/prisma';
 
 export interface DashboardDateRange {
-    from?: string;
-    to?: string;
-    preset?: string;
+  from?: string;
+  to?: string;
+  preset?: string;
 }
 
 export interface DashboardData {
-    stats: {
-        activeServices: number;
-        activeServicesChange: number;
-        completedServices: number;
-        completedServicesChange: number;
-        totalRevenue: number;
-        totalRevenueChange: number;
-        averageMargin: number;
-        averageMarginAmount: number;
-        averageMarginChange: number;
-        totalServices: number;
-    };
-    servicesChart: Array<{
-        month: string;
-        completed: number;
-        inProgress: number;
-        cancelled: number;
-        total: number;
-    }>;
-    revenueChart: Array<{
-        month: string;
-        revenue: number;
-        cost: number;
-        margin: number;
-    }>;
-    recentServices: Array<{
-        id: string;
-        serviceNumber: string;
-        date: string;
-        clientName: string;
-        origin: string;
-        destination: string;
-        status: ServiceStatus;
-        amount: number;
-        currency: string;
-    }>;
-}
-
-export interface StatsData {
+  stats: {
     activeServices: number;
     activeServicesChange: number;
     completedServices: number;
@@ -56,16 +18,54 @@ export interface StatsData {
     averageMarginAmount: number;
     averageMarginChange: number;
     totalServices: number;
-    period?: {
-        start: string;
-        end: string;
-    };
+  };
+  servicesChart: Array<{
+    month: string;
+    completed: number;
+    inProgress: number;
+    cancelled: number;
+    total: number;
+  }>;
+  revenueChart: Array<{
+    month: string;
+    revenue: number;
+    cost: number;
+    margin: number;
+  }>;
+  recentServices: Array<{
+    id: string;
+    serviceNumber: string;
+    date: string;
+    clientName: string;
+    origin: string;
+    destination: string;
+    status: ServiceStatus;
+    amount: number;
+    currency: string;
+  }>;
+}
+
+export interface StatsData {
+  activeServices: number;
+  activeServicesChange: number;
+  completedServices: number;
+  completedServicesChange: number;
+  totalRevenue: number;
+  totalRevenueChange: number;
+  averageMargin: number;
+  averageMarginAmount: number;
+  averageMarginChange: number;
+  totalServices: number;
+  period?: {
+    start: string;
+    end: string;
+  };
 }
 
 export interface StatsCardsProps {
-    stats: StatsData;
-    loading?: boolean;
-    error?: Error | null;
-    onRefresh?: () => void;
-    compact?: boolean;
+  stats: StatsData;
+  loading?: boolean;
+  error?: Error | null;
+  onRefresh?: () => void;
+  compact?: boolean;
 }

@@ -1,16 +1,19 @@
 // app/(dashboard)/services/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation';
-import { Metadata } from 'next';
-import { auth } from '@/lib/auth';
+
+
 import { getServiceWithDetails } from '@/actions/service-actions';
-import { hasPermission } from '@/lib/permissions';
-import { ErrorState } from '@/components/ui/ErrorState';
 import {
   ServiceDetail,
   ServiceHeader,
   ServiceTimeline,
   ServiceSidebar,
 } from '@/components/features/services';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { auth } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
+
+import type { Metadata } from 'next';
 
 export async function generateMetadata({
   params,

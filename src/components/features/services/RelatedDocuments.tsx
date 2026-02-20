@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardBody, Button, EmptyState } from '@/components/ui';
 import {
   FileText,
   Download,
@@ -13,8 +12,10 @@ import {
   Receipt,
   ScrollText,
 } from 'lucide-react';
+
+import type { DocumentType } from '@/app/generated/prisma';
+import { Card, CardBody, Button, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { DocumentType } from '@/app/generated/prisma';
 import { formatDate } from '@/lib/utils/date-formats';
 
 interface Document {
@@ -118,7 +119,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
   };
 
   return (

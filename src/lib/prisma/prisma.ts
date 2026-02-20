@@ -3,10 +3,11 @@
  * Ensures a single database connection throughout the application lifecycle
  */
 
-import { PrismaClient } from '@/app/generated/prisma';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
-const globalForPrisma = global as unknown as {
+import { PrismaClient } from '@/app/generated/prisma';
+
+const globalForPrisma = globalThis as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined;
 };
 

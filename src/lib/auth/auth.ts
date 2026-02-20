@@ -8,10 +8,7 @@ import prisma from '../prisma/prisma';
 import { UserRole } from '@/app/generated/prisma';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
-import NextAuth, {
-  type NextAuthConfig,
-  type User as NextAuthUser,
-} from 'next-auth';
+import NextAuth, { type NextAuthConfig, type User as NextAuthUser } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 
 import Google from 'next-auth/providers/google';

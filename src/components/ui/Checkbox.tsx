@@ -3,8 +3,11 @@
  * Accessible checkbox with label support + controlled state
  */
 
-import { InputHTMLAttributes, forwardRef } from 'react';
+import type { InputHTMLAttributes} from 'react';
+import { forwardRef } from 'react';
+
 import { Check, Minus } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {

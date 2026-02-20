@@ -6,10 +6,12 @@
 'use client';
 
 import { forwardRef, useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon, X } from 'lucide-react';
+
 import { format, parse, isValid, isBefore, isAfter } from 'date-fns';
+import { Calendar as CalendarIcon, X } from 'lucide-react';
+
 import { cn } from '@/lib/utils/cn';
-import { ComponentSize } from '@/types/ui';
+import type { ComponentSize } from '@/types/ui';
 
 export interface DatePickerProps {
   value?: Date | null;
@@ -54,7 +56,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
   ) => {
     const [isOpen, setIsOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
-    const [selectedDate, setSelectedDate] = useState<Date | null>(value || null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(value ?? null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +77,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
     // Handle manual input
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
+      const { value } = e.target;
       setInputValue(value);
 
       // Try to parse the date
@@ -131,8 +133,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         date.setDate(today.getDate() + i);
 
         const isDisabled =
-          (minDate && isBefore(date, minDate)) ||
-          (maxDate && isAfter(date, maxDate)) ||
+          (minDate && isBefore(date, minDate)) ??
+          (maxDate && isAfter(date, maxDate)) ??
           disabledDates?.(date);
 
         days.push({

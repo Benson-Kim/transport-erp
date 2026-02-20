@@ -3,7 +3,6 @@
  * Processes the email verification token from the URL
  */
 
-import { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -13,6 +12,7 @@ import { getServerAuth, verifyEmailToken } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
 import { AuthFormFooter } from '@/components/features/auth';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Verify Email | Enterprise Dashboard',

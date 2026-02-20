@@ -4,11 +4,14 @@
  */
 
 'use client';
-import { Fragment, useEffect, useRef, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import type { ReactNode } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
+
 import { X } from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { createPortal } from 'react-dom';
+
 import { useEscapeKey, useFocusTrap, useScrollLock } from '@/hooks';
+import { cn } from '@/lib/utils/cn';
 
 export interface ModalProps {
   isOpen: boolean;

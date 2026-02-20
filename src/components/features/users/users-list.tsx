@@ -6,12 +6,14 @@
 'use client';
 
 import { useState } from 'react';
+
 import { format } from 'date-fns';
 import { MoreVertical, Key, Shield, Mail, Activity } from 'lucide-react';
+
+import type { UserRole } from '@/app/generated/prisma';
+import { Badge, Button } from '@/components/ui';
 import { getRoleDisplayName, getRoleBadgeColor } from '@/lib/permissions';
 import { cn } from '@/lib/utils/cn';
-import { UserRole } from '@/app/generated/prisma';
-import { Badge, Button } from '@/components/ui';
 
 interface User {
   id: string;

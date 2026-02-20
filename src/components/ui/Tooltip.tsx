@@ -4,8 +4,11 @@
  */
 
 'use client';
-import { ReactNode, useState, useRef, useEffect, useId, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { useState, useRef, useEffect, useId, useCallback } from 'react';
+
 import { createPortal } from 'react-dom';
+
 import { cn } from '@/lib/utils/cn';
 
 export interface TooltipProps {
@@ -84,13 +87,14 @@ export function Tooltip({
     [isVisible, hideTooltip]
   );
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-    };
-  }, []);
+    },
+    []
+  );
 
   const positionClasses = {
     top: '-translate-x-1/2 -translate-y-full',

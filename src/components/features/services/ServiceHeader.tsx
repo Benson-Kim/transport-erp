@@ -2,11 +2,10 @@
 'use client';
 
 import { useState } from 'react';
+
 import { useRouter } from 'next/navigation';
+
 import { format } from 'date-fns';
-import { UserRole } from '@/app/generated/prisma';
-import { Button, Badge, DropdownMenu, DropdownMenuItem } from '@/components/ui';
-import { hasPermission } from '@/lib/permissions';
 import {
   Edit,
   Copy,
@@ -19,11 +18,18 @@ import {
   Archive,
   Mail,
 } from 'lucide-react';
+
+import type { Service, UserRole } from '@/app/generated/prisma';
+import type { DropdownMenuItem } from '@/components/ui';
+import { Button, Badge, DropdownMenu } from '@/components/ui';
+// import { ServiceActions } from './ServiceActions';
+import { hasPermission } from '@/lib/permissions';
 import { getStatusLabel, getStatusVariant } from '@/lib/service-helpers';
+
 import { ServiceActions } from './ServiceActions';
 
 interface ServiceHeaderProps {
-  service: any;
+  service: Service;
   userRole: UserRole;
   userId: string;
 }
@@ -55,7 +61,7 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
       });
     } else {
       // Fallback - copy to clipboard
-      navigator.clipboard.writeText(globalThis.location.href);
+      await navigator.clipboard.writeText(globalThis.location.href);
       // Show toast notification
     }
   };
@@ -223,7 +229,14 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
             {showServiceAction && serviceActionType && (
               <ServiceActions
                 service={service}
-                action={serviceActionType as any}
+                action={
+                  serviceActionType as
+                    | 'delete'
+                    | 'archive'
+                    | 'send-email'
+                    | 'complete'
+                    | 'generate-loading-order'
+                }
                 trigger={<span className="hidden" />}
                 onSuccess={() => {
                   setShowServiceAction(false);

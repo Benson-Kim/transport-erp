@@ -1,12 +1,15 @@
 // components/features/services/PricingCalculator.tsx
 'use client';
-import { Controller, UseFormReturn } from 'react-hook-form';
-import { Input, Select, FormField, Tooltip } from '@/components/ui';
 import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Controller } from 'react-hook-form';
+
+import { Input, Select, FormField, Tooltip } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { ServiceFormData } from '@/lib/validations/service-schema';
-import { Option } from '@/types/ui';
 import { formatPercentage } from '@/lib/utils/formatting';
+import type { ServiceFormData } from '@/lib/validations/service-schema';
+import type { Option } from '@/types/ui';
+
+import type { UseFormReturn } from 'react-hook-form';
 
 interface PricingCalculatorProps {
   form: UseFormReturn<ServiceFormData>;
@@ -46,7 +49,7 @@ const VAT_RATE_OPTIONS: Option[] = [
 // Helper to get currency symbol
 const getCurrencySymbol = (currency: string) => {
   const curr = CURRENCY_OPTIONS.find((c) => c.value === currency);
-  return curr?.icon || '€';
+  return curr?.icon ?? '€';
 };
 
 export function PricingCalculator({
@@ -121,7 +124,7 @@ export function PricingCalculator({
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  value={field.value || ''}
+                  value={field.value ?? ''}
                   onChange={(e) => {
                     field.onChange(e.target.value ? Number(e.target.value) : undefined);
                     setTimeout(handleAutoCalculation, 0);
@@ -142,7 +145,7 @@ export function PricingCalculator({
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  value={field.value || ''}
+                  value={field.value ?? ''}
                   onChange={(e) => {
                     field.onChange(e.target.value ? Number(e.target.value) : undefined);
                     setTimeout(handleAutoCalculation, 0);

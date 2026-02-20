@@ -5,38 +5,17 @@
 
 'use server';
 
-import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+
 import { UserRole } from '@/app/generated/prisma';
 import { requireRole } from '@/lib/auth';
-import { withPermission } from '@/lib/rbac';
-import prisma from '@/lib/prisma/prisma';
 import { hashPassword } from '@/lib/auth/auth-helpers';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
+import prisma from '@/lib/prisma/prisma';
+import { withPermission } from '@/lib/rbac';
+import { createUserSchema, updateUserSchema } from '@/lib/validations/settings-schema';
 
-/**
- * User creation schema
- */
-const createUserSchema = z.object({
-  email: z.email(),
-  name: z.string().min(2).max(100),
-  password: z.string().min(8),
-  role: z.enum(UserRole),
-  department: z.string().nullable(),
-  phone: z.string().nullable(),
-  sendWelcomeEmail: z.boolean().default(true),
-});
-
-/**
- * User update schema
- */
-const updateUserSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  role: z.enum(UserRole).optional(),
-  department: z.string().optional(),
-  phone: z.string().optional(),
-  isActive: z.boolean().optional(),
-});
+import type { z } from 'zod';
 
 /**
  * Get all users with statistics
@@ -142,8 +121,8 @@ export const createUser = withPermission(
         name: validatedData.name,
         password: hashedPassword,
         role: validatedData.role,
-        department: validatedData.department,
-        phone: validatedData.phone,
+        department: validatedData.department ?? '',
+        phone: validatedData.phone ?? '',
         emailVerified: new Date(), // Auto-verify for admin-created users
       },
     });
@@ -205,7 +184,6 @@ export const updateUser = withPermission(
       data: Object.fromEntries(
         Object.entries(validatedData).filter(([_, v]) => v !== undefined)
       ) as any,
-      // data: validatedData,
     });
 
     // Create audit log
@@ -219,7 +197,7 @@ export const updateUser = withPermission(
     });
 
     // Invalidate user sessions if role changed or deactivated
-    if (validatedData.role !== undefined || validatedData.isActive === false) {
+    if (validatedData.role !== undefined || validatedData.status === 'inactive') {
       await prisma.session.deleteMany({
         where: { userId },
       });
@@ -372,3 +350,90 @@ export const toggleUserStatus = withPermission('users', 'edit', async (userId: s
 
   return { success: true, isActive: updatedUser.isActive };
 });
+
+/**
+ * Bulk deactivate users
+ */
+export async function bulkDeactivateUsers(userIds: string[]) {
+  const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+
+  const results = await Promise.allSettled(
+    userIds.map(async (userId) => {
+      if (userId === session.user.id) return { success: false };
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: { isActive: false },
+      });
+
+      await prisma.session.deleteMany({
+        where: { userId },
+      });
+
+      return { success: true };
+    })
+  );
+
+  const successCount = results.filter((r) => r.status === 'fulfilled' && r.value.success).length;
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'UPDATE',
+    tableName: 'users',
+    recordId: 'bulk',
+    metadata: {
+      action: 'bulk_deactivate',
+      userIds,
+      successCount,
+    },
+  });
+
+  return { success: true, count: successCount };
+}
+
+/**
+ * Bulk delete users
+ */
+export async function bulkDeleteUsers(userIds: string[]) {
+  const session = await requireRole([UserRole.SUPER_ADMIN]);
+
+  // Check for dependencies
+  const usersWithServices = await prisma.user.findMany({
+    where: {
+      id: { in: userIds },
+      services: { some: {} },
+    },
+    select: { id: true, name: true },
+  });
+
+  if (usersWithServices.length > 0) {
+    throw new Error(
+      `Cannot delete users with services: ${usersWithServices.map((u) => u.name).join(', ')}`
+    );
+  }
+
+  const results = await prisma.user.updateMany({
+    where: {
+      id: { in: userIds },
+      NOT: { id: session.user.id },
+    },
+    data: {
+      deletedAt: new Date(),
+      isActive: false,
+    },
+  });
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'DELETE',
+    tableName: 'users',
+    recordId: 'bulk',
+    metadata: {
+      action: 'bulk_delete',
+      userIds,
+      count: results.count,
+    },
+  });
+
+  return { success: true, count: results.count };
+}

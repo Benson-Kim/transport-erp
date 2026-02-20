@@ -1,7 +1,6 @@
 // components/features/services/ServiceDetail.tsx
 'use client';
 
-import { Card, CardBody, Badge } from '@/components/ui';
 import {
   Calendar,
   Building2,
@@ -14,6 +13,8 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react';
+
+import { Card, CardBody, Badge } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
 import { formatDate } from '@/lib/utils/date-formats';

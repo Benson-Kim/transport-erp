@@ -6,16 +6,19 @@
 'use server';
 
 import { unstable_cache } from 'next/cache';
-import { Prisma, ServiceStatus } from '@/app/generated/prisma';
+
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
+
+import type { Prisma } from '@/app/generated/prisma';
+import { ServiceStatus } from '@/app/generated/prisma';
+import prisma from '@/lib/prisma/prisma';
 import {
   calculatePercentageChange,
   calculateDateRange,
   aggregateServicesByMonth,
   aggregateRevenueByMonth,
 } from '@/lib/utils/dashboard-helpers';
-import prisma from '@/lib/prisma/prisma';
-import { DashboardData, DashboardDateRange } from '@/types/dashboard';
+import type { DashboardData, DashboardDateRange } from '@/types/dashboard';
 
 type ServiceGroupResult = {
   status: ServiceStatus;
@@ -170,29 +173,29 @@ export const getDashboardData = unstable_cache(
 
     // Calculate stats
     const currentActive =
-      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all || 0;
+      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
     const currentCompleted =
-      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all || 0;
+      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
     const previousActive =
-      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all || 0;
+      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
     const previousCompleted =
-      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all || 0;
+      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
 
     const stats = {
       activeServices: currentActive,
       activeServicesChange: calculatePercentageChange(previousActive, currentActive),
       completedServices: currentCompleted,
       completedServicesChange: calculatePercentageChange(previousCompleted, currentCompleted),
-      totalRevenue: Number(currentRevenue._sum.saleAmount || 0),
+      totalRevenue: Number(currentRevenue._sum.saleAmount ?? 0),
       totalRevenueChange: calculatePercentageChange(
-        Number(previousRevenue._sum.saleAmount || 0),
-        Number(currentRevenue._sum.saleAmount || 0)
+        Number(previousRevenue._sum.saleAmount ?? 0),
+        Number(currentRevenue._sum.saleAmount ?? 0)
       ),
-      averageMargin: Number(currentRevenue._avg.marginPercentage || 0),
-      averageMarginAmount: Number(currentRevenue._avg.margin || 0),
+      averageMargin: Number(currentRevenue._avg.marginPercentage ?? 0),
+      averageMarginAmount: Number(currentRevenue._avg.margin ?? 0),
       averageMarginChange: calculatePercentageChange(
-        Number(previousRevenue._avg.marginPercentage || 0),
-        Number(currentRevenue._avg.marginPercentage || 0)
+        Number(previousRevenue._avg.marginPercentage ?? 0),
+        Number(currentRevenue._avg.marginPercentage ?? 0)
       ),
       totalServices: currentServices.reduce((sum, s) => sum + s._count._all, 0),
     };
@@ -206,7 +209,7 @@ export const getDashboardData = unstable_cache(
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date.toISOString(),
-      clientName: service.client?.name || service.clientId,
+      clientName: service.client?.name ?? service.clientId,
       origin: service.origin,
       destination: service.destination,
       status: service.status,

@@ -1,17 +1,38 @@
 // components/features/services/ServiceSidebar.tsx
 'use client';
 
-import { UserRole, ServiceStatus } from '@/app/generated/prisma';
-import { Card, CardBody, Badge } from '@/components/ui';
-// import { RelatedDocuments } from './RelatedDocuments';
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
-import { ServiceStatusBadge } from './ServiceStatusBadge';
-import { formatDate } from '@/lib/utils/date-formats';
+
+import type { UserRole, ServiceStatus, Prisma } from '@/app/generated/prisma';
+import { Card, CardBody, Badge } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
+import { formatDate } from '@/lib/utils/date-formats';
+
+import { RelatedDocuments } from './RelatedDocuments';
+import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {
-  service: any;
+  service: Prisma.ServiceGetPayload<{
+    include: {
+      client: {
+        select: {
+          name: true;
+          vatNumber: true;
+          billingEmail: true;
+          contactPhone: true;
+        };
+      };
+      supplier: {
+        select: {
+          name: true;
+          vatNumber: true;
+          email: true;
+          phone: true;
+        };
+      };
+    };
+  }>;
   userRole: UserRole;
 }
 
@@ -119,10 +140,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
       )}
 
       {/* Related Documents */}
-      {/* <RelatedDocuments
-                serviceId={service.id}
-                documents={service.documents || []}
-            /> */}
+      <RelatedDocuments serviceId={service.id} documents={service.attachments || []} />
 
       {/* Client Quick Info */}
       <Card>
