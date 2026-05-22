@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-import { formatDistanceToNow, format } from 'date-fns';
 import {
   Database,
   Clock,
@@ -19,6 +18,7 @@ import { Alert, FormField, Input, Label, Select, Switch, TimeInput } from '@/com
 import { cn } from '@/lib/utils/cn';
 import { type SystemSettings } from '@/lib/validations/settings-schema';
 import type { Option } from '@/types/ui';
+import { formatDate } from '@/lib/utils/date-formats';
 
 /**
  * Backup settings configuration section
@@ -37,6 +37,15 @@ export default function BackupSettings() {
 
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const BACKUP_CONFIG: Record<
+    string,
+    { multiplier: number; label: string }
+  > = {
+    daily: { multiplier: 1, label: '1.0 backup/day' },
+    weekly: { multiplier: 0.14, label: '~0.14 backups/day' },
+    monthly: { multiplier: 0.03, label: '~0.03 backups/day' },
+  };
 
   const frequencyOptions: Option[] = [
     { value: 'daily', label: 'Daily' },
@@ -100,15 +109,7 @@ export default function BackupSettings() {
 
   // Storage size estimation
   const retentionDaysNum = Number(retentionDays) || 0;
-  const estimatedSize =
-    retentionDaysNum *
-    (frequency === 'daily'
-      ? 1.0
-      : frequency === 'weekly'
-        ? 0.14
-        : frequency === 'monthly'
-          ? 0.03
-          : 0);
+  const estimatedSize = retentionDaysNum * (BACKUP_CONFIG[frequency]?.multiplier ?? 0);
 
   return (
     <div className="space-y-6">
@@ -135,19 +136,22 @@ export default function BackupSettings() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-neutral-700">Last Backup</p>
                 <p className="text-xs text-neutral-500 mt-1">
-                  {loading ? (
-                    'Loading...'
-                  ) : lastBackup ? (
-                    <>
-                      {format(new Date(lastBackup), 'PPp')}
-                      <br />
-                      <span className="text-neutral-400">
-                        {formatDistanceToNow(new Date(lastBackup), { addSuffix: true })}
-                      </span>
-                    </>
-                  ) : (
-                    'No backups yet'
-                  )}
+                  {(() => {
+                    if (loading) return 'Loading...';
+
+                    if (lastBackup) {
+                      return (
+                        <>
+                          {formatDate.readable(lastBackup)}
+                          <br />
+                          <span className="text-neutral-400">
+                            {formatDate.relative(lastBackup)}
+                          </span>
+                        </>
+                      );
+                    }
+                    return 'No backups yet';
+                  })()}
                 </p>
               </div>
             </div>
@@ -176,10 +180,10 @@ export default function BackupSettings() {
                 <p className="text-xs text-neutral-500 mt-1">
                   {enabled && frequency !== 'never' && nextBackup ? (
                     <>
-                      {format(nextBackup, 'PPp')}
+                      {formatDate.readable(nextBackup)}
                       <br />
                       <span className="text-neutral-400">
-                        {formatDistanceToNow(nextBackup, { addSuffix: true })}
+                        {formatDate.relative(nextBackup)}
                       </span>
                     </>
                   ) : (
@@ -306,11 +310,7 @@ export default function BackupSettings() {
               days of backups.
               <span className="block text-xs text-neutral-600 mt-1">
                 (Calculation: {retentionDaysNum} days x{' '}
-                {frequency === 'daily'
-                  ? '1.0 backup/day'
-                  : frequency === 'weekly'
-                    ? '~0.14 backups/day'
-                    : '~0.03 backups/day'}
+                {BACKUP_CONFIG[frequency]?.label ?? ''}
                 )
               </span>
             </div>

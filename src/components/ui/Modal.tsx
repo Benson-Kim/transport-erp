@@ -51,7 +51,7 @@ export function Modal({
   className,
   ...ariaProps
 }: ModalProps) {
-  const modalRef = useRef<HTMLDialogElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
 
   // Lock scroll when modal is open
@@ -72,6 +72,7 @@ export function Modal({
     if (isOpen) {
       previousActiveElement.current = document.activeElement as HTMLElement;
 
+      // Set initial focus
       setTimeout(() => {
         if (initialFocus?.current) {
           initialFocus.current.focus();
@@ -83,12 +84,21 @@ export function Modal({
         }
       }, 100);
     } else {
+      // Restore focus when closing
       previousActiveElement.current?.focus();
     }
   }, [isOpen, initialFocus]);
 
+  // Handle backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (closeOnBackdrop && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
+  // Portal render
   return createPortal(
     <Fragment>
       {/* Backdrop */}
@@ -97,40 +107,35 @@ export function Modal({
           'fixed inset-0 z-50 bg-black/50 backdrop-blur-sm',
           'animate-in fade-in duration-200'
         )}
+        onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
-      {/* Modal Container */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-        {/* Backdrop click handler */}
-        {closeOnBackdrop && (
-          <button
-            type="button"
-            className="absolute inset-0 cursor-default bg-transparent"
-            onClick={onClose}
-            aria-label="Close dialog"
-            tabIndex={-1}
-          />
-        )}
-
-        {/* Modal */}
-        <dialog
+      {/* Modal */}
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        onClick={handleBackdropClick}
+      >
+        <div
           ref={modalRef}
+          role="dialog"
           aria-modal="true"
-          aria-labelledby={title ? 'modal-title' : undefined}
-          aria-label={title ? undefined : ariaProps['aria-label']}
-          aria-describedby={description ? 'modal-description' : ariaProps['aria-describedby']}
+          aria-label={ariaProps['aria-label'] || title}
+          aria-describedby={
+            ariaProps['aria-describedby'] || description ? 'modal-description' : undefined
+          }
           className={cn(
             'relative w-full bg-white rounded-lg shadow-modal',
             'animate-in zoom-in-95 fade-in duration-200',
             sizeClasses[size],
             className
           )}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           {(title || showCloseButton) && (
             <ModalHeader showCloseButton={showCloseButton} onClose={onClose}>
-              {title && <span id="modal-title">{title}</span>}
+              {title}
             </ModalHeader>
           )}
 
@@ -143,7 +148,7 @@ export function Modal({
 
           {/* Content */}
           {children}
-        </dialog>
+        </div>
       </div>
     </Fragment>,
     document.body
@@ -158,6 +163,31 @@ interface ModalHeaderProps {
   className?: string;
 }
 
+// export function ModalHeader({
+//   children,
+//   showCloseButton = true,
+//   onClose,
+//   className,
+// }: Readonly<ModalHeaderProps>) {
+//   return (
+//     <div className={cn('flex items-center justify-between p-6 pb-4 border-b border-neutral-200', className)}>
+//       <h2 className="text-lg font-semibold text-neutral-900 border-b-0">{children}</h2>
+//       {showCloseButton && onClose && (
+//         <button
+//           onClick={onClose}
+//           className={cn(
+//             'rounded-lg p-1 hover:bg-neutral-100 transition-colors',
+//             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+//           )}
+//           aria-label="Close dialog"
+//         >
+//           <X size={20} className="text-neutral-500" />
+//         </button>
+//       )}
+//     </div>
+//   );
+// }
+
 export function ModalHeader({
   children,
   showCloseButton = true,
@@ -165,19 +195,30 @@ export function ModalHeader({
   className,
 }: Readonly<ModalHeaderProps>) {
   return (
-    <div className={cn('flex items-center justify-between p-6 pb-4', className)}>
-      <h2 className="text-lg font-semibold text-neutral-900">{children}</h2>
+    <div
+      className={cn(
+        'flex items-center justify-between gap-4 px-6 py-4',
+        'border-b border-neutral-200',
+        className
+      )}
+    >
+      <h2 className="text-lg font-semibold text-neutral-900 leading-none">
+        {children}
+      </h2>
+
       {showCloseButton && onClose && (
         <button
           type="button"
           onClick={onClose}
           className={cn(
-            'rounded-lg p-1 hover:bg-neutral-100 transition-colors',
+            'inline-flex items-center justify-center',
+            'h-8 w-8 rounded-md',
+            'hover:bg-neutral-100 transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
           )}
           aria-label="Close dialog"
         >
-          <X size={20} className="text-neutral-500" aria-hidden="true" />
+          <X size={18} className="text-neutral-500" />
         </button>
       )}
     </div>

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
+import type { Resolver } from 'react-hook-form';
 
 import {
   getSystemSettings,
@@ -35,20 +36,39 @@ import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 
-export function SystemSettingsContent() {
-  const [loading, setLoading] = useState(true);
+interface SystemSettingsContentProps {
+  initialSettings?: Partial<SystemSettings>;
+}
+
+export function SystemSettingsContent({ initialSettings }: SystemSettingsContentProps) {
+  const [loading, setLoading] = useState(!initialSettings);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('email');
 
+  const defaultValues = useMemo(() => {
+    if (!initialSettings) return DEFAULT_SYSTEM_SETTINGS;
+
+    return {
+      email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
+      pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...initialSettings.pdf },
+      backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...initialSettings.backup },
+      numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...initialSettings.numberSequences },
+      general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...initialSettings.general },
+    };
+  }, [initialSettings]);
+
+
   const methods = useForm<SystemSettings>({
-    resolver: zodResolver(systemSettingsSchema),
-    defaultValues: DEFAULT_SYSTEM_SETTINGS,
+    resolver: zodResolver(systemSettingsSchema) as Resolver<SystemSettings>,
+    defaultValues,
   });
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    if (!initialSettings) {
+      loadSettings();
+    }
+  }, [initialSettings]);
 
   async function loadSettings() {
     try {

@@ -5,7 +5,6 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { format } from 'date-fns';
 import {
   Edit,
   Copy,
@@ -19,7 +18,7 @@ import {
   Mail,
 } from 'lucide-react';
 
-import type { Service, UserRole } from '@/app/generated/prisma';
+import type { UserRole } from '@/app/generated/prisma';
 import type { DropdownMenuItem } from '@/components/ui';
 import { Button, Badge, DropdownMenu } from '@/components/ui';
 // import { ServiceActions } from './ServiceActions';
@@ -27,9 +26,11 @@ import { hasPermission } from '@/lib/permissions';
 import { getStatusLabel, getStatusVariant } from '@/lib/service-helpers';
 
 import { ServiceActions } from './ServiceActions';
+import { ServiceWithRelations } from '@/types/service';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServiceHeaderProps {
-  service: Service;
+  service: ServiceWithRelations;
   userRole: UserRole;
   userId: string;
 }
@@ -47,6 +48,8 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
 
   const isCompleted = service.status === 'COMPLETED';
   const isCancelled = service.status === 'CANCELLED';
+
+  const hasInvoiceItems = service.invoiceItems && service.invoiceItems.length > 0;
 
   const handlePrint = () => {
     globalThis.print();
@@ -105,7 +108,7 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
     });
   }
 
-  if (canDelete && !service.invoice) {
+  if (canDelete && !hasInvoiceItems) {
     dropdownItems.push(
       {
         id: 'divider-delete',
@@ -140,18 +143,11 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-neutral-900">{service.serviceNumber}</h1>
-              <Badge variant={getStatusVariant(service.status)} size="lg">
-                {getStatusLabel(service.status)}
-              </Badge>
-              {service.urgent && (
-                <Badge variant="cancelled" size="lg">
-                  Urgent
-                </Badge>
-              )}
+              <Badge variant={getStatusVariant(service.status)} size="lg"> {getStatusLabel(service.status)}</Badge>
             </div>
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{format(new Date(service.date), 'PPP')}</span>
+              <span>{formatDate.readable(service.date)}</span>
               <span>•</span>
               <span>{service.client.name}</span>
               <span>•</span>
@@ -231,11 +227,11 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
                 service={service}
                 action={
                   serviceActionType as
-                    | 'delete'
-                    | 'archive'
-                    | 'send-email'
-                    | 'complete'
-                    | 'generate-loading-order'
+                  | 'delete'
+                  | 'archive'
+                  | 'send-email'
+                  | 'complete'
+                  | 'generate-loading-order'
                 }
                 trigger={<span className="hidden" />}
                 onSuccess={() => {

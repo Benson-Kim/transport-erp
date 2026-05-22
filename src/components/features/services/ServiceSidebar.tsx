@@ -3,10 +3,9 @@
 
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
 
-import type { UserRole, ServiceStatus, Prisma } from '@/app/generated/prisma';
-import { Card, CardBody, Badge } from '@/components/ui';
+import type { UserRole, Prisma } from '@/app/generated/prisma';
+import { Card, CardBody } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
-import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
 import { formatDate } from '@/lib/utils/date-formats';
 
 import { RelatedDocuments } from './RelatedDocuments';
@@ -31,14 +30,51 @@ interface ServiceSidebarProps {
           phone: true;
         };
       };
-    };
+      createdBy: {
+        select: {
+          name: true;
+        };
+      };
+      assignedTo: {
+        select: {
+          name: true;
+        };
+      };
+      invoiceItems: {
+        select: {
+          id: true;
+          invoice: {
+            select: {
+              id: true;
+              invoiceNumber: true;
+            };
+          };
+        }
+      };
+      documents: {
+        select: {
+          id: true;
+          documentType: true;
+          documentNumber: true;
+          fileName: true;
+          filePath: true;
+          fileSize: true;
+          mimeType: true;
+          description: true;
+          uploadedBy: true;
+          uploadedAt: true;
+        };
+      };
+    }
   }>;
   userRole: UserRole;
 }
 
 export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarProps>) {
   const canViewInternal = hasPermission(userRole, 'services', 'view');
-  const config = SERVICE_STATUS_CONFIG[service.status as ServiceStatus];
+
+  const linkedInvoice = service.invoiceItems?.[0]?.invoice ?? null;
+  const daysActive = Math.floor((Date.now() - new Date(service.createdAt).getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="space-y-6">
@@ -53,9 +89,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Current Status</span>
-              <Badge variant={config?.variant ?? 'default'}>
-                {service.status.replaceAll('_', ' ')}
-              </Badge>
+              <ServiceStatusBadge status={service.status} size="sm" />
             </div>
 
             {service.completedAt && (
@@ -67,22 +101,18 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
               </div>
             )}
 
-            {service.invoice && (
+            {linkedInvoice && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Invoice</span>
                 <a
-                  href={`/invoices/${service.invoice.id}`}
+                  href={`/invoices/${linkedInvoice.id}`}
                   className="text-sm font-medium text-primary hover:underline"
                 >
-                  #{service.invoice.invoiceNumber}
+                  #{linkedInvoice.invoiceNumber}
                 </a>
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Status</span>
-              <ServiceStatusBadge status={service.status} size="sm" />
-            </div>
           </div>
         </CardBody>
       </Card>
@@ -107,7 +137,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
                 </dd>
               </div>
 
-              {service.updatedAt !== service.createdAt && (
+              {service.updatedAt.getTime() !== service.createdAt.getTime() && (
                 <div className="flex items-start justify-between">
                   <dt className="text-muted-foreground">Last Modified</dt>
                   <dd className="text-right">
@@ -122,17 +152,8 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
               )}
 
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Edit Count</dt>
-                <dd className="font-medium">{service.editCount || 0}</dd>
-              </div>
-
-              <div className="flex justify-between">
                 <dt className="text-muted-foreground">Days Active</dt>
-                <dd className="font-medium">
-                  {Math.floor(
-                    (Date.now() - new Date(service.createdAt).getTime()) / (1000 * 60 * 60 * 24)
-                  )}
-                </dd>
+                <dd className="font-medium">{daysActive}</dd>
               </div>
             </dl>
           </CardBody>
@@ -140,7 +161,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
       )}
 
       {/* Related Documents */}
-      <RelatedDocuments serviceId={service.id} documents={service.attachments || []} />
+      <RelatedDocuments serviceId={service.id} documents={service.documents ?? []} />
 
       {/* Client Quick Info */}
       <Card>

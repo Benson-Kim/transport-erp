@@ -1,7 +1,7 @@
 /**
  * Service Types
  */
-import type { ServiceStatus } from '@/app/generated/prisma';
+import type { Client, InvoiceItem, Service, ServiceStatus, Supplier } from '@/app/generated/prisma';
 
 export interface ServiceData {
   id: string;
@@ -89,4 +89,10 @@ export interface ServiceFiltersAPI {
   sortOrder?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;
+}
+
+export type ServiceWithRelations = Service & {
+  client: Pick<Client, 'id' | 'name'>;
+  supplier: Pick<Supplier, 'id' | 'name'>;
+  invoiceItems?: InvoiceItem[];
 }

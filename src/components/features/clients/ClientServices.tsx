@@ -8,7 +8,6 @@ import { useState, useEffect, useTransition } from 'react';
 
 import Link from 'next/link';
 
-import { format } from 'date-fns';
 import { Loader2, Plus, ExternalLink, FileText } from 'lucide-react';
 import { Controller, FormProvider, useForm } from 'react-hook-form';
 
@@ -18,6 +17,7 @@ import { Badge, Button, Card, FormField, Pagination, Select, Table } from '@/com
 import { getStatusIcon, getStatusLabel, getStatusVariant } from '@/lib/service-helpers';
 import { formatCurrency } from '@/lib/utils/formatting';
 import type { ClientService } from '@/types/client';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ClientServicesProps {
   clientId: string;
@@ -174,7 +174,7 @@ export function ClientServices({ clientId }: ClientServicesProps) {
                       {service.serviceNumber}
                     </Link>
                   </Table.Cell>
-                  <Table.Cell>{format(new Date(service.date), 'dd/MM/yyyy')}</Table.Cell>
+                  <Table.Cell>{formatDate.compact(service.date)}</Table.Cell>
                   <Table.Cell className="hidden md:table-cell">
                     <span className="text-sm">
                       {service.origin} → {service.destination}
@@ -196,9 +196,8 @@ export function ClientServices({ clientId }: ClientServicesProps) {
                   </Table.Cell>
                   <Table.Cell align="right" className="hidden sm:table-cell">
                     <span
-                      className={`font-mono ${
-                        service.margin >= 0 ? 'text-financial-positive' : 'text-financial-negative'
-                      }`}
+                      className={`font-mono ${service.margin >= 0 ? 'text-financial-positive' : 'text-financial-negative'
+                        }`}
                     >
                       {formatCurrency(service.margin)}
                     </span>

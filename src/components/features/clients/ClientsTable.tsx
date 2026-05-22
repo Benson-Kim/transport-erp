@@ -167,7 +167,7 @@ export function ClientsTable({
   canEdit,
   canDelete,
   canExport,
-}: ClientsTableProps) {
+}: Readonly<ClientsTableProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -319,7 +319,7 @@ export function ClientsTable({
           link.download = result.data.filename;
           document.body.appendChild(link);
           link.click();
-          document.body.removeChild(link);
+          link.remove();
           URL.revokeObjectURL(url);
         }
       } finally {
@@ -436,7 +436,7 @@ export function ClientsTable({
               onClick={handleExport}
               loading={isExporting}
               loadingText="Exporting..."
-              icon={!isExporting ? <FileSpreadsheet className="w-4 h-4" /> : undefined}
+              icon={isExporting ? undefined : <FileSpreadsheet className="w-4 h-4" />}
             >
               <span className="hidden sm:inline">Export</span>
             </Button>
@@ -537,7 +537,7 @@ export function ClientsTable({
               <Table.Row
                 key={client.id}
                 selected={selectedIds.has(client.id)}
-                className={!client.isActive ? 'opacity-60' : ''}
+                className={client.isActive ? '' : 'opacity-60'}
               >
                 {canDelete && (
                   <Table.Cell>

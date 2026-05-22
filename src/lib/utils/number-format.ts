@@ -52,10 +52,7 @@ export function validateNumberFormat(format: string): ValidationResult {
     warnings.push('Format is quite long. Consider a shorter format for better readability.');
   }
 
-  return {
-    valid: true,
-    warnings: warnings.length > 0 ? warnings : undefined,
-  };
+  return warnings.length > 0 ? { valid: true, warnings } : { valid: true };
 }
 
 /**

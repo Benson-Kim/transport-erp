@@ -21,7 +21,7 @@ import {
   type GeneralSettingsInput,
   type SystemSettings,
   companySettingsSchema,
-  emailConfigSchema,
+  emailSettingsSchema,
   backupSettingsSchema,
   pdfSettingsSchema,
   numberSequencesSchema,
@@ -231,7 +231,7 @@ export async function getCompanySettings() {
 
     const settings: CompanySettings = {
       companyName: company.legalName,
-      address: company.addressLine1 + (company.addressLine2 ? `\n${  company.addressLine2}` : ''),
+      address: company.addressLine1 + (company.addressLine2 ? `\n${company.addressLine2}` : ''),
       vatNumber: company.vatNumber,
       email: company.email,
       phone: company.phone,
@@ -356,7 +356,7 @@ export async function saveEmailSettings(data: unknown) {
   return updateSetting(
     SettingKey.EMAIL,
     data,
-    emailConfigSchema,
+    emailSettingsSchema,
     'Email configuration for System notifications'
   );
 }
@@ -737,7 +737,7 @@ async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo
     };
   } finally {
     // Cleanup temp files
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
   }
 }
 
@@ -749,7 +749,7 @@ function formatBytes(bytes: number): string {
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 /**

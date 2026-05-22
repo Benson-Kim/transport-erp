@@ -26,7 +26,7 @@ export const companySettingsSchema = z.object({
   phone: z
     .string()
     .trim()
-    .transform((val) => val.replace(/\s+/g, ''))
+    .transform((val) => val.replaceAll(/\s+/g, ''))
     .refine((val) => /^\+?[1-9]\d{7,14}$/.test(val), {
       message: 'Invalid phone number',
     }),
@@ -158,12 +158,12 @@ export const passwordChangeSchema = z
  */
 export const emailProviderSchema = z.enum(['resend', 'smtp', 'sendgrid', 'ses']);
 
-export const emailConfigSchema = z
+export const emailSettingsSchema = z
   .object({
     provider: emailProviderSchema,
     apiKey: z.string().optional(),
     host: z.string().optional(),
-    port: z.coerce.number().int().min(1).max(65535).optional(),
+    port: z.number().int().min(1).max(65535).optional(),
     user: z.string().optional(),
     password: z.string().optional(),
     secure: z.boolean().default(true).optional(),
@@ -178,14 +178,14 @@ export const emailConfigSchema = z
     if (data.provider === 'smtp') {
       if (!data.host) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'SMTP host is required when using SMTP',
           path: ['host'],
         });
       }
       if (!data.port) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: 'SMTP port is required when using SMTP',
           path: ['port'],
         });
@@ -193,7 +193,7 @@ export const emailConfigSchema = z
     }
     if (['resend', 'sendgrid', 'ses'].includes(data.provider) && !data.apiKey) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: `API key is required for ${data.provider}`,
         path: ['apiKey'],
       });
@@ -232,13 +232,13 @@ const numberFormatSchema = z
   .refine(
     (value) => {
       // Check for valid tokens only (no invalid patterns)
-      const validTokens = ['YYYY', 'YY', 'MM', 'DD', 'NNNNN', 'NNNN', 'NNN'];
+      const validTokens = new Set(['YYYY', 'YY', 'MM', 'DD', 'NNNNN', 'NNNN', 'NNN']);
       const tokenPattern = /[A-Z]{2,5}/g;
       const matches = value.match(tokenPattern) || [];
 
       return matches.every(
         (match) =>
-          validTokens.includes(match) ||
+          validTokens.has(match) ||
           // Allow custom prefixes (letters that aren't tokens)
           !['YY', 'MM', 'DD', 'NN'].some((token) => match.includes(token))
       );
@@ -283,7 +283,7 @@ export const generalSettingsSchema = z.object({
 
 // Combined system settings schema
 export const systemSettingsSchema = z.object({
-  email: emailConfigSchema,
+  email: emailSettingsSchema,
   pdf: pdfSettingsSchema,
   backup: backupSettingsSchema,
   numberSequences: numberSequencesSchema,
@@ -348,7 +348,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
 /** Type exports from schemas */
 export type SystemSettings = z.infer<typeof systemSettingsSchema>;
-export type EmailConfigInput = z.infer<typeof emailConfigSchema>;
+export type EmailConfigInput = z.infer<typeof emailSettingsSchema>;
 export type PDFSettingsInput = z.infer<typeof pdfSettingsSchema>;
 export type BackupSettingsInput = z.infer<typeof backupSettingsSchema>;
 export type NumberSequencesInput = z.infer<typeof numberSequencesSchema>;
