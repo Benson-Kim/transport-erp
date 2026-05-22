@@ -105,7 +105,7 @@ export default function SequenceSettings() {
                 return result.valid || result.error;
               },
             }}
-            render={({ field }) => {
+            render={({ field, fieldState }) => {
               const validation = validateNumberFormat(field.value);
               const parsed = parseFormatTokens(field.value);
               const preview = previews[config.name.replace('Format', '') as keyof typeof previews];
@@ -114,10 +114,7 @@ export default function SequenceSettings() {
                 <FormField
                   label={config.label}
                   required
-                  error={
-                    errors.numberSequences?.[config.name as keyof typeof errors.numberSequences]
-                      ?.message ?? ''
-                  }
+                  error={fieldState.error?.message ?? 'Invalid format'}
                 >
                   <Input {...field} placeholder={config.placeholder} />
 

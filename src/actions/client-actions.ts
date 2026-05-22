@@ -1,4 +1,4 @@
-
+// /actions/client-actions.ts
 'use server';
 
 /**
@@ -11,7 +11,7 @@ import { headers } from 'next/headers';
 
 import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
-import { RESOURCES, ACTIONS } from '@/lib/permissions';
+import { RESOURCES, ACTIONS, Resource, Action } from '@/lib/permissions';
 import {
   createAuditLog,
   excludeDeleted,
@@ -21,7 +21,7 @@ import {
 } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
-import { clientSchema, clientFilterSchema } from '@/lib/validations/client-schema';
+import { clientSchema, clientFilterSchema, ClientFilterInput } from '@/lib/validations/client-schema';
 import type {
   ActionResult,
   ClientListItem,
@@ -31,6 +31,7 @@ import type {
   PaginatedClients,
   Address,
 } from '@/types/client';
+import z from 'zod';
 
 /**
  * Get request metadata for audit logging
@@ -43,80 +44,152 @@ async function getRequestMeta() {
   };
 }
 
+async function withAction<T>(
+  permission: { resource: Resource; action: Action },
+  handler: (ctx: { userId: string; ipAddress?: string; userAgent?: string; }) => Promise<ActionResult<T>>): Promise<ActionResult<T>> {
+  try {
+    await requirePermission(permission.resource, permission.action);
+
+    const session = await getServerAuth();
+
+    if (!session?.user) {
+      return { success: false, error: 'Not authenticcated' }
+    }
+
+    const { ipAddress, userAgent } = await getRequestMeta();
+
+    return await handler({
+      userId: session.user.id,
+      ...(ipAddress && { ipAddress }),
+      ...(userAgent && { userAgent })
+    });
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "An unexpcted error occurred"
+    }
+  }
+}
+
+// Check for duplicate VAT number if provided
+async function validateVATNumber(vatNumber: string | null | undefined, exludeId?: string) {
+  if (!vatNumber) return null;
+
+  const existing = await prisma.client.findFirst({
+    where: {
+      vatNumber,
+      deletedAt: null,
+      ...(exludeId && { NOT: { id: exludeId } })
+    },
+  });
+
+  if (existing) {
+    return {
+      success: false,
+      error: 'A client with this VAT number already exists',
+      errors: { vatNumber: ['VAT number already in use'] },
+    };
+  }
+
+  return null;
+}
+
+// Client data builder for create and update
+function buildClientData(validated: z.infer<typeof clientSchema>): Omit<Prisma.ClientCreateInput, 'clientCode'> {
+  return {
+    name: validated.name,
+    tradeName: validated.tradeName ?? null,
+    vatNumber: validated.vatNumber ?? null,
+    billingAddress: validated.billingAddress,
+    shippingAddress: validated.useShippingAddress && validated.shippingAddress ? validated.shippingAddress : Prisma.JsonNull,
+    billingEmail: validated.billingEmail,
+    trafficEmail: validated.trafficEmail ?? null,
+    contactPerson: validated.contactPerson ?? null,
+    contactPhone: validated.contactPhone ?? null,
+    contactMobile: validated.contactMobile ?? null,
+    creditLimit: validated.creditLimit ?? null,
+    paymentTerms: validated.paymentTerms,
+    discount: validated.discount ?? null,
+    currency: validated.currency,
+    language: validated.language,
+    sendReminders: validated.sendReminders,
+    autoInvoice: validated.autoInvoice,
+    notes: validated.notes ?? null,
+    tags: validated.tags,
+    isActive: validated.isActive,
+  };
+}
+
+function buildClientFilter(validated: ClientFilterInput): Prisma.ClientWhereInput {
+  // Build where clause
+  const where: Prisma.ClientWhereInput = excludeDeleted<'client'>({}) ?? {};
+
+  if (validated.search) {
+    where.OR = [
+      { name: { contains: validated.search, mode: 'insensitive' } },
+      { tradeName: { contains: validated.search, mode: 'insensitive' } },
+      { vatNumber: { contains: validated.search, mode: 'insensitive' } },
+      { billingEmail: { contains: validated.search, mode: 'insensitive' } },
+      { clientCode: { contains: validated.search, mode: 'insensitive' } },
+    ];
+  }
+
+  if (validated.country) {
+    where.billingAddress = {
+      path: ['country'], equals: validated.country,
+    };
+  }
+
+  if (validated.isActive !== undefined) {
+    where.isActive = validated.isActive;
+  }
+
+  if (validated.currency) {
+    where.currency = validated.currency;
+  }
+
+  if (validated.tags?.length) {
+    where.tags = { hasSome: validated.tags };
+  }
+
+  return where;
+
+}
+
+
 /**
  * Get paginated list of clients with filters
  */
-export async function getClients(
-  params: Record<string, unknown>
-): Promise<ActionResult<PaginatedClients>> {
+export async function getClients(params: Record<string, unknown>): Promise<ActionResult<PaginatedClients>> {
   try {
     await requirePermission(RESOURCES.CLIENTS, ACTIONS.VIEW);
 
     const validated = clientFilterSchema.parse(params);
-    const { search, country, isActive, currency, tags, page, limit, sortBy, sortOrder } = validated;
+    const { page, limit, sortBy, sortOrder } = validated;
 
     // Build where clause
-    const where: Prisma.ClientWhereInput = { deletedAt: null };
+    const where = buildClientFilter(validated)
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { tradeName: { contains: search, mode: 'insensitive' } },
-        { vatNumber: { contains: search, mode: 'insensitive' } },
-        { billingEmail: { contains: search, mode: 'insensitive' } },
-        { clientCode: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (country) {
-      // Filter by country in billingAddress JSON
-      where.billingAddress = {
-        path: ['country'],
-        equals: country,
-      };
-    }
-
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-
-    if (currency) {
-      where.currency = currency;
-    }
-
-    if (tags && tags.length > 0) {
-      where.tags = { hasSome: tags };
-    }
-
-    // Get total count
-    const total = await prisma.client.count({ where });
-
-    // Build orderBy
-    let orderBy: Prisma.ClientOrderByWithRelationInput = {};
-    if (sortBy === 'servicesCount') {
-      orderBy = { services: { _count: sortOrder } };
-    } else {
-      orderBy = { [sortBy]: sortOrder };
-    }
-
-    // Get paginated data
-    const { skip, take } = getPaginationParams({ page, limit });
-
-    const clients = await prisma.client.findMany({
-      where,
-      orderBy,
-      skip,
-      take,
-      include: {
-        _count: {
-          select: { services: true },
+    // Get total count and paginated clients
+    const [total, clients] = await Promise.all([
+      prisma.client.count({ where }),
+      prisma.client.findMany({
+        where,
+        orderBy: sortBy === 'servicesCount' ? { services: { _count: sortOrder } } : { [sortBy || 'name']: sortOrder },
+        skip: getPaginationParams({ page, limit }).skip,
+        take: getPaginationParams({ page, limit }).take,
+        include: {
+          _count: {
+            select: { services: true },
+          },
         },
-      },
-    });
+      }),
+    ]);
 
     // Transform to list items
     const data: ClientListItem[] = clients.map((client) => {
-      const billingAddress = client.billingAddress as unknown as Address | null;
+      const billingAddress = client.billingAddress as unknown as Address;
       return {
         id: client.id,
         clientCode: client.clientCode,
@@ -155,7 +228,7 @@ export async function getClientById(id: string): Promise<ActionResult<ClientWith
     await requirePermission(RESOURCES.CLIENTS, ACTIONS.VIEW);
 
     const client = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }) ?? {},
+      where: excludeDeleted<'client'>({ id }) ?? { id },
       include: {
         company: {
           select: { id: true, legalName: true },
@@ -230,7 +303,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
       ? services.reduce((sum, s) => sum + Number(s.marginPercentage), 0) / totalServices
       : 0;
 
-  const lastServiceDate = services[0]?.date ?? null;
+  const lastServiceDate = services.length > 0 ? services[0]?.date : null;
 
   return {
     totalServices,
@@ -241,7 +314,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
     totalCost,
     totalMargin,
     averageMarginPercentage,
-    lastServiceDate,
+    lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : null,
   };
 }
 
@@ -312,304 +385,178 @@ export async function getClientServices(
  * Create a new client
  */
 export async function createClient(data: unknown): Promise<ActionResult<{ id: string }>> {
-  try {
-    await requirePermission(RESOURCES.CLIENTS, ACTIONS.CREATE);
+  return withAction(
 
-    const session = await getServerAuth();
-    if (!session?.user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+    { resource: RESOURCES.CLIENTS, action: ACTIONS.CREATE },
 
-    const validated = clientSchema.parse(data);
-    const { ipAddress, userAgent } = await getRequestMeta();
+    async ({ userId, ipAddress, userAgent }) => {
+      const validated = clientSchema.parse(data);
 
-    // Check for duplicate VAT number if provided
-    if (validated.vatNumber) {
-      const existing = await prisma.client.findFirst({
-        where: {
-          vatNumber: validated.vatNumber,
-          deletedAt: null,
-        },
+      // Check for duplicate VAT number if provided
+      const checkVatError = await validateVATNumber(validated.vatNumber);
+      if (checkVatError) return checkVatError
+
+      // Generate unique client code
+      const clientCode = await generateUniqueIdentifier('CLI', 'client', 'clientCode');
+
+      // Prepare data
+      const createData = {
+        clientCode,
+        ...buildClientData(validated)
+      };
+
+      const client = await prisma.client.create({
+        data: createData,
       });
 
-      if (existing) {
-        return {
-          success: false,
-          error: 'A client with this VAT number already exists',
-          errors: { vatNumber: ['VAT number already in use'] },
-        };
-      }
+      // Create audit log
+      await createAuditLog({
+        userId,
+        action: 'CREATE',
+        tableName: 'clients',
+        recordId: client.id,
+        newValues: createData,
+        ... (ipAddress && { ipAddress }),
+        ... (userAgent && { userAgent }),
+      });
+
+      revalidatePath('/clients');
+
+      return { success: true, data: { id: client.id } };
     }
-
-    // Generate unique client code
-    const clientCode = await generateUniqueIdentifier('CLI', 'client', 'clientCode');
-
-    // Prepare data
-    const createData: Prisma.ClientCreateInput = {
-      clientCode,
-      name: validated.name,
-      tradeName: validated.tradeName ?? null,
-      vatNumber: validated.vatNumber ?? null,
-      billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress && validated.shippingAddress
-        ? validated.shippingAddress
-        : Prisma.DbNull,
-      billingEmail: validated.billingEmail,
-      trafficEmail: validated.trafficEmail ?? null,
-      contactPerson: validated.contactPerson ?? null,
-      contactPhone: validated.contactPhone ?? null,
-      contactMobile: validated.contactMobile ?? null,
-      creditLimit: validated.creditLimit ?? null,
-      paymentTerms: validated.paymentTerms,
-      discount: validated.discount ?? null,
-      currency: validated.currency,
-      language: validated.language,
-      sendReminders: validated.sendReminders,
-      autoInvoice: validated.autoInvoice,
-      notes: validated.notes ?? null,
-      tags: validated.tags,
-      isActive: validated.isActive,
-    };
-
-    const client = await prisma.client.create({
-      data: createData,
-    });
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'CREATE',
-      tableName: 'clients',
-      recordId: client.id,
-      newValues: createData,
-      ...(ipAddress && { ipAddress }),
-      ...(userAgent && { userAgent }),
-    });
-
-    revalidatePath('/clients');
-
-    return { success: true, data: { id: client.id } };
-  } catch (error) {
-    console.error('Failed to create client:', error);
-
-    if (error instanceof Error && error.message.includes('Unique constraint')) {
-      return {
-        success: false,
-        error: 'A client with this information already exists',
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to create client',
-    };
-  }
+  )
 }
 
 /**
  * Update an existing client
  */
-export async function updateClient(
-  id: string,
-  data: unknown
-): Promise<ActionResult<{ id: string }>> {
-  try {
-    await requirePermission(RESOURCES.CLIENTS, ACTIONS.EDIT);
+export async function updateClient(id: string, data: unknown): Promise<ActionResult<{ id: string }>> {
+  return withAction(
+    { resource: RESOURCES.CLIENTS, action: ACTIONS.EDIT },
+    async ({ userId, ipAddress, userAgent }) => {
 
-    const session = await getServerAuth();
-    if (!session?.user) {
-      return { success: false, error: 'Not authenticated' };
-    }
+      const validated = clientSchema.parse(data);
 
-    // Check if client exists
-    const existing = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }) ?? {},
-    });
-
-    if (!existing) {
-      return { success: false, error: 'Client not found' };
-    }
-
-    const validated = clientSchema.parse(data);
-    const { ipAddress, userAgent } = await getRequestMeta();
-
-    // Check for duplicate VAT number if changed
-    if (validated.vatNumber && validated.vatNumber !== existing.vatNumber) {
-      const duplicate = await prisma.client.findFirst({
-        where: {
-          vatNumber: validated.vatNumber,
-          deletedAt: null,
-          NOT: { id },
-        },
+      // Check if client exists
+      const existing = await prisma.client.findFirst({
+        where: excludeDeleted<'client'>({ id }) ?? {},
       });
 
-      if (duplicate) {
-        return {
-          success: false,
-          error: 'A client with this VAT number already exists',
-          errors: { vatNumber: ['VAT number already in use'] },
-        };
+      if (!existing) {
+        return { success: false, error: 'Client not found' };
       }
+
+      // Check for duplicate VAT number if changed
+      const checkVatError = await validateVATNumber(validated.vatNumber, id);
+      if (checkVatError) return checkVatError
+
+      // Prepare update data
+      const updateData = buildClientData(validated);
+
+      const client = await prisma.client.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Create audit log
+      await createAuditLog({
+        userId,
+        action: 'UPDATE',
+        tableName: 'clients',
+        recordId: client.id,
+        oldValues: existing,
+        newValues: updateData,
+        ...(ipAddress && { ipAddress }),
+        ...(userAgent && { userAgent })
+      });
+
+      revalidatePath('/clients');
+      revalidatePath(`/clients/${id}`);
+
+      return { success: true, data: { id: client.id } };
     }
-
-    // Prepare update data
-    const updateData: Prisma.ClientUpdateInput = {
-      name: validated.name,
-      tradeName: validated.tradeName ?? null,
-      vatNumber: validated.vatNumber ?? null,
-      billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress && validated.shippingAddress
-        ? validated.shippingAddress
-        : Prisma.DbNull,
-      billingEmail: validated.billingEmail,
-      trafficEmail: validated.trafficEmail ?? null,
-      contactPerson: validated.contactPerson ?? null,
-      contactPhone: validated.contactPhone ?? null,
-      contactMobile: validated.contactMobile ?? null,
-      creditLimit: validated.creditLimit ?? null,
-      paymentTerms: validated.paymentTerms,
-      discount: validated.discount ?? null,
-      currency: validated.currency,
-      language: validated.language,
-      sendReminders: validated.sendReminders,
-      autoInvoice: validated.autoInvoice,
-      notes: validated.notes ?? null,
-      tags: validated.tags,
-      isActive: validated.isActive,
-    };
-
-    const client = await prisma.client.update({
-      where: { id },
-      data: updateData,
-    });
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'UPDATE',
-      tableName: 'clients',
-      recordId: client.id,
-      oldValues: existing,
-      newValues: updateData,
-      ...(ipAddress && { ipAddress }),
-      ...(userAgent && { userAgent }),
-    });
-
-
-    revalidatePath('/clients');
-    revalidatePath(`/clients/${id}`);
-
-    return { success: true, data: { id: client.id } };
-  } catch (error) {
-    console.error('Failed to update client:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update client',
-    };
-  }
+  );
 }
 
 /**
  * Delete a client (soft delete)
  */
 export async function deleteClient(id: string): Promise<ActionResult> {
-  try {
-    await requirePermission(RESOURCES.CLIENTS, ACTIONS.DELETE);
+  return withAction(
+    { resource: RESOURCES.CLIENTS, action: ACTIONS.DELETE },
+    async ({ userId, ipAddress, userAgent }) => {
 
-    const session = await getServerAuth();
-    if (!session?.user) {
-      return { success: false, error: 'Not authenticated' };
-    }
-
-    // Check if client exists
-    const existing = await prisma.client.findFirst({
-      where: excludeDeleted<'client'>({ id }) ?? {},
-      include: {
-        _count: {
-          select: { services: true },
+      // Check if client exists
+      const existing = await prisma.client.findFirst({
+        where: excludeDeleted<'client'>({ id }) ?? { id },
+        include: {
+          _count: {
+            select: { services: true },
+          },
         },
-      },
-    });
+      });
 
-    if (!existing) {
-      return { success: false, error: 'Client not found' };
+      if (!existing) {
+        return { success: false, error: 'Client not found' };
+      }
+
+      // Soft delete
+      await prisma.client.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      // Create audit log
+      await createAuditLog({
+        userId,
+        action: 'DELETE',
+        tableName: 'clients',
+        recordId: id,
+        oldValues: existing,
+        ...(ipAddress && { ipAddress }),
+        ...(userAgent && { userAgent }),
+        metadata: { servicesCount: existing._count.services },
+      });
+
+      revalidatePath('/clients');
+
+      return { success: true };
     }
-
-    const { ipAddress, userAgent } = await getRequestMeta();
-
-    // Soft delete
-    await prisma.client.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'DELETE',
-      tableName: 'clients',
-      recordId: id,
-      oldValues: existing,
-      ...(ipAddress && { ipAddress }),
-      ...(userAgent && { userAgent }),
-      metadata: { servicesCount: existing._count.services },
-    });
-
-    revalidatePath('/clients');
-
-    return { success: true };
-  } catch (error) {
-    console.error('Failed to delete client:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete client',
-    };
-  }
+  );
 }
 
 /**
  * Bulk delete clients
  */
 export async function bulkDeleteClients(ids: string[]): Promise<ActionResult<{ deleted: number }>> {
-  try {
-    await requirePermission(RESOURCES.CLIENTS, ACTIONS.DELETE);
+  return withAction(
+    { resource: RESOURCES.CLIENTS, action: ACTIONS.DELETE },
+    async ({ userId, ipAddress, userAgent }) => {
 
-    const session = await getServerAuth();
-    if (!session?.user) {
-      return { success: false, error: 'Not authenticated' };
+      const result = await prisma.client.updateMany({
+        where: {
+          id: { in: ids },
+          deletedAt: null,
+        },
+        data: { deletedAt: new Date() },
+      });
+
+      // Create audit log for bulk operation
+      await createAuditLog({
+        userId,
+        action: 'DELETE',
+        tableName: 'clients',
+        recordId: 'bulk',
+        metadata: { ids, count: result.count },
+        ...(ipAddress && { ipAddress }),
+        ...(userAgent && { userAgent })
+      });
+
+      revalidatePath('/clients');
+
+      return { success: true, data: { deleted: result.count } };
     }
-
-    const { ipAddress, userAgent } = await getRequestMeta();
-
-    const result = await prisma.client.updateMany({
-      where: {
-        id: { in: ids },
-        deletedAt: null,
-      },
-      data: { deletedAt: new Date() },
-    });
-
-    // Create audit log for bulk operation
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'DELETE',
-      tableName: 'clients',
-      recordId: 'bulk',
-      metadata: { ids, count: result.count },
-      ...(ipAddress && { ipAddress }),
-      ...(userAgent && { userAgent }),
-    });
-
-    revalidatePath('/clients');
-
-    return { success: true, data: { deleted: result.count } };
-  } catch (error) {
-    console.error('Failed to bulk delete clients:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete clients',
-    };
-  }
+  )
 }
 
 /**
@@ -657,13 +604,13 @@ export async function getClientCountries(): Promise<ActionResult<string[]>> {
 
     const countries = new Set<string>();
     clients.forEach((client) => {
-      const address = client.billingAddress as unknown as Address | null;
+      const address = client.billingAddress as unknown as Address;
       if (address?.country) {
         countries.add(address.country);
       }
     });
 
-    return { success: true, data: Array.from(countries).sort() };
+    return { success: true, data: Array.from(countries).sort((a, b) => a.localeCompare(b)) };
   } catch (error) {
     console.error('Failed to get countries:', error);
     return {
@@ -683,35 +630,9 @@ export async function exportClients(
     await requirePermission(RESOURCES.CLIENTS, ACTIONS.EXPORT);
 
     const validated = clientFilterSchema.parse({ ...params, limit: 10000 });
-    const { search, country, isActive, currency, tags } = validated;
 
     // Build where clause
-    const where: Prisma.ClientWhereInput = { deletedAt: null }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { tradeName: { contains: search, mode: 'insensitive' } },
-        { vatNumber: { contains: search, mode: 'insensitive' } },
-        { billingEmail: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (country) {
-      where.billingAddress = { path: ['country'], equals: country };
-    }
-
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-
-    if (currency) {
-      where.currency = currency;
-    }
-
-    if (tags && tags.length > 0) {
-      where.tags = { hasSome: tags };
-    }
+    const where = buildClientFilter(validated)
 
     const clients = await prisma.client.findMany({
       where,
@@ -746,18 +667,18 @@ export async function exportClients(
     ];
 
     const rows = clients.map((client) => {
-      const addr = client.billingAddress as unknown as Address | null;
+      const addr = client.billingAddress as unknown as Address;
       return [
         client.clientCode,
-        `"${client.name.replace(/"/g, '""')}"`,
-        client.tradeName ? `"${client.tradeName.replace(/"/g, '""')}"` : '',
+        `"${client.name.replaceAll('"', '""')}"`,
+        client.tradeName ? `"${client.tradeName.replaceAll('"', '""')}"` : '',
         client.vatNumber ?? '',
         client.billingEmail,
         client.trafficEmail ?? '',
         client.contactPerson ?? '',
         client.contactPhone ?? '',
         client.contactMobile ?? '',
-        addr ? `"${[addr.line1, addr.line2].filter(Boolean).join(', ').replace(/"/g, '""')}"` : '',
+        addr ? `"${[addr.line1, addr.line2].filter(Boolean).join(', ').replaceAll('"', '""')}"` : '',
         addr?.city ?? '',
         addr?.postalCode ?? '',
         addr?.country ?? '',

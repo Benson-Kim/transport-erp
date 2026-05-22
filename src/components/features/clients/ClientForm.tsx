@@ -95,8 +95,8 @@ export function ClientFormSkeleton() {
         return (
           <FormSectionSkeleton
             key={sectionId}
-            fieldCount={config.fields}
-            columns={config.columns}
+            fieldCount={config?.fields ?? 4}
+            columns={config?.columns ?? 2}
           />
         );
       })}
@@ -685,8 +685,8 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     error={errors.paymentTerms?.message ?? ''}
                   >
                     <Input
-                      {...fieldRest}
-                      value={typeof value === 'number' ? value : 0}
+                      {...field}
+                      value={Number(field.value) || 30}
                       type="number"
                       min="0"
                       max="365"
@@ -702,14 +702,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                 control={control}
                 render={({ field: { value, ...fieldRest } }) => (
                   <FormField label="Credit Limit" error={errors.creditLimit?.message ?? ''}>
-                    <Input
-                      {...fieldRest}
-                      value={typeof value === 'number' ? value : 0}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="10000.00"
-                    />
+                    <Input {...field} value={Number(field.value) || undefined} type="number" min="0" step="0.01" placeholder="10000.00" />
                   </FormField>
                 )}
               />
@@ -719,14 +712,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                 control={control}
                 render={({ field: { value, ...fieldRest } }) => (
                   <FormField label="Discount (%)" error={errors.discount?.message ?? ''}>
-                    <Input
-                      {...fieldRest}
-                      value={typeof value === 'number' ? value : 0}
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      placeholder="0" />
+                    <Input {...field} value={Number(field.value) || undefined} type="number" min="0" max="100" step="0.01" placeholder="0" />
                   </FormField>
                 )}
               />

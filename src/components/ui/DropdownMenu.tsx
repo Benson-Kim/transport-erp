@@ -8,20 +8,20 @@ import { cn } from '@/lib/utils/cn';
 
 export type DropdownMenuItem =
   | {
-      id: string;
-      label: ReactNode;
-      icon?: ReactNode;
-      onClick?: () => void;
-      disabled?: boolean;
-      danger?: boolean;
-      tooltip?: string;
-      submenu?: DropdownMenuItem[];
-      divider?: false;
-    }
+    id: string;
+    label: ReactNode;
+    icon?: ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    danger?: boolean;
+    tooltip?: string;
+    submenu?: DropdownMenuItem[];
+    divider?: false;
+  }
   | {
-      id: string;
-      divider: true;
-    };
+    id: string;
+    divider: true;
+  };
 
 export interface DropdownMenuProps {
   trigger: ReactNode;
@@ -55,22 +55,29 @@ export function DropdownMenu({
     const calculatePosition = () => {
       const triggerRect = triggerRef.current?.getBoundingClientRect();
       const menuRect = menuRef.current?.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
+
+      if (!triggerRect || !menuRect) return;
+
+      const viewport = {
+        height: window.innerHeight,
+        width: window.innerWidth
+      };
+
+      const isSidePosition = position === 'left' || position === 'right';
 
       let vertical: 'top' | 'bottom' | 'center' = 'bottom';
       let horizontal: 'left' | 'right' = 'left';
 
-      if (position === 'left' || position === 'right') {
+      if (isSidePosition) {
         const spaceAbove = triggerRect.top;
-        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceBelow = viewport.height - triggerRect.bottom;
         const menuHeight = menuRect.height;
         const triggerMidpoint = triggerRect.top + triggerRect.height / 2;
         const halfMenuHeight = menuHeight / 2;
 
         if (
           triggerMidpoint - halfMenuHeight > 0 &&
-          triggerMidpoint + halfMenuHeight < viewportHeight
+          triggerMidpoint + halfMenuHeight < viewport.height
         ) {
           vertical = 'center';
         } else if (spaceBelow < menuHeight && spaceAbove > spaceBelow) {
@@ -87,7 +94,7 @@ export function DropdownMenu({
             horizontal = 'left';
           }
         } else {
-          const spaceRight = viewportWidth - triggerRect.right;
+          const spaceRight = viewport.width - triggerRect.right;
           if (spaceRight < menuRect.width) {
             horizontal = 'left';
           } else {
@@ -95,7 +102,7 @@ export function DropdownMenu({
           }
         }
       } else {
-        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceBelow = viewport.height - triggerRect.bottom;
         const spaceAbove = triggerRect.top;
 
         if (spaceBelow < menuRect.height && spaceAbove > spaceBelow) {

@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
-import { FormProvider, useForm, type Resolver } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
+import type { Resolver } from 'react-hook-form';
 
 import {
   getSystemSettings,
@@ -35,7 +36,7 @@ import SequenceSettings from './SystemSettings/Sequence';
 type SettingsSection = keyof SystemSettings;
 
 interface SystemSettingsContentProps {
-  initialSettings?: SystemSettings;
+  initialSettings?: Partial<SystemSettings>;
 }
 
 export function SystemSettingsContent({ initialSettings }: SystemSettingsContentProps) {
@@ -56,6 +57,7 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
     };
   }, [initialSettings]);
 
+
   const methods = useForm<SystemSettings>({
     resolver: zodResolver(systemSettingsSchema) as Resolver<SystemSettings>,
     defaultValues,
@@ -64,7 +66,7 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
   // Only fetch settings if not provided via props
   useEffect(() => {
     if (!initialSettings) {
-      void loadSettings();
+      loadSettings();
     }
   }, [initialSettings]);
 

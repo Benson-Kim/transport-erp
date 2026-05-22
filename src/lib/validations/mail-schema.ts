@@ -21,7 +21,7 @@ export const emailConfigSchema = z.object({
   smtp: z
     .object({
       host: z.string(),
-      port: z.number(),
+      port: z.number().int().positive().optional(),
       secure: z.boolean(),
       auth: z.object({
         user: z.string(),

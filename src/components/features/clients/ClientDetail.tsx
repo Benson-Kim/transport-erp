@@ -10,7 +10,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { format } from 'date-fns';
 import {
   Edit,
   Trash2,
@@ -32,6 +31,7 @@ import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
 import type { ClientWithStats, Address } from '@/types/client';
 
 import { ClientServices } from './ClientServices';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface ClientDetailProps {
   client: ClientWithStats;
@@ -322,7 +322,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const billingAddress = client.billingAddress as Address;
+  const billingAddress = client.billingAddress as unknown as Address;
   const shippingAddress = client.shippingAddress as Address | null;
 
   const handleCopy = async (text: string, field: string) => {
@@ -435,7 +435,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleCopy(client.contactPhone, 'phone')}
+                          onClick={() => handleCopy(client.contactPhone ?? '', 'phone')}
                           icon={
                             copiedField === 'phone' ? (
                               <Check className="w-3 h-3 text-status-completed-text" />
@@ -630,7 +630,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                   <div>
                     <p className="text-xs text-neutral-500">Last Service</p>
                     <p className="text-sm">
-                      {format(new Date(client.stats.lastServiceDate), 'dd/MM/yyyy')}
+                      {formatDate.compact(client.stats.lastServiceDate)}
                     </p>
                   </div>
                 </div>
@@ -640,7 +640,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                 <div>
                   <p className="text-xs text-neutral-500">Created</p>
                   <p className="text-sm">
-                    {format(new Date(client.createdAt), 'dd/MM/yyyy HH:mm')}
+                    {formatDate.dateTime(client.createdAt)}
                   </p>
                 </div>
               </div>
@@ -649,7 +649,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                 <div>
                   <p className="text-xs text-neutral-500">Last Modified</p>
                   <p className="text-sm">
-                    {format(new Date(client.updatedAt), 'dd/MM/yyyy HH:mm')}
+                    {formatDate.dateTime(client.updatedAt)}
                   </p>
                 </div>
               </div>

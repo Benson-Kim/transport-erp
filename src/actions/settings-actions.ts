@@ -21,7 +21,7 @@ import {
   type GeneralSettingsInput,
   type SystemSettings,
   companySettingsSchema,
-  emailConfigSchema,
+  emailSettingsSchema,
   backupSettingsSchema,
   pdfSettingsSchema,
   numberSequencesSchema,
@@ -356,7 +356,7 @@ export async function saveEmailSettings(data: unknown) {
   return updateSetting(
     SettingKey.EMAIL,
     data,
-    emailConfigSchema,
+    emailSettingsSchema,
     'Email configuration for System notifications'
   );
 }

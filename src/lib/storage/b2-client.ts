@@ -5,7 +5,7 @@ import { Agent as HttpsAgent } from 'node:https';
 import {
   S3Client,
   // HeadBucketCommand,
-  ListObjectsV2Command,
+  // ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 
@@ -121,67 +121,67 @@ class B2StorageClient {
   /**
    * Test connection to B2
    */
-  private async testConnection(): Promise<void> {
-    if (!this.client) {
-      throw new StorageConfigError('Client not initialized');
-    }
+  // private async testConnection(): Promise<void> {
+  //   if (!this.client) {
+  //     throw new StorageConfigError('Client not initialized');
+  //   }
 
-    try {
-      console.log(`Testing connection to bucket: ${this.config.bucketName}`);
+  //   try {
+  //     console.log(`Testing connection to bucket: ${this.config.bucketName}`);
 
-      // Try to list objects in the bucket (limited to 1) to verify connection
-      // This is more reliable than HeadBucket for B2 application keys
-      const command = new ListObjectsV2Command({
-        Bucket: this.config.bucketName,
-        MaxKeys: 1,
-      });
+  //     // Try to list objects in the bucket (limited to 1) to verify connection
+  //     // This is more reliable than HeadBucket for B2 application keys
+  //     const command = new ListObjectsV2Command({
+  //       Bucket: this.config.bucketName,
+  //       MaxKeys: 1,
+  //     });
 
-      const response = await this.client.send(command);
-      console.log('B2 connection test successful', {
-        bucketName: response.Name,
-        keyCount: response.KeyCount,
-      });
-    } catch (error: any) {
-      console.error('B2 connection test failed:', {
-        error: error.message,
-        code: error.Code || error.name,
-        statusCode: error.$metadata?.httpStatusCode,
-        bucketName: this.config.bucketName,
-      });
+  //     const response = await this.client.send(command);
+  //     console.log('B2 connection test successful', {
+  //       bucketName: response.Name,
+  //       keyCount: response.KeyCount,
+  //     });
+  //   } catch (error: any) {
+  //     console.error('B2 connection test failed:', {
+  //       error: error.message,
+  //       code: error.Code || error.name,
+  //       statusCode: error.$metadata?.httpStatusCode,
+  //       bucketName: this.config.bucketName,
+  //     });
 
-      // Provide more specific error messages
-      if (error.Code === 'InvalidAccessKeyId' || error.Code === 'SignatureDoesNotMatch') {
-        throw new StorageConfigError(
-          'Invalid B2 credentials. Please check your application key ID and key.'
-        );
-      }
-      if (error.Code === 'NoSuchBucket') {
-        throw new StorageConfigError(
-          `Bucket "${this.config.bucketName}" not found. Please check your B2_BUCKET_NAME configuration.`
-        );
-      }
-      if (error.Code === 'AccessDenied' || error.$metadata?.httpStatusCode === 403) {
-        throw new StorageConfigError(
-          'Access denied. Please ensure your B2 application key has access to the bucket.'
-        );
-      }
-      if (
-        error.Code === 'RequestTimeout' ||
-        error.message?.includes('ECONNRESET') ||
-        error.message?.includes('ETIMEDOUT')
-      ) {
-        throw new StorageConfigError(
-          `Connection to B2 failed. This could be due to:\n` +
-            `1. Network/firewall blocking the connection\n` +
-            `2. Incorrect endpoint URL (current: ${this.config.endpoint})\n` +
-            `3. B2 service temporarily unavailable`
-        );
-      }
+  //     // Provide more specific error messages
+  //     if (error.Code === 'InvalidAccessKeyId' || error.Code === 'SignatureDoesNotMatch') {
+  //       throw new StorageConfigError(
+  //         'Invalid B2 credentials. Please check your application key ID and key.'
+  //       );
+  //     }
+  //     if (error.Code === 'NoSuchBucket') {
+  //       throw new StorageConfigError(
+  //         `Bucket "${this.config.bucketName}" not found. Please check your B2_BUCKET_NAME configuration.`
+  //       );
+  //     }
+  //     if (error.Code === 'AccessDenied' || error.$metadata?.httpStatusCode === 403) {
+  //       throw new StorageConfigError(
+  //         'Access denied. Please ensure your B2 application key has access to the bucket.'
+  //       );
+  //     }
+  //     if (
+  //       error.Code === 'RequestTimeout' ||
+  //       error.message?.includes('ECONNRESET') ||
+  //       error.message?.includes('ETIMEDOUT')
+  //     ) {
+  //       throw new StorageConfigError(
+  //         `Connection to B2 failed. This could be due to:\n` +
+  //           `1. Network/firewall blocking the connection\n` +
+  //           `2. Incorrect endpoint URL (current: ${this.config.endpoint})\n` +
+  //           `3. B2 service temporarily unavailable`
+  //       );
+  //     }
 
-      // For any other error, provide the original message
-      throw new StorageConfigError(`Failed to connect to B2: ${error.message || 'Unknown error'}`);
-    }
-  }
+  //     // For any other error, provide the original message
+  //     throw new StorageConfigError(`Failed to connect to B2: ${error.message || 'Unknown error'}`);
+  //   }
+  // }
 
   /**
    * Initialize and test connection

@@ -5,7 +5,6 @@ import { useState, useMemo, useCallback } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { format } from 'date-fns';
 import {
   UserPlus,
   MoreVertical,
@@ -41,6 +40,7 @@ import { cn } from '@/lib/utils/cn';
 
 import { PermissionMatrix } from './PermissionMatrix';
 import { UserForm } from './UserForm';
+import { formatDate } from '@/lib/utils/date-formats';
 
 interface User {
   id: string;
@@ -62,6 +62,15 @@ interface UserManagementProps {
   currentUserRole: UserRole;
 }
 
+const ROLE_CONFIG: Partial<Record<UserRole,
+  { label: string; variant: React.ComponentProps<typeof Badge>['variant'] }
+>> = {
+  [UserRole.SUPER_ADMIN]: { label: 'Admin', variant: 'active' },
+  [UserRole.ADMIN]: { label: 'Admin', variant: 'active' },
+  [UserRole.MANAGER]: { label: 'Manager', variant: 'billed' },
+  [UserRole.OPERATOR]: { label: 'Operator', variant: 'default' },
+};
+
 /**
  * Simple Avatar component using initials
  */
@@ -69,11 +78,11 @@ function UserAvatar({
   name,
   src,
   size = 'md',
-}: {
+}: Readonly<{
   name: string;
   src?: string | null | undefined;
   size?: 'sm' | 'md' | 'lg';
-}) {
+}>) {
   const initials = name
     .split(' ')
     .map((n) => n[0])
@@ -117,7 +126,7 @@ function ConfirmationDialog({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   variant = 'default',
-}: {
+}: Readonly<{
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -126,13 +135,13 @@ function ConfirmationDialog({
   confirmText?: string;
   cancelText?: string;
   variant?: 'default' | 'danger' | 'warning';
-}) {
+}>) {
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      await onConfirm();
+      onConfirm();
     } finally {
       setLoading(false);
       onClose();
@@ -174,7 +183,7 @@ function ConfirmationDialog({
 /**
  * User management table with CRUD operations
  */
-export function UserManagement({ users, currentUserId, currentUserRole }: UserManagementProps) {
+export function UserManagement({ users, currentUserId, currentUserRole }: Readonly<UserManagementProps>) {
   const [userFormOpen, setUserFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showPermissions, setShowPermissions] = useState(false);
@@ -187,16 +196,16 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
   const router = useRouter();
 
   // Filter users to only show Admin, Manager, Operator roles
-  const relevantRoles = [
+  const relevantRoles = new Set([
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.MANAGER,
     UserRole.OPERATOR,
     UserRole.ACCOUNTANT,
     UserRole.VIEWER,
-  ];
+  ]);
   const filteredByRole = users.filter(
-    (user) => relevantRoles.includes(user.role) || user.role === UserRole.SUPER_ADMIN
+    (user) => relevantRoles.has(user.role) || user.role === UserRole.SUPER_ADMIN
   );
 
   /**
@@ -269,25 +278,9 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
         key: 'role',
         header: 'Role',
         accessor: (row) => {
-          const roleDisplay =
-            row.role === UserRole.SUPER_ADMIN
-              ? 'Admin'
-              : row.role === UserRole.ADMIN
-                ? 'Admin'
-                : row.role === UserRole.MANAGER
-                  ? 'Manager'
-                  : row.role === UserRole.OPERATOR
-                    ? 'Operator'
-                    : row.role;
+          const config = ROLE_CONFIG[row.role];
 
-          const variant =
-            row.role === UserRole.SUPER_ADMIN || row.role === UserRole.ADMIN
-              ? 'active'
-              : row.role === UserRole.MANAGER
-                ? 'billed'
-                : 'default';
-
-          return <Badge variant={variant}>{roleDisplay}</Badge>;
+          return <Badge variant={config?.variant ?? 'default'}>{config?.label ?? row.role}</Badge>;
         },
       },
       {
@@ -303,7 +296,7 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
         key: 'lastLogin',
         header: 'Last Login',
         accessor: (row) =>
-          row.lastLoginAt ? format(row.lastLoginAt, 'dd/MM/yyyy HH:mm') : 'Never',
+          row.lastLoginAt ? formatDate.dateTime(row.lastLoginAt, 'dd/MM/yyyy HH:mm') : 'Never',
         sortable: true,
         sortKey: 'lastLoginAt',
       },
@@ -381,6 +374,7 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
       setSelectedUsers([]);
     } catch (error) {
       toast.error('Error', 'Failed to deactivate some users');
+      console.error(error)
     }
   }, [selectedUsers, currentUserId, filteredUsers, router]);
 
@@ -403,16 +397,18 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
       setBulkAction(null);
     } catch (error) {
       toast.error('Error', 'Failed to delete some users');
+      console.error(error)
     }
   }, [selectedUsers, currentUserId, router]);
 
   const isAdmin = currentUserRole === UserRole.ADMIN || currentUserRole === UserRole.SUPER_ADMIN;
+
   /**
    * Row actions dropdown
    */
+  const permissions = usePermissions();
   const rowActions = useCallback(
     (user: User) => {
-      const permissions = usePermissions();
       const isSelf = user.id === currentUserId;
 
       if (!isAdmin || isSelf) return null;
@@ -545,7 +541,7 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
         {isAdmin && selectedUsers.length > 0 && (
           <div className="flex items-center gap-4 mt-4 pt-4 border-t">
             <span className="text-sm text-neutral-600">
-              {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+              {selectedUsers.length} user{selectedUsers.length === 1 ? '' : 's'} selected
             </span>
             <Button variant="secondary" size="sm" onClick={handleBulkDeactivate}>
               Deactivate Selected
