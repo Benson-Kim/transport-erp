@@ -4,11 +4,11 @@
 
 import { compare } from 'bcryptjs';
 
-import prisma from '../prisma/prisma';
+import prisma from '@/lib/prisma/prisma';
 import { UserRole } from '@/app/generated/prisma';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 
-import NextAuth, { type NextAuthConfig, type User as NextAuthUser } from 'next-auth';
+import NextAuth, { type NextAuthConfig } from 'next-auth';
 import type { Adapter } from 'next-auth/adapters';
 
 import Google from 'next-auth/providers/google';
@@ -52,11 +52,11 @@ export const authConfig = {
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
       async authorize(credentials, req) {
-        try {
-          if (!credentials) {
-            throw new Error('Missing credentials');
-          }
+        if (!credentials) {
+          throw new Error('Missing credentials');
+        }
 
+        try {
           // Validate input
           const validatedFields = loginSchema.parse({
             email: credentials.email,
@@ -160,7 +160,7 @@ export const authConfig = {
             isActive: user.isActive,
             department: user.department,
             avatar: user.avatar,
-          } as unknown as NextAuthUser;
+          };
         } catch (error) {
           console.error(error);
           return null;

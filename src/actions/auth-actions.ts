@@ -92,6 +92,17 @@ export async function signInWithCredentials(data: LoginFormData) {
       redirect: false,
     });
 
+    if (result?.error) {
+      switch (result.error) {
+        case 'CredentialsSignin':
+          return { success: false, error: 'Invalid email or password' };
+        case 'AccessDenied':
+          return { success: false, error: 'Access denied' };
+        default:
+          return { success: false, error: result.error || 'Authentication failed' };
+      }
+    }
+
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {

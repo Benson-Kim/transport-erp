@@ -13,7 +13,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff } from 'lucide-react';
 
 import { resetPassword } from '@/actions/auth-actions';
-import { ResetPasswordFormData, resetPasswordSchema } from '@/lib/validations/auth-schema';
+import {
+  ResetPasswordFormData,
+  resetPasswordSchema,
+} from '@/lib/validations/auth-schema';
 import { Button, FormField, Input } from '@/components/ui';
 import { toast } from '@/lib/toast';
 
@@ -21,7 +24,7 @@ interface ResetPasswordFormProps {
   token: string;
 }
 
-export function ResetPasswordForm({ token }: Readonly<ResetPasswordFormProps>) {
+export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -53,7 +56,9 @@ export function ResetPasswordForm({ token }: Readonly<ResetPasswordFormProps>) {
         return;
       }
 
-      toast.success('Password reset successful. You can now sign in with your new password.');
+      toast.success(
+        'Password reset successful. You can now sign in with your new password.'
+      );
       router.push('/login');
     } catch (error) {
       console.error('Password reset error:', error);
@@ -68,7 +73,11 @@ export function ResetPasswordForm({ token }: Readonly<ResetPasswordFormProps>) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
       {/* New Password Field */}
-      <FormField label="New Password" required error={errors.password?.message ?? ''}>
+      <FormField
+        label="New Password"
+        required
+        error={errors.password?.message ?? ''}
+      >
         <div className="relative">
           <Input
             {...register('password')}
@@ -82,13 +91,23 @@ export function ResetPasswordForm({ token }: Readonly<ResetPasswordFormProps>) {
             variant="ghost"
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
-            icon={showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            icon={
+              showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )
+            }
           />
         </div>
       </FormField>
 
       {/* Confirm Password Field */}
-      <FormField label="Confirm Password" required error={errors.confirmPassword?.message ?? ''}>
+      <FormField
+        label="Confirm Password"
+        required
+        error={errors.confirmPassword?.message ?? ''}
+      >
         <div className="relative">
           <Input
             {...register('confirmPassword')}
@@ -103,7 +122,11 @@ export function ResetPasswordForm({ token }: Readonly<ResetPasswordFormProps>) {
             onClick={() => setShowConfirmPassword((prev) => !prev)}
             className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             icon={
-              showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />
+              showConfirmPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )
             }
           />
         </div>

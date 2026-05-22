@@ -1,7 +1,7 @@
-import { EmailService } from './service';
+import { EmailService } from "./service";
 
 export { EmailService } from './service';
-export { getEmailConfig } from './config';
+export { getEmailConfig } from './config'
 export type { EmailConfig } from '@/types/mail';
 
 export const emailService = EmailService.getInstance();

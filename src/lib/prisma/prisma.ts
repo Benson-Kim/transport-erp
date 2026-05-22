@@ -5,9 +5,7 @@
 
 import { withAccelerate } from '@prisma/extension-accelerate';
 
-import { PrismaClient } from '@/app/generated/prisma';
-
-const globalForPrisma = globalThis as unknown as {
+const globalForPrisma = global as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined;
 };
 
@@ -21,13 +19,14 @@ function createPrismaClient() {
   }).$extends(withAccelerate());
 }
 
+
 /**
  * Get Prisma client instance
  * Returns null during build phase to prevent connection errors
  */
 function getPrismaClient() {
   // Skip during Next.js build phase
-  if (process.env['NEXT_PHASE'] === 'phase-production-build') {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
     return null as unknown as ReturnType<typeof createPrismaClient>;
   }
 

@@ -9,7 +9,6 @@ import { redirect } from 'next/navigation';
 import { getServerAuth } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { AuthFormFooter, ResetPasswordForm } from '@/components/features/auth';
-import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Reset Password | Enterprise Dashboard',
@@ -22,7 +21,7 @@ interface ResetPasswordPageProps {
 
 export default async function ResetPasswordPage({
   searchParams,
-}: Readonly<ResetPasswordPageProps>) {
+}: ResetPasswordPageProps) {
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {

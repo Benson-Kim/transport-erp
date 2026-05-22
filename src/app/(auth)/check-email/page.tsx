@@ -20,7 +20,9 @@ interface CheckEmailPageProps {
   searchParams: Promise<{ email?: string }>;
 }
 
-export default async function CheckEmailPage({ searchParams }: Readonly<CheckEmailPageProps>) {
+export default async function CheckEmailPage({
+  searchParams,
+}: CheckEmailPageProps) {
   const { email } = await searchParams;
 
   return (
@@ -51,8 +53,8 @@ export default async function CheckEmailPage({ searchParams }: Readonly<CheckEma
                   <p>We&apos;ve sent you a verification link.</p>
                 )}
                 <p>
-                  Click the link in the email to verify your account. The link will expire in 24
-                  hours.
+                  Click the link in the email to verify your account. The link
+                  will expire in 24 hours.
                 </p>
               </div>
             </div>

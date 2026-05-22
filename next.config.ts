@@ -1,4 +1,4 @@
-// next.config.ts
+import type { NextConfig } from 'next';
 import createBundleAnalyzer from '@next/bundle-analyzer';
 
 import type { NextConfig } from 'next';
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  headers() {
+  async headers() {
     if (process.env['NODE_ENV'] !== 'production') return [];
     return [
       {
@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  redirects() {
+  async redirects() {
     return [
       {
         source: '/',
@@ -110,7 +110,7 @@ const nextConfig: NextConfig = {
 
   trailingSlash: false,
 
-  output: 'standalone',
+  output: "standalone",
 };
 
 export default withBundleAnalyzer(nextConfig);

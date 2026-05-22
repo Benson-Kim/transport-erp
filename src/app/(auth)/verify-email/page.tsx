@@ -12,7 +12,6 @@ import { getServerAuth, verifyEmailToken } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
 import { AuthFormFooter } from '@/components/features/auth';
-import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Verify Email | Enterprise Dashboard',
@@ -23,7 +22,7 @@ interface VerifyEmailPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-export default async function VerifyEmailPage({ searchParams }: Readonly<VerifyEmailPageProps>) {
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {
@@ -70,7 +69,7 @@ export default async function VerifyEmailPage({ searchParams }: Readonly<VerifyE
   );
 }
 
-function VerifyEmailLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-neutral-50 to-neutral-100 px-4 py-12 dark:from-neutral-950 dark:to-neutral-900">
       <div className="w-full max-w-md space-y-8">
@@ -86,7 +85,7 @@ function VerifyEmailLayout({ children }: Readonly<{ children: React.ReactNode }>
   );
 }
 
-function SuccessState({ email }: Readonly<{ email?: string }>) {
+function SuccessState({ email }: { email?: string }) {
   return (
     <div className="space-y-6">
       <div className="space-y-4 text-center">
@@ -99,7 +98,9 @@ function SuccessState({ email }: Readonly<{ email?: string }>) {
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
           {email ? (
             <>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">{email}</span>{' '}
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                {email}
+              </span>{' '}
               has been verified successfully.
             </>
           ) : (
@@ -122,11 +123,11 @@ function ErrorState({
   title,
   description,
   showResend = false,
-}: Readonly<{
+}: {
   title: string;
   description: string;
   showResend?: boolean;
-}>) {
+}) {
   return (
     <div className="space-y-6">
       <div className="space-y-4 text-center">
@@ -136,13 +137,17 @@ function ErrorState({
         <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
           {title}
         </h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          {description}
+        </p>
       </div>
 
       <div className="flex flex-col space-y-3">
         {showResend && (
           <Button asChild variant="secondary" className="w-full">
-            <Link href="/resend-verification">Resend verification email</Link>
+            <Link href="/resend-verification">
+              Resend verification email
+            </Link>
           </Button>
         )}
 
@@ -163,6 +168,7 @@ function ErrorState({
         </Link>
       </p> */}
       </div>
+
     </div>
   );
 }
