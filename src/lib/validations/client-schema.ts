@@ -54,7 +54,14 @@ export const clientSchema = z
     shippingAddress: addressSchema.optional(),
 
     // Contact Information
-    billingEmail: z.email('Invalid email address').min(1, 'Billing email is required'),
+    // billingEmail: z
+    //   .string()
+    //   .email('Invalid email address')
+    //   .min(1, 'Billing email is required'),
+    billingEmail: z
+      .string()
+      .min(1, 'Billing email is required')
+      .pipe(z.email('Invalid email address')),
     trafficEmail: z
       .email('Invalid email address')
       .toLowerCase()

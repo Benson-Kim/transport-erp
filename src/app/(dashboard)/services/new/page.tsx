@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 
 import { getClientsAndSuppliers, getService } from '@/actions/service-actions';
 import { ServiceForm } from '@/components/features/services';
-import { PageHeader } from '@/components/ui';
+import { Breadcrumbs, PageHeader } from '@/components/ui';
 import { auth } from '@/lib/auth';
 
 import type { Metadata } from 'next';
@@ -35,13 +35,8 @@ export default async function NewServicePage({ searchParams }: NewServicePagePro
   return (
     <div className="flex-1 space-y-6 p-4 md:p-6 lg:p-8">
       <div>
-        {/* <Breadcrumb
-          items={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Services', href: '/services' },
-            { label: params.duplicate ? 'Duplicate Service' : 'New Service' },
-          ]}
-        /> */}
+        <Breadcrumbs />
+
         <PageHeader
           title={params.duplicate ? 'Duplicate Service' : 'New Service'}
           description="Fill in the service details below"

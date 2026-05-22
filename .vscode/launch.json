@@ -1,11 +1,26 @@
+// {
+//   "configurations": [
+//     {
+//       "name": "Containers: Node.js Launch",
+//       "type": "docker",
+//       "request": "launch",
+//       "preLaunchTask": "docker-run: debug",
+//       "platform": "node"
+//     }
+//   ]
+// }
+
 {
+  "version": "0.2.0",
   "configurations": [
     {
-      "name": "Containers: Node.js Launch",
-      "type": "docker",
+      "name": "Next.js: debug server",
+      "type": "node",
       "request": "launch",
-      "preLaunchTask": "docker-run: debug",
-      "platform": "node"
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
     }
   ]
 }

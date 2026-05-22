@@ -11,7 +11,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Save, X, Building2, MapPin, CreditCard, Settings, AlertCircle, Check } from 'lucide-react';
+import { Save, X, Building2, MapPin, CreditCard, Settings } from 'lucide-react';
 import { useForm, Controller, FormProvider, useWatch } from 'react-hook-form';
 
 import { createClient, updateClient } from '@/actions/client-actions';
@@ -25,7 +25,6 @@ import {
   Modal,
   Select,
   Skeleton,
-  SkeletonGroup,
   Switch,
   Tabs,
 } from '@/components/ui';
@@ -75,8 +74,10 @@ const FORM_SECTION_IDS = [
   'section-settings',
 ] as const;
 
+type SectionId = (typeof FORM_SECTION_IDS)[number];
+
 const SECTION_CONFIG: Record<
-  string,
+  SectionId,
   { icon: boolean; title: string; fields: number; columns: 1 | 2 }
 > = {
   'section-basic': { icon: true, title: 'Basic Information', fields: 4, columns: 2 },
@@ -215,10 +216,10 @@ export function ClientForm({ client, mode }: ClientFormProps) {
   // Warn before leaving with unsaved changes
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      if (isDirty) return
+
+      e.preventDefault();
+      e.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -226,22 +227,46 @@ export function ClientForm({ client, mode }: ClientFormProps) {
   }, [isDirty]);
 
   const onSubmit = (data: ClientInput) => {
+    console.log('Form submitted with data:', data);
+
     setFeedback(null);
     startTransition(async () => {
-      const result =
-        mode === 'create' ? await createClient(data) : await updateClient(client!.id, data);
 
-      if (result.success) {
-        if (mode === 'create' && result.data?.id) {
-          router.push(`/clients/${result.data.id}`);
+      try {
+
+
+        let result;
+
+        if (mode === 'create') {
+          result = await createClient(data);
         } else {
-          setFeedback({ type: 'success', message: 'Client saved successfully' });
-          router.refresh();
+          if (!client) {
+            setFeedback({ type: 'error', message: 'Client data is missing' });
+            return;
+          }
+          console.log(`Updating client ${client.id} with data:`, data);
+
+          result = await updateClient(client.id, data);
         }
-      } else {
+
+        if (result.success) {
+          if (mode === 'create' && result.data?.id) {
+            router.push(`/clients/${result.data.id}`);
+          } else {
+            setFeedback({ type: 'success', message: 'Client saved successfully' });
+            router.refresh();
+          }
+        } else {
+          setFeedback({
+            type: 'error',
+            message: result.error ?? 'Failed to save client',
+          });
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
         setFeedback({
           type: 'error',
-          message: result.error ?? 'Failed to save client',
+          message: error instanceof Error ? error.message : 'An unexpected error occurred',
         });
       }
     });
@@ -254,6 +279,12 @@ export function ClientForm({ client, mode }: ClientFormProps) {
       router.back();
     }
   };
+
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.log('Form validation errors:', errors);
+    }
+  }, [errors]);
 
   const tabContent = [
     {
@@ -307,7 +338,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Active Client</Label>
                       </div>
                     )}
@@ -519,7 +550,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                   control={control}
                   render={({ field }) => (
                     <div className="flex items-center gap-2">
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                       <Label>Use different shipping address</Label>
                     </div>
                   )}
@@ -648,13 +679,14 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="paymentTerms"
                 control={control}
-                render={({ field }) => (
+                render={({ field: { value, ...fieldRest } }) => (
                   <FormField
                     label="Payment Terms (days)"
                     error={errors.paymentTerms?.message ?? ''}
                   >
                     <Input
-                      {...field}
+                      {...fieldRest}
+                      value={typeof value === 'number' ? value : 0}
                       type="number"
                       min="0"
                       max="365"
@@ -668,9 +700,16 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="creditLimit"
                 control={control}
-                render={({ field }) => (
+                render={({ field: { value, ...fieldRest } }) => (
                   <FormField label="Credit Limit" error={errors.creditLimit?.message ?? ''}>
-                    <Input {...field} type="number" min="0" step="0.01" placeholder="10000.00" />
+                    <Input
+                      {...fieldRest}
+                      value={typeof value === 'number' ? value : 0}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="10000.00"
+                    />
                   </FormField>
                 )}
               />
@@ -678,9 +717,16 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="discount"
                 control={control}
-                render={({ field }) => (
+                render={({ field: { value, ...fieldRest } }) => (
                   <FormField label="Discount (%)" error={errors.discount?.message ?? ''}>
-                    <Input {...field} type="number" min="0" max="100" step="0.01" placeholder="0" />
+                    <Input
+                      {...fieldRest}
+                      value={typeof value === 'number' ? value : 0}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0" />
                   </FormField>
                 )}
               />
@@ -715,7 +761,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Send payment reminders</Label>
                       </div>
                     )}
@@ -726,7 +772,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Auto-generate invoices</Label>
                       </div>
                     )}
@@ -763,7 +809,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-4xl">
+      <form onSubmit={(e) => void handleSubmit(onSubmit)(e)} className="space-y-8 max-w-4xl">
         {feedback && (
           <Alert variant={feedback.type} dismissible onDismiss={() => setFeedback(null)}>
             {feedback.message}

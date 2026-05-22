@@ -163,7 +163,7 @@ export const emailConfigSchema = z
     provider: emailProviderSchema,
     apiKey: z.string().optional(),
     host: z.string().optional(),
-    port: z.coerce.number().int().min(1).max(65535).optional(),
+    port: z.number().int().min(1).max(65535).default(587).optional(),
     user: z.string().optional(),
     password: z.string().optional(),
     secure: z.boolean().default(true).optional(),
@@ -234,7 +234,7 @@ const numberFormatSchema = z
       // Check for valid tokens only (no invalid patterns)
       const validTokens = ['YYYY', 'YY', 'MM', 'DD', 'NNNNN', 'NNNN', 'NNN'];
       const tokenPattern = /[A-Z]{2,5}/g;
-      const matches = value.match(tokenPattern) || [];
+      const matches = value.match(tokenPattern) ?? [];
 
       return matches.every(
         (match) =>
@@ -310,6 +310,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
     apiKey: '',
     fromName: '',
     fromEmail: '',
+    port: 587
   },
   pdf: {
     paperSize: 'A4',

@@ -122,11 +122,11 @@ export function ServiceForm({
         ...baseDefaults,
         ...(mode === 'duplicate' && sourceService
           ? {
-              ...sourceService,
-              date: new Date(),
-              serviceNumber: undefined,
-              status: ServiceStatus.DRAFT,
-            }
+            ...sourceService,
+            date: new Date(),
+            serviceNumber: undefined,
+            status: ServiceStatus.DRAFT,
+          }
           : {}),
         ...(mode === 'edit' && service ? service : {}),
       };
@@ -141,11 +141,11 @@ export function ServiceForm({
       supplierId: lastSupplier || '',
       ...(mode === 'duplicate' && sourceService
         ? {
-            ...sourceService,
-            date: new Date(),
-            serviceNumber: undefined,
-            status: ServiceStatus.DRAFT,
-          }
+          ...sourceService,
+          date: new Date(),
+          serviceNumber: undefined,
+          status: ServiceStatus.DRAFT,
+        }
         : {}),
       ...(mode === 'edit' && service ? service : {}),
     };
@@ -476,7 +476,7 @@ export function ServiceForm({
                     <Input
                       {...field}
                       type="number"
-                      value={field.value || ''}
+                      value={field.value ?? ''}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                       placeholder="0"
                       error={fieldState.error?.message ?? ''}
