@@ -167,7 +167,7 @@ export async function getServices(filters: ServiceFiltersAPI) {
   ]);
 
   // Format services for frontend
-  const formattedServices = services.map((service) => ({
+  const formattedServices = services.map((service: any) => ({
     id: service.id,
     serviceNumber: service.serviceNumber,
     date: service.date.toISOString(),
@@ -507,7 +507,7 @@ export async function getServiceActivity(
   const items = activities.slice(0, limit);
 
   // Transform activities into timeline items
-  const timelineItems = items.map((activity) => {
+  const timelineItems = items.map((activity: any) => {
     let description = '';
     let metadata = {};
 

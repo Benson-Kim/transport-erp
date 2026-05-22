@@ -408,7 +408,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
 
   if (usersWithServices.length > 0) {
     throw new Error(
-      `Cannot delete users with services: ${usersWithServices.map((u) => u.name).join(', ')}`
+      `Cannot delete users with services: ${usersWithServices.map((u: any) => u.name).join(', ')}`
     );
   }
 

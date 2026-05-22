@@ -153,7 +153,7 @@ export async function withTransaction<T>(
   fn: (tx: typeof prisma) => Promise<T>
 ): Promise<T> {
   return prisma.$transaction(
-    async (tx) => {
+    async (tx: any) => {
       try {
         return await fn(tx as typeof prisma);
       } catch (error) {

@@ -83,7 +83,7 @@ export async function signInWithCredentials(data: LoginFormData) {
     const { email, password, rememberMe } = loginSchema.parse(data);
     const { ipAddress, userAgent } = await getClientInfo();
 
-    await signIn('credentials', {
+    const result = await signIn('credentials', {
       email,
       password,
       rememberMe: String(rememberMe ?? false),

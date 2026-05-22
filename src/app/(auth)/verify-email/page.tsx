@@ -3,6 +3,7 @@
  * Processes the email verification token from the URL
  */
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 

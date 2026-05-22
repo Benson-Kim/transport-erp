@@ -3,6 +3,7 @@
  * Allows users to set a new password using a token from their email link
  */
 
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 

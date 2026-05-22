@@ -188,7 +188,7 @@ export async function getClients(params: Record<string, unknown>): Promise<Actio
     ]);
 
     // Transform to list items
-    const data: ClientListItem[] = clients.map((client) => {
+    const data: ClientListItem[] = clients.map((client: any) => {
       const billingAddress = client.billingAddress as unknown as Address;
       return {
         id: client.id,
@@ -284,23 +284,23 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
 
   const totalServices = services.length;
   const activeServices = services.filter(
-    (s) =>
+    (s: any) =>
       s.status === ServiceStatus.DRAFT ||
       s.status === ServiceStatus.CONFIRMED ||
       s.status === ServiceStatus.IN_PROGRESS
   ).length;
   const completedServices = services.filter(
-    (s) => s.status === ServiceStatus.COMPLETED || s.status === ServiceStatus.INVOICED
+    (s: any) => s.status === ServiceStatus.COMPLETED || s.status === ServiceStatus.INVOICED
   ).length;
-  const cancelledServices = services.filter((s) => s.status === ServiceStatus.CANCELLED).length;
+  const cancelledServices = services.filter((s: any) => s.status === ServiceStatus.CANCELLED).length;
 
-  const totalRevenue = services.reduce((sum, s) => sum + Number(s.saleAmount), 0);
-  const totalCost = services.reduce((sum, s) => sum + Number(s.costAmount), 0);
-  const totalMargin = services.reduce((sum, s) => sum + Number(s.margin), 0);
+  const totalRevenue = services.reduce((sum: any, s: any) => sum + Number(s.saleAmount), 0);
+  const totalCost = services.reduce((sum: any, s: any) => sum + Number(s.costAmount), 0);
+  const totalMargin = services.reduce((sum: any, s: any) => sum + Number(s.margin), 0);
 
   const averageMarginPercentage =
     totalServices > 0
-      ? services.reduce((sum, s) => sum + Number(s.marginPercentage), 0) / totalServices
+      ? services.reduce((sum: any, s: any) => sum + Number(s.marginPercentage), 0) / totalServices
       : 0;
 
   const lastServiceDate = services.length > 0 ? services[0]?.date : null;
@@ -356,7 +356,7 @@ export async function getClientServices(
       prisma.service.count({ where }),
     ]);
 
-    const data: ClientService[] = services.map((service) => ({
+    const data: ClientService[] = services.map((service: any) => ({
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date,
@@ -603,7 +603,7 @@ export async function getClientCountries(): Promise<ActionResult<string[]>> {
     });
 
     const countries = new Set<string>();
-    clients.forEach((client) => {
+    clients.forEach((client: any) => {
       const address = client.billingAddress as unknown as Address;
       if (address?.country) {
         countries.add(address.country);
@@ -666,7 +666,7 @@ export async function exportClients(
       'Created At',
     ];
 
-    const rows = clients.map((client) => {
+    const rows = clients.map((client: any) => {
       const addr = client.billingAddress as unknown as Address;
       return [
         client.clientCode,

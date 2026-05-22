@@ -173,13 +173,13 @@ export const getDashboardData = unstable_cache(
 
     // Calculate stats
     const currentActive =
-      currentServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
+      currentServices.find((s: any) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
     const currentCompleted =
-      currentServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
+      currentServices.find((s: any) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
     const previousActive =
-      previousServices.find((s) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
+      previousServices.find((s: any) => s.status === ServiceStatus.IN_PROGRESS)?._count._all ?? 0;
     const previousCompleted =
-      previousServices.find((s) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
+      previousServices.find((s: any) => s.status === ServiceStatus.COMPLETED)?._count._all ?? 0;
 
     const stats = {
       activeServices: currentActive,
@@ -197,7 +197,7 @@ export const getDashboardData = unstable_cache(
         Number(previousRevenue._avg.marginPercentage ?? 0),
         Number(currentRevenue._avg.marginPercentage ?? 0)
       ),
-      totalServices: currentServices.reduce((sum, s) => sum + s._count._all, 0),
+      totalServices: currentServices.reduce((sum: any, s: any) => sum + s._count._all, 0),
     };
 
     // Aggregate monthly data for charts
@@ -205,7 +205,7 @@ export const getDashboardData = unstable_cache(
     const revenueChart = aggregateRevenueByMonth(monthlyData);
 
     // Format recent services
-    const formattedRecentServices = recentServices.map((service) => ({
+    const formattedRecentServices = recentServices.map((service: any) => ({
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date.toISOString(),

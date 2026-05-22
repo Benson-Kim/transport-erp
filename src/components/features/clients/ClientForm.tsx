@@ -679,7 +679,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="paymentTerms"
                 control={control}
-                render={({ field: { value, ...fieldRest } }) => (
+                render={({ field }) => (
                   <FormField
                     label="Payment Terms (days)"
                     error={errors.paymentTerms?.message ?? ''}
@@ -700,7 +700,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="creditLimit"
                 control={control}
-                render={({ field: { value, ...fieldRest } }) => (
+                render={({ field }) => (
                   <FormField label="Credit Limit" error={errors.creditLimit?.message ?? ''}>
                     <Input {...field} value={Number(field.value) || undefined} type="number" min="0" step="0.01" placeholder="10000.00" />
                   </FormField>
@@ -710,7 +710,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
               <Controller
                 name="discount"
                 control={control}
-                render={({ field: { value, ...fieldRest } }) => (
+                render={({ field }) => (
                   <FormField label="Discount (%)" error={errors.discount?.message ?? ''}>
                     <Input {...field} value={Number(field.value) || undefined} type="number" min="0" max="100" step="0.01" placeholder="0" />
                   </FormField>

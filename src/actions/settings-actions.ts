@@ -272,7 +272,7 @@ async function upsertSetting(
   description?: string,
   userId?: string
 ): Promise<void> {
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: any) => {
     await tx.systemSetting.upsert({
       where: { key },
       create: { key, value: value as object, description: description ?? null, isPublic: false },
