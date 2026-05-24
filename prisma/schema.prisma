@@ -23,6 +23,41 @@ enum UserRole {
   ACCOUNTANT
   OPERATOR
   VIEWER
+  DRIVER
+  DISPATCHER
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERY_ATTEMPTED
+  DELIVERED
+  FAILED
+  RETURNED
+  AT_PUDO
+}
+
+enum FailedDeliveryReason {
+  AUSENTE
+  DIRECCION_INCORRECTA
+  REHUSADO
+  LOCAL_CERRADO
+}
+
+enum VehicleEmissionLabel {
+  CERO
+  ECO
+  C
+  B
+}
+
+enum ShipmentPriority {
+  STANDARD
+  EXPRESS
+  SAME_DAY
 }
 
 enum ServiceStatus {
@@ -188,6 +223,7 @@ model User {
   invoices         Invoice[]      @relation("InvoiceCreator")
   auditLogs        AuditLog[]
   notifications    Notification[]
+  driver           Driver?
 
   // Audit fields
   createdAt DateTime  @default(now())
@@ -297,6 +333,7 @@ model Client {
   services  Service[]
   contacts  ClientContact[]
   documents Document[]
+  shipments Shipment[]
 
   // Audit fields
   createdAt DateTime  @default(now())
@@ -455,6 +492,7 @@ model Service {
   invoiceItems  InvoiceItem[]
   documents     Document[]
   statusHistory ServiceStatusHistory[]
+  shipments     Shipment[]
 
   // Audit fields
   createdAt DateTime  @default(now())
@@ -765,4 +803,199 @@ model SystemSetting {
 
   @@index([key])
   @@map("system_settings")
+}
+
+// DELIVERY PLATFORM MODELS
+
+model Driver {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  licenseNumber   String
+  vehiclePlate    String
+  vehicleType     String
+  emissionLabel   VehicleEmissionLabel
+  isAvailable     Boolean  @default(true)
+  currentLat      Float?
+  currentLng      Float?
+  lastGpsAt       DateTime?
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  routes          Route[]
+  deliveryEvents  DeliveryEvent[]
+  hazardNotes     AddressHazardNote[]
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("drivers")
+}
+
+model Shipment {
+  id              String   @id @default(cuid())
+  trackingToken   String   @unique @default(cuid())
+  shipmentNumber  String   @unique
+  serviceId       String?
+  clientId        String
+  status          DeliveryStatus @default(PENDING)
+  priority        ShipmentPriority @default(STANDARD)
+  
+  // Recipient
+  recipientName   String
+  recipientPhone  String
+  recipientEmail  String?
+  recipientDni    String?
+  
+  // Spanish address fields
+  streetType      String?
+  streetName      String
+  streetNumber    String
+  escalera        String?
+  piso            String?
+  puerta          String?
+  codigoPostal    String
+  ciudad          String
+  provincia       String
+  deliveryLat     Float
+  deliveryLng     Float
+  
+  // Delivery window
+  estimatedFrom   DateTime?
+  estimatedTo     DateTime?
+  deliveredAt     DateTime?
+  
+  // Proof
+  proofPhotoUrl   String?
+  signatureUrl    String?
+  recipientDniCollected String?
+  
+  // PUDO fallback
+  pudoLocationId  String?
+  pudoType        String?
+  failedAttempts  Int @default(0)
+  
+  // Notification prefs
+  notifyViaSms    Boolean @default(true)
+  notifyViaWhatsapp Boolean @default(true)
+  notifyViaEmail  Boolean @default(true)
+  
+  // Relations
+  client          Client   @relation(fields: [clientId], references: [id])
+  service         Service? @relation(fields: [serviceId], references: [id])
+  events          DeliveryEvent[]
+  route           Route?   @relation(fields: [routeId], references: [id])
+  routeId         String?
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  anonymisedAt    DateTime?
+  
+  @@index([status, routeId])            // Dispatcher "active routes" view
+  @@index([clientId, status])           // Client portal queries
+  @@index([codigoPostal, status])       // Zone-based dispatch filtering
+  @@index([anonymisedAt])               // Data retention cron
+  @@index([trackingToken])              // Public tracking page lookup
+  @@index([createdAt])                  // Time-series reporting
+  @@map("shipments")
+}
+
+model DeliveryEvent {
+  id              String   @id @default(cuid())
+  shipmentId      String
+  driverId        String?
+  status          DeliveryStatus
+  failedReason    FailedDeliveryReason?
+  
+  // GPS at time of event
+  lat             Float?
+  lng             Float?
+  gpsAccuracyM    Float?
+  
+  // Evidence
+  photoUrl        String?
+  photoValidated  Boolean @default(false)
+  notes           String?
+  
+  // Immutable timestamp
+  occurredAt      DateTime @default(now())
+  
+  // Relations
+  shipment        Shipment @relation(fields: [shipmentId], references: [id])
+  driver          Driver?  @relation(fields: [driverId], references: [id])
+  
+  @@index([shipmentId, occurredAt])     // Shipment event timeline
+  @@index([driverId, occurredAt])       // Per-driver event history
+  @@map("delivery_events")
+}
+
+model Route {
+  id              String   @id @default(cuid())
+  routeNumber     String   @unique
+  driverId        String
+  date            DateTime
+  status          String   @default("PLANNED")
+  optimisedPath   Json?
+  zbeCompliant    Boolean  @default(true)
+  
+  // Relations
+  driver          Driver   @relation(fields: [driverId], references: [id])
+  shipments       Shipment[]
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("routes")
+}
+
+model AddressHazardNote {
+  id              String   @id @default(cuid())
+  normalizedAddr  String
+  note            String
+  category        String
+  reportedById    String
+  isActive        Boolean  @default(true)
+  
+  // Relations
+  reportedBy      Driver   @relation(fields: [reportedById], references: [id])
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  
+  @@index([normalizedAddr])
+  @@map("address_hazard_notes")
+}
+
+model CustomerFlag {
+  id              String   @id @default(cuid())
+  addressHash     String
+  reason          String
+  flaggedById     String
+  requiresReview  Boolean  @default(true)
+  
+  // Audit fields
+  createdAt       DateTime @default(now())
+  
+  @@index([addressHash])
+  @@map("customer_flags")
+}
+
+model ZbeZone {
+  id              String    @id @default(cuid())
+  name            String
+  cityCode        String
+  geoJson         Json      // GeoJSON Polygon geometry
+  allowedLabels   String[]  // ["CERO", "ECO"]
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  sourceUrl       String?   // Link to official municipal source
+
+  // Audit fields
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([cityCode])
+  @@map("zbe_zones")
 }
