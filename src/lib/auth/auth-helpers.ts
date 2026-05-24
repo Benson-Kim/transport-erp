@@ -23,9 +23,9 @@ const SALT_ROUNDS = 12;
  * Token expiry durations (HOURS)
  */
 const TOKEN_EXPIRY = {
-  VERIFICATION: 24,
-  PASSWORD_RESET: 1,
-  TWO_FACTOR: 0.25,
+  VERIFICATION: 24, // hours
+  PASSWORD_RESET: 24, // hours
+  TWO_FACTOR: 0.25, // hours (15 minutes)
 };
 
 /**
@@ -327,7 +327,7 @@ export async function createUser(data: {
       email: data.email,
       password: hashedPassword,
       name: data.name,
-      role: data.role || UserRole.VIEWER,
+      role: data.role ?? UserRole.VIEWER,
     },
   });
 
@@ -335,11 +335,11 @@ export async function createUser(data: {
   const verificationToken = await generateVerificationToken(user.email);
 
   // Send verification email
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
   await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
-    name: user.name || 'User',
+    name: user.name ?? 'User',
     email: user.email,
     verificationUrl,
     expiresIn: '24 hours',
@@ -415,46 +415,6 @@ export async function updatePassword(
     console.error('Error updating password:', error);
     return { success: false, error: 'Failed to update password' };
   }
-}
-
-/**
- * Check if user has permission for an action
- */
-export function hasPermission(userRole: UserRole, action: string, resource: string): boolean {
-  const permissions: Record<UserRole, string[]> = {
-    SUPER_ADMIN: ['*'], // All permissions
-    ADMIN: [
-      'users:*',
-      'companies:*',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-      'settings:*',
-    ],
-    MANAGER: [
-      'users:read',
-      'companies:read',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-    ],
-    ACCOUNTANT: ['clients:read', 'suppliers:read', 'services:read', 'invoices:*', 'reports:read'],
-    OPERATOR: ['clients:read', 'suppliers:read', 'services:*', 'invoices:read'],
-    VIEWER: ['clients:read', 'suppliers:read', 'services:read', 'invoices:read', 'reports:read'],
-  };
-
-  const userPermissions = permissions[userRole] || [];
-  const permission = `${resource}:${action}`;
-
-  return (
-    userPermissions.includes('*') ||
-    userPermissions.includes(`${resource}:*`) ||
-    userPermissions.includes(permission)
-  );
 }
 
 /**
