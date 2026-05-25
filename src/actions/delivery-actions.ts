@@ -8,9 +8,7 @@ import { PudoService } from '@/lib/pudo/pudo-service';
 import { DeliveryStatus, FailedDeliveryReason, AuditAction } from '@/app/generated/prisma';
 import { generateUniqueIdentifier } from '@/lib/prisma/db-helpers';
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 async function getAuthorizedDriver(userId: string) {
   const driver = await prisma.driver.findUnique({ where: { userId } });
@@ -24,9 +22,7 @@ async function getShipmentOrThrow(id: string) {
   return shipment;
 }
 
-// ---------------------------------------------------------------------------
-// Phase 4.1 — Intermediate status writers (full event log)
-// ---------------------------------------------------------------------------
+// Intermediate status writers (full event log)
 
 /** DISPATCHER: Assign a shipment to a route. PENDING → ASSIGNED */
 export async function assignShipmentToRoute(data: {
@@ -145,9 +141,6 @@ export async function markOutForDelivery(data: {
   return { success: true };
 }
 
-// ---------------------------------------------------------------------------
-// Phase 1.1 — Hardened markDelivered
-// ---------------------------------------------------------------------------
 
 export async function markDelivered(data: {
   shipmentId: string;
@@ -193,7 +186,7 @@ export async function markDelivered(data: {
   if (!isWithinGeofence) {
     throw new Error(
       `Driver is not within the acceptable delivery radius (${thresholdMeters}m). ` +
-        `Please confirm you are at the delivery address.`
+      `Please confirm you are at the delivery address.`
     );
   }
 
@@ -263,9 +256,6 @@ export async function markDelivered(data: {
   return { success: true };
 }
 
-// ---------------------------------------------------------------------------
-// Phase 1.1 — Hardened markFailed (with PUDO assignment)
-// ---------------------------------------------------------------------------
 
 export async function markFailed(data: {
   shipmentId: string;
@@ -310,7 +300,7 @@ export async function markFailed(data: {
   let pudoLocationId: string | undefined;
   let pudoNotificationData: Record<string, unknown> | null = null;
 
-  // Phase 7 logic: Assign PUDO after 2 failed attempts
+  // Assign PUDO after 2 failed attempts
   if (newAttemptsCount >= 2) {
     const pudoLocations = await PudoService.findNearest(
       shipment.deliveryLat,
@@ -339,75 +329,82 @@ export async function markFailed(data: {
     }
   }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.deliveryEvent.create({
-      data: {
-        shipmentId: data.shipmentId,
-        driverId: driver.id,
-        status: DeliveryStatus.FAILED,
-        failedReason: data.reason,
-        lat: data.driverLat,
-        lng: data.driverLng,
-        gpsAccuracyM: data.gpsAccuracyM ?? null,
-        photoUrl: data.photoUrl ?? null,
-        notes: data.notes ?? null,
-      },
-    });
-
-    await tx.shipment.update({
-      where: { id: data.shipmentId },
-      data: {
-        status: nextStatus,
-        failedAttempts: newAttemptsCount,
-        ...(pudoLocationId && { pudoLocationId }),
-      },
-    });
-
-    // Outbox: enqueue PUDO notification if applicable (durable)
-    // Guard: skip if no contact info to prevent NOT NULL violation on `to`
-    const pudoRecipient = shipment.recipientEmail ?? shipment.recipientPhone;
-    if (nextStatus === DeliveryStatus.AT_PUDO && pudoNotificationData && pudoRecipient) {
-      await tx.emailQueue.create({
+  // Wrap transaction with compensation: if the DB write fails after a locker
+  // was reserved, cancel the reservation to avoid orphaned locks.
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.deliveryEvent.create({
         data: {
-          template: 'PUDO_AVAILABLE',
-          to: pudoRecipient,
-          data: {
-            shipmentId: data.shipmentId,
-            trackingToken: shipment.trackingToken,
-            recipientName: shipment.recipientName,
-            ...pudoNotificationData,
-          },
-          priority: 'high',
-          status: 'pending',
+          shipmentId: data.shipmentId,
+          driverId: driver.id,
+          status: DeliveryStatus.FAILED,
+          failedReason: data.reason,
+          lat: data.driverLat,
+          lng: data.driverLng,
+          gpsAccuracyM: data.gpsAccuracyM ?? null,
+          photoUrl: data.photoUrl ?? null,
+          notes: data.notes ?? null,
         },
       });
-    }
 
-    // Audit log
-    await tx.auditLog.create({
-      data: {
-        userId: session.user.id,
-        action: AuditAction.UPDATE,
-        tableName: 'shipments',
-        recordId: data.shipmentId,
-        oldValues: { status: shipment.status, failedAttempts: shipment.failedAttempts },
-        newValues: { status: nextStatus, failedAttempts: newAttemptsCount },
-        metadata: {
-          driverId: driver.id,
-          reason: data.reason,
-          pudoAssigned: nextStatus === DeliveryStatus.AT_PUDO,
-          pudoLocationId,
+      await tx.shipment.update({
+        where: { id: data.shipmentId },
+        data: {
+          status: nextStatus,
+          failedAttempts: newAttemptsCount,
+          ...(pudoLocationId && { pudoLocationId }),
         },
-      },
+      });
+
+      // Outbox: enqueue PUDO notification if applicable (durable)
+      // Guard: skip if no contact info to prevent NOT NULL violation on `to`
+      const pudoRecipient = shipment.recipientEmail ?? shipment.recipientPhone;
+      if (nextStatus === DeliveryStatus.AT_PUDO && pudoNotificationData && pudoRecipient) {
+        await tx.emailQueue.create({
+          data: {
+            template: 'PUDO_AVAILABLE',
+            to: pudoRecipient,
+            data: {
+              shipmentId: data.shipmentId,
+              trackingToken: shipment.trackingToken,
+              recipientName: shipment.recipientName,
+              ...pudoNotificationData,
+            },
+            priority: 'high',
+            status: 'pending',
+          },
+        });
+      }
+
+      // Audit log
+      await tx.auditLog.create({
+        data: {
+          userId: session.user.id,
+          action: AuditAction.UPDATE,
+          tableName: 'shipments',
+          recordId: data.shipmentId,
+          oldValues: { status: shipment.status, failedAttempts: shipment.failedAttempts },
+          newValues: { status: nextStatus, failedAttempts: newAttemptsCount },
+          metadata: {
+            driverId: driver.id,
+            reason: data.reason,
+            pudoAssigned: nextStatus === DeliveryStatus.AT_PUDO,
+            pudoLocationId,
+          },
+        },
+      });
     });
-  });
+  } catch (txError) {
+    // Compensation: release the reserved locker if the transaction failed
+    if (pudoLocationId && pudoNotificationData?.['pin']) {
+      await PudoService.cancelReservation(pudoLocationId, pudoNotificationData['pin'] as string);
+    }
+    throw txError;
+  }
 
   return { success: true, nextStatus };
 }
 
-// ---------------------------------------------------------------------------
-// Phase 4.1 — Route number generator
-// ---------------------------------------------------------------------------
 
 export async function generateRouteNumber(): Promise<string> {
   return generateUniqueIdentifier('RT', 'route', 'routeNumber');

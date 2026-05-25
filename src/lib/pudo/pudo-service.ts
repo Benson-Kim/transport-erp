@@ -91,8 +91,8 @@ export class PudoService {
     locationId: string,
     shipmentSize: string,
   ): Promise<string> {
-    const apiKey = process.env.CORREOS_CITYPAQ_API_KEY;
-    const baseUrl = process.env.CORREOS_API_BASE ?? 'https://api.correos.es';
+    const apiKey = process.env['CORREOS_CITYPAQ_API_KEY'];
+    const baseUrl = process.env['CORREOS_API_BASE'] ?? 'https://api.correos.es';
 
     if (!apiKey) {
       console.warn('[PudoService] Correos API key missing — generating local PIN.');
@@ -130,8 +130,8 @@ export class PudoService {
     locationId: string,
     shipmentSize: string,
   ): Promise<string> {
-    const apiKey = process.env.INPOST_API_KEY;
-    const baseUrl = process.env.INPOST_API_BASE ?? 'https://api.inpost.es/v1';
+    const apiKey = process.env['INPOST_API_KEY'];
+    const baseUrl = process.env['INPOST_API_BASE'] ?? 'https://api.inpost.es/v1';
 
     if (!apiKey) {
       console.warn('[PudoService] InPost API key missing — generating local PIN.');
@@ -162,6 +162,47 @@ export class PudoService {
     } catch (err: any) {
       console.error('[PudoService] InPost reservation failed:', err?.message);
       return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    }
+  }
+
+  /**
+   * Cancels a previously reserved locker slot.
+   *
+   * Called as compensation when the DB transaction in markFailed fails
+   * after reserveLocker has already succeeded — prevents orphaned
+   * reservations that block the locker indefinitely.
+   */
+  static async cancelReservation(locationId: string, pin: string): Promise<void> {
+    const providerPrefix = locationId.split('-')[0];
+
+    try {
+      if (providerPrefix === 'citypaq') {
+        const apiKey = process.env['CORREOS_CITYPAQ_API_KEY'];
+        const baseUrl = process.env['CORREOS_API_BASE'] ?? 'https://api.correos.es';
+        if (!apiKey) return;
+
+        await fetch(`${baseUrl}/citypaq/v1/reservations/${encodeURIComponent(pin)}`, {
+          method: 'DELETE',
+          headers: { 'X-API-Key': apiKey },
+          signal: AbortSignal.timeout(5000),
+        });
+      } else if (providerPrefix === 'inpost') {
+        const apiKey = process.env['INPOST_API_KEY'];
+        const baseUrl = process.env['INPOST_API_BASE'] ?? 'https://api.inpost.es/v1';
+        if (!apiKey) return;
+
+        await fetch(`${baseUrl}/reservations/${encodeURIComponent(pin)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: AbortSignal.timeout(5000),
+        });
+      }
+    } catch (err: any) {
+      // Best-effort — log and move on
+      console.warn(
+        `[PudoService] Failed to cancel reservation ${pin} at ${locationId}:`,
+        err?.message,
+      );
     }
   }
 }
