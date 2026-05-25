@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
         normalizedAddr: { in: normalizedAddresses },
         isActive: true,
       },
+      take: 50,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

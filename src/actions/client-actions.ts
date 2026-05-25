@@ -53,7 +53,7 @@ async function withAction<T>(
     const session = await getServerAuth();
 
     if (!session?.user) {
-      return { success: false, error: 'Not authenticcated' }
+      return { success: false, error: 'Not authenticated' }
     }
 
     const { ipAddress, userAgent } = await getRequestMeta();
@@ -67,20 +67,20 @@ async function withAction<T>(
     console.error(error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An unexpcted error occurred"
+      error: error instanceof Error ? error.message : "An unexpected error occurred"
     }
   }
 }
 
 // Check for duplicate VAT number if provided
-async function validateVATNumber(vatNumber: string | null | undefined, exludeId?: string) {
+async function validateVATNumber(vatNumber: string | null | undefined, excludeId?: string) {
   if (!vatNumber) return null;
 
   const existing = await prisma.client.findFirst({
     where: {
       vatNumber,
       deletedAt: null,
-      ...(exludeId && { NOT: { id: exludeId } })
+      ...(excludeId ? { id: { not: excludeId } } : {}),
     },
   });
 
