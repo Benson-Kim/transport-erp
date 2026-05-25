@@ -386,6 +386,11 @@ export class EmailService {
 
   /**
    * Process single queue job
+   *
+   * Delivery notification templates (OUT_FOR_DELIVERY, DELIVERED, PUDO_AVAILABLE)
+   * are routed through NotificationService.dispatch() which handles multi-channel
+   * delivery (WhatsApp/SMS/Email) based on recipient preferences.
+   * All other templates are sent as emails directly.
    */
   private async processQueueJob(job: EmailQueueRecord): Promise<boolean> {
     try {
@@ -397,7 +402,42 @@ export class EmailService {
         },
       });
 
-      const parsedData = JSON.parse(job.data) as EmailTemplateData;
+      const parsedData = JSON.parse(job.data) as Record<string, unknown>;
+
+      // Delivery notification templates should be routed through NotificationService
+      // which dispatches to WhatsApp/SMS/Email based on shipment preferences
+      const DELIVERY_TEMPLATES = new Set(['OUT_FOR_DELIVERY', 'DELIVERED', 'PUDO_AVAILABLE']);
+
+      if (DELIVERY_TEMPLATES.has(job.template) && parsedData['shipmentId']) {
+        const { NotificationService } = await import('@/lib/notifications/notification-service');
+
+        const results = await NotificationService.dispatch({
+          shipmentId: parsedData['shipmentId'] as string,
+          template: job.template as any,
+          data: parsedData,
+        });
+
+        const allSucceeded = results.length > 0 && results.every((r) => r.success);
+        const anySucceeded = results.some((r) => r.success);
+
+        if (allSucceeded || anySucceeded) {
+          await prisma.emailQueue.update({
+            where: { id: job.id },
+            data: {
+              status: 'sent',
+              sentAt: new Date(),
+              messageId: `notif_${Date.now()}`,
+            },
+          });
+          return true;
+        }
+
+        // All channels failed
+        const errors = results.filter((r) => !r.success).map((r) => r.error).join('; ');
+        throw new Error(`All notification channels failed: ${errors}`);
+      }
+
+      // Standard email-only processing
       const recipients = job.to.includes(',')
         ? job.to.split(',').map((s) => s.trim())
         : job.to;
@@ -405,7 +445,7 @@ export class EmailService {
       const result = await this.sendTemplate(
         job.template as EmailTemplate,
         recipients,
-        parsedData
+        parsedData as EmailTemplateData
       );
 
       if (result.success) {
