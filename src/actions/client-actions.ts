@@ -266,44 +266,45 @@ export async function getClientById(id: string): Promise<ActionResult<ClientWith
  * Calculate client statistics
  */
 async function calculateClientStats(clientId: string): Promise<ClientStats> {
-  const services = await prisma.service.findMany({
-    where: {
-      clientId,
-      deletedAt: null,
-    },
-    select: {
-      status: true,
-      saleAmount: true,
-      costAmount: true,
-      margin: true,
-      marginPercentage: true,
-      date: true,
-    },
-    orderBy: { date: 'desc' },
-  });
+  const baseWhere = { clientId, deletedAt: null };
 
-  const totalServices = services.length;
-  const activeServices = services.filter(
-    (s: any) =>
-      s.status === ServiceStatus.DRAFT ||
-      s.status === ServiceStatus.CONFIRMED ||
-      s.status === ServiceStatus.IN_PROGRESS
-  ).length;
-  const completedServices = services.filter(
-    (s: any) => s.status === ServiceStatus.COMPLETED || s.status === ServiceStatus.INVOICED
-  ).length;
-  const cancelledServices = services.filter((s: any) => s.status === ServiceStatus.CANCELLED).length;
+  // All counts and aggregates done at the DB level — no in-memory loading
+  const [totals, statusCounts, lastService] = await Promise.all([
+    prisma.service.aggregate({
+      where: baseWhere,
+      _sum: { saleAmount: true, costAmount: true, margin: true, marginPercentage: true },
+      _count: { id: true },
+    }),
+    prisma.service.groupBy({
+      by: ['status'],
+      where: baseWhere,
+      _count: { id: true },
+    }),
+    prisma.service.findFirst({
+      where: baseWhere,
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+  ]);
 
-  const totalRevenue = services.reduce((sum: any, s: any) => sum + Number(s.saleAmount), 0);
-  const totalCost = services.reduce((sum: any, s: any) => sum + Number(s.costAmount), 0);
-  const totalMargin = services.reduce((sum: any, s: any) => sum + Number(s.margin), 0);
+  const totalServices = totals._count.id;
 
+  const statusMap = Object.fromEntries(
+    statusCounts.map((s) => [s.status, s._count.id])
+  );
+
+  const activeStatuses = [ServiceStatus.DRAFT, ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS];
+  const completedStatuses = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
+
+  const activeServices = activeStatuses.reduce((sum, s) => sum + (statusMap[s] ?? 0), 0);
+  const completedServices = completedStatuses.reduce((sum, s) => sum + (statusMap[s] ?? 0), 0);
+  const cancelledServices = statusMap[ServiceStatus.CANCELLED] ?? 0;
+
+  const totalRevenue = Number(totals._sum.saleAmount ?? 0);
+  const totalCost = Number(totals._sum.costAmount ?? 0);
+  const totalMargin = Number(totals._sum.margin ?? 0);
   const averageMarginPercentage =
-    totalServices > 0
-      ? services.reduce((sum: any, s: any) => sum + Number(s.marginPercentage), 0) / totalServices
-      : 0;
-
-  const lastServiceDate = services.length > 0 ? services[0]?.date : null;
+    totalServices > 0 ? Number(totals._sum.marginPercentage ?? 0) / totalServices : 0;
 
   return {
     totalServices,
@@ -314,7 +315,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
     totalCost,
     totalMargin,
     averageMarginPercentage,
-    lastServiceDate: lastServiceDate ? new Date(lastServiceDate) : null,
+    lastServiceDate: lastService?.date ? new Date(lastService.date) : null,
   };
 }
 
