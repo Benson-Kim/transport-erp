@@ -12,24 +12,20 @@
  * The exported `checkRateLimit` function selects the correct backend at runtime.
  */
 
-// ---------------------------------------------------------------------------
 // Shared types
-// ---------------------------------------------------------------------------
 
 export interface RateLimitResult {
   allowed: boolean;
   retryAfterMs: number;
 }
 
-// ---------------------------------------------------------------------------
 // In-memory fallback (same semantics, single-process only)
-// ---------------------------------------------------------------------------
 
 interface RateLimitEntry {
   attempts: number;
   firstAttempt: number;
   lastAttempt: number;
-  lockedUntil?: number;
+  lockedUntil?: number | undefined;
 }
 
 class InMemoryRateLimiter {
@@ -57,6 +53,11 @@ class InMemoryRateLimiter {
         entry.lockedUntil = now + windowMs;
         return { allowed: false, retryAfterMs: windowMs };
       }
+    } else if (entry) {
+      // Window expired — reset the entry so new attempts start fresh
+      entry.attempts = 0;
+      entry.firstAttempt = now;
+      entry.lockedUntil = undefined;
     }
 
     return { allowed: true, retryAfterMs: 0 };
@@ -98,9 +99,7 @@ class InMemoryRateLimiter {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Redis-backed distributed rate limiter (sliding window via sorted set)
-// ---------------------------------------------------------------------------
 
 let redisClient: any | null = null;
 let redisInitialized = false;
@@ -109,7 +108,7 @@ async function getRedis() {
   if (redisInitialized) return redisClient;
   redisInitialized = true;
 
-  const url = process.env.REDIS_URL;
+  const url = process.env['REDIS_URL'];
   if (!url) {
     console.warn('[RateLimiter] REDIS_URL not set — falling back to in-memory rate limiter.');
     return null;
