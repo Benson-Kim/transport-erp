@@ -14,13 +14,21 @@ import type { Adapter } from 'next-auth/adapters';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 
-import { rateLimiter } from '@/lib/rate-limiter';
+import { checkRateLimit, resetRateLimit } from '@/lib/rate-limiter';
 import { generateVerificationToken } from './auth-helpers';
 import { loginSchema } from '@/lib/validations/auth-schema';
 import { emailService } from '../email';
 import { EmailTemplate } from '@/types/mail';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 /**
  * NextAuth configuration
@@ -52,9 +60,7 @@ export const authConfig = {
         rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
       async authorize(credentials, req) {
-        if (!credentials) {
-          throw new Error('Missing credentials');
-        }
+        if (!credentials) return null
 
         try {
           // Validate input
@@ -71,12 +77,12 @@ export const authConfig = {
             null;
           const userAgent = req.headers.get('user-agent') ?? null;
 
-          // Rate limit
-          const rateLimitResult = await rateLimiter.check(validatedFields.email, 5, 15 * 60 * 1000);
+          // Rate limit: 5 attempts per 15 minutes (distributed via Redis)
+          const rl = await checkRateLimit(`login:${validatedFields.email}`, 5, 15 * 60);
 
-          if (!rateLimitResult.success) {
-            const minutes = Math.ceil(rateLimitResult.retryAfter / 60000);
-            throw new Error(`Too many login attempts. Please try again in ${minutes} minutes.`);
+          if (!rl.allowed) {
+            const minutes = Math.ceil((rl.retryAfterMs ?? 900_000) / 60_000);
+            throw new AuthError(`Too many login attempts. Please try again in ${minutes} minutes.`);
           }
 
           // Find user by email
@@ -97,34 +103,35 @@ export const authConfig = {
           });
 
           if (!user?.password) {
-            await rateLimiter.increment(validatedFields.email);
-            throw new Error('Invalid email or password');
+            return null;
           }
 
           if (!user.isActive) {
-            throw new Error('Account is disabled. Please contact support.');
+            throw new AuthError('Account is disabled. Please contact support.');
           }
 
           const passwordValid = await compare(validatedFields.password, user.password);
           if (!passwordValid) {
-            await rateLimiter.increment(validatedFields.email);
-            throw new Error('Invalid email or password');
+            return null;
           }
 
           if (!user.emailVerified) {
-            const token = await generateVerificationToken(user.email);
+            try {
+              const token = await generateVerificationToken(user.email);
 
-            await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
-              name: user.name || 'User',
-              email: user.email,
-              verificationUrl: `${baseUrl}/verify-email?token=${token}`,
-              expiresIn: '24 hours',
-            });
-
-            throw new Error('Email not verified. We have sent you a new verification link.');
+              await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+                name: user.name || 'User',
+                email: user.email,
+                verificationUrl: `${baseUrl}/verify-email?token=${token}`,
+                expiresIn: '24 hours',
+              });
+            } catch (error) {
+              console.error('Failed to send verification email:', error);
+            }
+            throw new AuthError('Email not verified. We have sent you a new verification link.');
           }
 
-          await rateLimiter.reset(validatedFields.email);
+          await resetRateLimit(`login:${validatedFields.email}`);
 
           await prisma.user.update({
             where: { id: user.id },
