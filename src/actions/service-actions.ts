@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
-import { createAuditLog } from '@/lib/prisma/db-helpers';
+import { createAuditLog, generateUniqueIdentifier } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
@@ -233,9 +233,8 @@ export async function createService(data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  // Generate service number
-  const count = await prisma.service.count();
-  const serviceNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  // Generate service number (concurrency-safe via advisory lock)
+  const serviceNumber = await generateUniqueIdentifier('SRV', 'service', 'serviceNumber');
 
   // Calculate margin and VAT amounts
   const costVatRate = validatedData.costVatRate ?? 21;
