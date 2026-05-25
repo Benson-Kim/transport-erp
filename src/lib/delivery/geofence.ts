@@ -8,35 +8,16 @@
  */
 
 import prisma from '@/lib/prisma/prisma';
-
-const EARTH_RADIUS_METERS = 6_371_000;
+import { haversineMeters } from '@/lib/routing/geo-utils';
 
 /** Default radius used when the SystemSetting is not yet seeded. */
 const DEFAULT_GEOFENCE_RADIUS_METERS = 25;
 
 /**
- * Calculates the distance between two GPS coordinates in meters
- * using the Haversine formula.
+ * Alias for backwards compatibility — delegates to the canonical
+ * haversineMeters implementation in geo-utils.ts.
  */
-export function getDistanceInMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δφ = toRad(lat2 - lat1);
-  const Δλ = toRad(lon2 - lon1);
-
-  const a =
-    Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return EARTH_RADIUS_METERS * c;
-}
+export const getDistanceInMeters = haversineMeters;
 
 /**
  * Reads the geofence radius from SystemSetting at runtime.
