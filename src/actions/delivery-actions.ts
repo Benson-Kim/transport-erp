@@ -206,9 +206,9 @@ export async function markDelivered(data: {
         status: DeliveryStatus.DELIVERED,
         lat: data.driverLat,
         lng: data.driverLng,
-        gpsAccuracyM: data.gpsAccuracyM,
-        photoUrl: data.photoUrl,
-        notes: data.notes,
+        gpsAccuracyM: data.gpsAccuracyM ?? null,
+        photoUrl: data.photoUrl ?? null,
+        notes: data.notes ?? null,
       },
     });
 
@@ -217,9 +217,9 @@ export async function markDelivered(data: {
       data: {
         status: DeliveryStatus.DELIVERED,
         deliveredAt: new Date(),
-        proofPhotoUrl: data.photoUrl,
-        signatureUrl: data.signatureUrl,
-        recipientDniCollected: data.recipientDniCollected,
+        proofPhotoUrl: data.photoUrl ?? null,
+        signatureUrl: data.signatureUrl ?? null,
+        recipientDniCollected: data.recipientDniCollected ?? null,
       },
     });
 
@@ -348,9 +348,9 @@ export async function markFailed(data: {
         failedReason: data.reason,
         lat: data.driverLat,
         lng: data.driverLng,
-        gpsAccuracyM: data.gpsAccuracyM,
-        photoUrl: data.photoUrl,
-        notes: data.notes,
+        gpsAccuracyM: data.gpsAccuracyM ?? null,
+        photoUrl: data.photoUrl ?? null,
+        notes: data.notes ?? null,
       },
     });
 
