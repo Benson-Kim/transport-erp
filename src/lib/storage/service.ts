@@ -178,50 +178,10 @@ class StorageService {
         CacheControl: options.isPublic ? 'public, max-age=31536000' : 'private',
       };
 
-      // // Get client with retry logic for connection errors
-      // let client: S3Client;
-      // let retries = 0;
-      // const maxRetries = 3;
-
-      // while (retries < maxRetries) {
-      //     try {
-      //         client = await this.getClient();
-      //         break;
-      //     } catch (error) {
-      //         retries++;
-      //         console.error(`Failed to get B2 client (attempt ${retries}/${maxRetries}):`, error);
-
-      //         if (retries >= maxRetries) {
-      //             throw new StorageError(
-      //                 'Failed to connect to B2 storage after multiple attempts',
-      //                 'CONNECTION_FAILED',
-      //                 503,
-      //                 { originalError: error }
-      //             );
-      //         }
-
-      //         // Wait before retrying (exponential backoff)
-      //         await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries)));
-
-      //         // Try to reinitialize the client
-      //         if (retries === 2) {
-      //             console.log('Attempting to reinitialize B2 client...');
-      //             await b2Client.reinitialize();
-      //         }
-      //     }
-      // }
-
-      // // Upload to B2 with timeout
-      // const uploadPromise = client!.send(new PutObjectCommand(uploadParams));
-      // const timeoutPromise = new Promise((_, reject) =>
-      //     setTimeout(() => reject(new Error('Upload timeout after 60 seconds')), 60000)
-      // );
-
-      // await Promise.race([uploadPromise, timeoutPromise]);
-
+      // Note: The Upload class from @aws-sdk/lib-storage handles multipart
+      // uploads with built-in retry logic, replacing the previous manual retry code.
       const client = await this.getClient();
 
-      // THIS IS THE NEW, BULLETPROOF UPLOADER
       const upload = new Upload({
         client,
         params: uploadParams,

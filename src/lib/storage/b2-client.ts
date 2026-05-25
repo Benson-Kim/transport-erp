@@ -35,14 +35,6 @@ class B2StorageClient {
       throw new StorageConfigError('B2 credentials not configured');
     }
 
-    console.log('Creating B2 client with config:', {
-      endpoint: this.config.endpoint,
-      region: this.config.region,
-      bucketName: this.config.bucketName,
-      hasKeyId: !!this.config.applicationKeyId,
-      hasKey: !!this.config.applicationKey,
-    });
-
     return new S3Client({
       endpoint: this.config.endpoint,
       region: this.config.region,
