@@ -196,7 +196,7 @@ export function UserManagement({ users, currentUserId, currentUserRole }: Readon
   const router = useRouter();
 
   // Filter users to only show Admin, Manager, Operator roles
-  const relevantRoles = new Set([
+  const relevantRoles = new Set<UserRole>([
     UserRole.SUPER_ADMIN,
     UserRole.ADMIN,
     UserRole.MANAGER,

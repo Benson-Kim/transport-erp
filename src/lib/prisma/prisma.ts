@@ -3,7 +3,7 @@
  * Ensures a single database connection throughout the application lifecycle
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/app/generated/prisma';
 import { withAccelerate } from '@prisma/extension-accelerate';
 
 const globalForPrisma = global as unknown as {

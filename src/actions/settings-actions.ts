@@ -30,6 +30,7 @@ import {
 } from '@/lib/validations/settings-schema';
 import type { ActionResult } from '@/types/settings';
 import { SettingKey } from '@/types/settings';
+import { getB2Config } from '@/lib/storage/utils';
 
 /**
  * B2 Configuration Interface
@@ -44,24 +45,6 @@ interface B2Config {
   keyName: string;
   maxFileSize: number;
   cdnUrl?: string;
-}
-
-function getB2Config(): B2Config {
-  const cleanEndpoint = getEnv('B2_ENDPOINT').trim().replace(/\/+$/, '');
-  const endpoint = cleanEndpoint.startsWith('http') ? cleanEndpoint : `https://${cleanEndpoint}`;
-  const config: B2Config = {
-    applicationKeyId: getEnv('B2_APPLICATION_KEY_ID') || '',
-    applicationKey: getEnv('B2_APPLICATION_KEY') || '',
-    bucketId: getEnv('B2_BUCKET_ID') || '',
-    bucketName: getEnv('B2_BUCKET_NAME') || '',
-    region: getEnv('B2_REGION') || 'us-west-004',
-    endpoint: endpoint || '',
-    keyName: getEnv('B2_KEYNAME') || 'backups',
-    maxFileSize: parseInt(getEnv('B2_MAX_FILE_SIZE') || '104857600', 10), // 100MB default
-    cdnUrl: getEnv('B2_CDN_URL'),
-  };
-
-  return config;
 }
 
 function validateB2Config(config: B2Config): void {
