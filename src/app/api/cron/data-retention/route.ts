@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { runDataRetention } from '@/lib/cron/data-retention';
 import prisma from '@/lib/prisma/prisma';
 import { AuditAction } from '@/app/generated/prisma';
@@ -15,16 +16,24 @@ import { AuditAction } from '@/app/generated/prisma';
  *   0 2 * * *  curl -H "Authorization: Bearer $CRON_SECRET" https://app/api/cron/data-retention
  */
 export async function GET(req: NextRequest) {
-  // Bearer token authentication
+  // Bearer token authentication (timing-safe comparison)
   const authHeader = req.headers.get('Authorization');
-  const cronSecret = process.env.CRON_SECRET;
+  const cronSecret = process.env['CRON_SECRET'];
 
   if (!cronSecret) {
     console.error('[Cron] CRON_SECRET is not configured.');
     return Response.json({ error: 'Cron not configured' }, { status: 500 });
   }
 
-  if (authHeader !== `Bearer ${cronSecret}`) {
+  const expected = `Bearer ${cronSecret}`;
+  const provided = authHeader ?? '';
+
+  // Constant-time comparison to prevent timing attacks
+  const isValid =
+    provided.length === expected.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+
+  if (!isValid) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
