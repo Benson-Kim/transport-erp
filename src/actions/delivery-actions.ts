@@ -224,20 +224,24 @@ export async function markDelivered(data: {
     });
 
     // Outbox: enqueue DELIVERED notification (durable — processed by existing cron)
-    await tx.emailQueue.create({
-      data: {
-        template: 'DELIVERED',
-        to: shipment.recipientEmail ?? shipment.recipientPhone,
+    // Guard: skip if no contact info to prevent NOT NULL violation on `to`
+    const deliveredRecipient = shipment.recipientEmail ?? shipment.recipientPhone;
+    if (deliveredRecipient) {
+      await tx.emailQueue.create({
         data: {
-          shipmentId: data.shipmentId,
-          trackingToken: shipment.trackingToken,
-          recipientName: shipment.recipientName,
-          photoUrl: data.photoUrl,
+          template: 'DELIVERED',
+          to: deliveredRecipient,
+          data: {
+            shipmentId: data.shipmentId,
+            trackingToken: shipment.trackingToken,
+            recipientName: shipment.recipientName,
+            photoUrl: data.photoUrl,
+          },
+          priority: 'high',
+          status: 'pending',
         },
-        priority: 'high',
-        status: 'pending',
-      },
-    });
+      });
+    }
 
     // Audit log
     await tx.auditLog.create({
@@ -287,6 +291,19 @@ export async function markFailed(data: {
 
   // State machine guard
   assertValidTransition(shipment.status, DeliveryStatus.FAILED);
+
+  // Idempotency guard — prevent duplicate failed events from network retries
+  const existingFailed = await prisma.deliveryEvent.findFirst({
+    where: {
+      shipmentId: data.shipmentId,
+      driverId: driver.id,
+      status: DeliveryStatus.FAILED,
+      occurredAt: { gte: new Date(Date.now() - 30_000) }, // within 30 seconds
+    },
+  });
+  if (existingFailed) {
+    return { success: true, idempotent: true, nextStatus: shipment.status };
+  }
 
   const newAttemptsCount = shipment.failedAttempts + 1;
   let nextStatus: DeliveryStatus = DeliveryStatus.FAILED;
@@ -347,11 +364,13 @@ export async function markFailed(data: {
     });
 
     // Outbox: enqueue PUDO notification if applicable (durable)
-    if (nextStatus === DeliveryStatus.AT_PUDO && pudoNotificationData) {
+    // Guard: skip if no contact info to prevent NOT NULL violation on `to`
+    const pudoRecipient = shipment.recipientEmail ?? shipment.recipientPhone;
+    if (nextStatus === DeliveryStatus.AT_PUDO && pudoNotificationData && pudoRecipient) {
       await tx.emailQueue.create({
         data: {
           template: 'PUDO_AVAILABLE',
-          to: shipment.recipientEmail ?? shipment.recipientPhone,
+          to: pudoRecipient,
           data: {
             shipmentId: data.shipmentId,
             trackingToken: shipment.trackingToken,
