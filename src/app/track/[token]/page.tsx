@@ -5,8 +5,8 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 import TrackingTimeline from '@/components/features/tracking/TrackingTimeline';
 import LiveMap from '@/components/features/tracking/LiveMap';
 import { DeliveryStatus } from '@/app/generated/prisma';
-import ProofVerificationGate from '@/components/features/tracking/ProofVerificationGate';
 import { Metadata } from 'next';
+import ProofVerificationGate from '@/components/features/tracking/ProofVerificationGate';
 
 export const metadata: Metadata = {
   title: 'Track Your Delivery',
@@ -54,8 +54,6 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
       codigoPostal: true,
       deliveredAt: true,
       // proofPhotoUrl and signatureUrl intentionally omitted — served via verified API
-      proofPhotoUrl: false,
-      signatureUrl: false,
       events: {
         orderBy: { occurredAt: 'desc' },
         select: {
