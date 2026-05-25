@@ -5,7 +5,7 @@ import { checkRateLimit } from '@/lib/rate-limiter';
 import TrackingTimeline from '@/components/features/tracking/TrackingTimeline';
 import LiveMap from '@/components/features/tracking/LiveMap';
 import { DeliveryStatus } from '@/app/generated/prisma';
-import DeliveryProof from '@/components/features/tracking/DeliveryProof';
+import ProofVerificationGate from '@/components/features/tracking/ProofVerificationGate';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -39,6 +39,8 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
   // Privacy-safe query: select ONLY fields safe for public display.
   // Never expose: recipientName, recipientPhone, recipientDni, recipientEmail
   // Never expose event GPS coordinates (anti-stalking) or photoUrl (privacy)
+  // SECURITY: proofPhotoUrl and signatureUrl are NO LONGER selected here.
+  // They are gated behind recipient phone verification via /api/tracking/[token]/proof
   const shipment = await prisma.shipment.findUnique({
     where: { trackingToken: resolvedParams.token },
     select: {
@@ -51,8 +53,9 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
       provincia: true,
       codigoPostal: true,
       deliveredAt: true,
-      proofPhotoUrl: true,
-      signatureUrl: true,
+      // proofPhotoUrl and signatureUrl intentionally omitted — served via verified API
+      proofPhotoUrl: false,
+      signatureUrl: false,
       events: {
         orderBy: { occurredAt: 'desc' },
         select: {
@@ -84,7 +87,6 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
 
   const isOutForDelivery = shipment.status === DeliveryStatus.OUT_FOR_DELIVERY;
   const isDelivered = shipment.status === DeliveryStatus.DELIVERED;
-  const hasProof = !!shipment.proofPhotoUrl || !!shipment.signatureUrl;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10 px-4">
@@ -120,15 +122,9 @@ export default async function TrackingPage({ params }: { params: Promise<{ token
           </div>
         )}
 
-        {/* Proof of Delivery Component — only show on delivery */}
-        {isDelivered && hasProof && (
-          <div className="p-6 border-b border-gray-100 bg-gray-50">
-            <h3 className="font-semibold text-gray-800 mb-4">Proof of Delivery</h3>
-            <DeliveryProof
-              photoUrl={shipment.proofPhotoUrl}
-              signatureUrl={shipment.signatureUrl}
-            />
-          </div>
+        {/* Proof of Delivery — gated behind recipient phone verification */}
+        {isDelivered && (
+          <ProofVerificationGate trackingToken={shipment.trackingToken} />
         )}
 
         {/* Timeline Component */}
