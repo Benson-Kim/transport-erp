@@ -287,7 +287,10 @@ export function createDateRangeCondition(field: string, range: DateRangeFilter) 
 
 /**
  * Generate Unique Identifier
- * Creates unique identifiers for various entities
+ * Creates unique identifiers for various entities.
+ *
+ * Uses a PostgreSQL advisory lock to prevent TOCTOU race conditions
+ * when multiple concurrent requests generate identifiers simultaneously.
  */
 export async function generateUniqueIdentifier(
   prefix: string,
@@ -295,27 +298,38 @@ export async function generateUniqueIdentifier(
   field: string
 ): Promise<string> {
   const year = new Date().getFullYear();
+  const lockKey = `${prefix}_${model}_${field}`;
 
-  // Get the last number for this prefix and year
-  const lastRecord = await (prisma as any)[model].findFirst({
-    where: {
-      [field]: {
-        startsWith: `${prefix}-${year}-`,
+  // Use a transaction with advisory lock for atomicity
+  return prisma.$transaction(async (tx: any) => {
+    // Acquire an advisory lock scoped to this transaction.
+    // hashtext() produces a stable int4 from the lock key string.
+    await tx.$queryRawUnsafe(
+      `SELECT pg_advisory_xact_lock(hashtext($1))`,
+      lockKey
+    );
+
+    // Get the last number for this prefix and year
+    const lastRecord = await tx[model].findFirst({
+      where: {
+        [field]: {
+          startsWith: `${prefix}-${year}-`,
+        },
       },
-    },
-    orderBy: {
-      [field]: 'desc',
-    },
+      orderBy: {
+        [field]: 'desc',
+      },
+    });
+
+    let nextNumber = 1;
+    if (lastRecord?.[field]) {
+      const parts = lastRecord[field].split('-');
+      const currentNumber = Number.parseInt(parts[parts.length - 1], 10);
+      nextNumber = currentNumber + 1;
+    }
+
+    return `${prefix}-${year}-${String(nextNumber).padStart(5, '0')}`;
   });
-
-  let nextNumber = 1;
-  if (lastRecord?.[field]) {
-    const parts = lastRecord[field].split('-');
-    const currentNumber = Number.parseInt(parts[parts.length - 1], 10);
-    nextNumber = currentNumber + 1;
-  }
-
-  return `${prefix}-${year}-${String(nextNumber).padStart(5, '0')}`;
 }
 
 /**
