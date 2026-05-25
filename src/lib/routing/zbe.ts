@@ -23,6 +23,41 @@ export interface ZbeViolation {
   zone: { id: string; name: string; allowedLabels: string[] };
 }
 
+// Cached zone loader — zones rarely change, so cache for 15 minutes
+
+let zoneCache: { data: Awaited<ReturnType<typeof fetchZones>>; expiresAt: number } | null = null;
+const ZONE_CACHE_TTL_MS = 15 * 60 * 1000;
+
+async function fetchZones() {
+  return prisma.zbeZone.findMany({
+    where: {
+      OR: [
+        { effectiveTo: null },
+        { effectiveTo: { gt: new Date() } },
+      ],
+    },
+  });
+}
+
+/**
+ * Returns all currently-active ZBE zones, cached in memory with a 15-minute TTL.
+ * Call `invalidateZbeCache()` after zone CRUD operations.
+ */
+export async function getActiveZbeZones() {
+  const now = Date.now();
+  if (zoneCache && zoneCache.expiresAt > now) {
+    return zoneCache.data;
+  }
+  const data = await fetchZones();
+  zoneCache = { data, expiresAt: now + ZONE_CACHE_TTL_MS };
+  return data;
+}
+
+/** Clears the zone cache — call after create/update/delete on ZbeZone. */
+export function invalidateZbeCache() {
+  zoneCache = null;
+}
+
 /**
  * Validates a set of route stops against all active ZBE zones.
  *
@@ -37,15 +72,7 @@ export async function enforceZbeCompliance(
 ): Promise<boolean> {
   const enforcementMode = process.env.ZBE_ENFORCEMENT ?? 'hard';
 
-  // Fetch all currently-active zones (effectiveTo is null = still in force)
-  const zones = await prisma.zbeZone.findMany({
-    where: {
-      OR: [
-        { effectiveTo: null },
-        { effectiveTo: { gt: new Date() } },
-      ],
-    },
-  });
+  const zones = await getActiveZbeZones();
 
   if (zones.length === 0) {
     // No zones configured yet — pass silently
@@ -91,9 +118,9 @@ export async function enforceZbeCompliance(
     const first = violations[0]!;
     throw new Error(
       `ZBE VIOLATION: Route includes stop at "${first.stop.address}" inside ${first.zone.name}. ` +
-        `Vehicle emission label "${vehicleLabel}" is prohibited. ` +
-        `Allowed labels: [${first.zone.allowedLabels.join(', ')}]. ` +
-        `Total violations: ${violations.length}.`,
+      `Vehicle emission label "${vehicleLabel}" is prohibited. ` +
+      `Allowed labels: [${first.zone.allowedLabels.join(', ')}]. ` +
+      `Total violations: ${violations.length}.`,
     );
   }
 
@@ -101,7 +128,7 @@ export async function enforceZbeCompliance(
   for (const v of violations) {
     console.warn(
       `[ZBE WARNING] Stop "${v.stop.address}" is in ${v.zone.name}. ` +
-        `Vehicle label "${vehicleLabel}" is restricted. Allowed: [${v.zone.allowedLabels.join(', ')}].`,
+      `Vehicle label "${vehicleLabel}" is restricted. Allowed: [${v.zone.allowedLabels.join(', ')}].`,
     );
   }
 
