@@ -188,7 +188,7 @@ export async function getClients(params: Record<string, unknown>): Promise<Actio
     ]);
 
     // Transform to list items
-    const data: ClientListItem[] = clients.map((client: any) => {
+    const data: ClientListItem[] = clients.map((client) => {
       const billingAddress = client.billingAddress as unknown as Address;
       return {
         id: client.id,
@@ -357,7 +357,7 @@ export async function getClientServices(
       prisma.service.count({ where }),
     ]);
 
-    const data: ClientService[] = services.map((service: any) => ({
+    const data: ClientService[] = services.map((service) => ({
       id: service.id,
       serviceNumber: service.serviceNumber,
       date: service.date,
@@ -604,7 +604,7 @@ export async function getClientCountries(): Promise<ActionResult<string[]>> {
     });
 
     const countries = new Set<string>();
-    clients.forEach((client: any) => {
+    clients.forEach((client) => {
       const address = client.billingAddress as unknown as Address;
       if (address?.country) {
         countries.add(address.country);
@@ -667,7 +667,7 @@ export async function exportClients(
       'Created At',
     ];
 
-    const rows = clients.map((client: any) => {
+    const rows = clients.map((client) => {
       const addr = client.billingAddress as unknown as Address;
       return [
         client.clientCode,

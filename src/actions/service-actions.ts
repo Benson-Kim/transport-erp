@@ -63,7 +63,7 @@ export async function getService(serviceId: string) {
 export async function getServices(filters: ServiceFiltersAPI) {
   await requirePermission('services', 'view');
 
-  const where: any = {
+  const where: Prisma.ServiceWhereInput = {
     deletedAt: null,
   };
 
@@ -108,7 +108,7 @@ export async function getServices(filters: ServiceFiltersAPI) {
   // Sorting
   const sortKeyMap: Record<
     string,
-    keyof Prisma.ServiceOrderByWithRelationInput | { [key: string]: any }
+    keyof Prisma.ServiceOrderByWithRelationInput | Record<string, unknown>
   > = {
     driver: 'driverName',
     client: { client: { name: filters.sortOrder || 'asc' } },
@@ -167,7 +167,7 @@ export async function getServices(filters: ServiceFiltersAPI) {
   ]);
 
   // Format services for frontend
-  const formattedServices = services.map((service: any) => ({
+  const formattedServices = services.map((service) => ({
     id: service.id,
     serviceNumber: service.serviceNumber,
     date: service.date.toISOString(),
@@ -506,7 +506,7 @@ export async function getServiceActivity(
   const items = activities.slice(0, limit);
 
   // Transform activities into timeline items
-  const timelineItems = items.map((activity: any) => {
+  const timelineItems = items.map((activity) => {
     let description = '';
     let metadata = {};
 
