@@ -66,8 +66,16 @@ export async function runDataRetention() {
       take: BATCH_SIZE,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
       where: {
-        status: 'DELIVERED',
-        deliveredAt: { lt: cutoffDate },
+        OR: [
+          {
+            status: 'DELIVERED',
+            deliveredAt: { lt: cutoffDate },
+          },
+          {
+            status: { in: ['FAILED', 'CANCELLED'] },
+            updatedAt: { lt: cutoffDate },
+          },
+        ],
         anonymisedAt: null,
       },
       select: {
