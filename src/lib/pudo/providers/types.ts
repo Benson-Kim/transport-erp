@@ -24,4 +24,14 @@ export interface IPudoProvider {
    * Must NOT throw — return an empty array on failure.
    */
   fetch(lat: number, lng: number, radiusKm: number): Promise<PudoLocation[]>;
+
+  /**
+   * Reserves a locker for a shipment.
+   */
+  reserve(locationId: string, size: string): Promise<string>;
+
+  /**
+   * Cancels a previously reserved locker slot.
+   */
+  cancel(locationId: string, pin: string): Promise<void>;
 }

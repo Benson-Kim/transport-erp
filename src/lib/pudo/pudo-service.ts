@@ -64,20 +64,21 @@ export class PudoService {
 
   /**
    * Reserves a locker for a shipment that is being rerouted.
-   * In production, this calls the provider's reservation API.
+   * Delegates to the appropriate provider based on the locationId prefix.
    */
   static async reserveLocker(
     locationId: string,
     shipmentSize: 'S' | 'M' | 'L',
   ): Promise<string> {
-    // Determine which provider owns this location by the prefix
-    const providerPrefix = locationId.split('-')[0];
+    const providerPrefix = locationId.split('-')[0]?.toLowerCase();
 
-    if (providerPrefix === 'citypaq') {
-      return this.reserveCorreos(locationId, shipmentSize);
-    }
-    if (providerPrefix === 'inpost') {
-      return this.reserveInPost(locationId, shipmentSize);
+    const provider = PROVIDERS.find((p) => 
+      p.providerName.toLowerCase().replace('_', '') === providerPrefix ||
+      p.providerName.toLowerCase() === providerPrefix
+    );
+
+    if (provider) {
+      return provider.reserve(locationId, shipmentSize);
     }
 
     // Fallback: generate a local PIN for manual handling
@@ -87,122 +88,23 @@ export class PudoService {
     return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   }
 
-  private static async reserveCorreos(
-    locationId: string,
-    shipmentSize: string,
-  ): Promise<string> {
-    const apiKey = process.env['CORREOS_CITYPAQ_API_KEY'];
-    const baseUrl = process.env['CORREOS_API_BASE'] ?? 'https://api.correos.es';
-
-    if (!apiKey) {
-      console.warn('[PudoService] Correos API key missing — generating local PIN.');
-      return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    }
-
-    try {
-      const codeId = locationId.replace('citypaq-', '');
-      const response = await fetch(`${baseUrl}/citypaq/v1/reservations`, {
-        method: 'POST',
-        headers: {
-          'X-API-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pointId: codeId,
-          lockerSize: shipmentSize,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const json = await response.json();
-      return json?.pin ?? json?.reservationCode ?? `PIN-${codeId}`;
-    } catch (err: any) {
-      console.error('[PudoService] Correos reservation failed:', err?.message);
-      return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    }
-  }
-
-  private static async reserveInPost(
-    locationId: string,
-    shipmentSize: string,
-  ): Promise<string> {
-    const apiKey = process.env['INPOST_API_KEY'];
-    const baseUrl = process.env['INPOST_API_BASE'] ?? 'https://api.inpost.es/v1';
-
-    if (!apiKey) {
-      console.warn('[PudoService] InPost API key missing — generating local PIN.');
-      return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    }
-
-    try {
-      const pointName = locationId.replace('inpost-', '');
-      const response = await fetch(`${baseUrl}/reservations`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          locker_name: pointName,
-          size: shipmentSize,
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const json = await response.json();
-      return json?.open_code ?? json?.pin ?? `PIN-${pointName}`;
-    } catch (err: any) {
-      console.error('[PudoService] InPost reservation failed:', err?.message);
-      return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    }
-  }
-
   /**
    * Cancels a previously reserved locker slot.
-   *
-   * Called as compensation when the DB transaction in markFailed fails
-   * after reserveLocker has already succeeded — prevents orphaned
-   * reservations that block the locker indefinitely.
    */
   static async cancelReservation(locationId: string, pin: string): Promise<void> {
-    const providerPrefix = locationId.split('-')[0];
+    const providerPrefix = locationId.split('-')[0]?.toLowerCase();
 
-    try {
-      if (providerPrefix === 'citypaq') {
-        const apiKey = process.env['CORREOS_CITYPAQ_API_KEY'];
-        const baseUrl = process.env['CORREOS_API_BASE'] ?? 'https://api.correos.es';
-        if (!apiKey) return;
+    const provider = PROVIDERS.find((p) => 
+      p.providerName.toLowerCase().replace('_', '') === providerPrefix ||
+      p.providerName.toLowerCase() === providerPrefix
+    );
 
-        await fetch(`${baseUrl}/citypaq/v1/reservations/${encodeURIComponent(pin)}`, {
-          method: 'DELETE',
-          headers: { 'X-API-Key': apiKey },
-          signal: AbortSignal.timeout(5000),
-        });
-      } else if (providerPrefix === 'inpost') {
-        const apiKey = process.env['INPOST_API_KEY'];
-        const baseUrl = process.env['INPOST_API_BASE'] ?? 'https://api.inpost.es/v1';
-        if (!apiKey) return;
-
-        await fetch(`${baseUrl}/reservations/${encodeURIComponent(pin)}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${apiKey}` },
-          signal: AbortSignal.timeout(5000),
-        });
-      }
-    } catch (err: any) {
-      // Best-effort — log and move on
-      console.warn(
-        `[PudoService] Failed to cancel reservation ${pin} at ${locationId}:`,
-        err?.message,
-      );
+    if (provider) {
+      return provider.cancel(locationId, pin);
     }
+
+    console.warn(
+      `[PudoService] Unknown provider prefix "${providerPrefix}" — cannot cancel reservation.`,
+    );
   }
 }
