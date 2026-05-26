@@ -3,7 +3,7 @@
  * Environment-aware email handling with React Email templates
  */
 
-import { type CreateEmailOptions, Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { render } from '@react-email/render';
 import * as React from 'react';
 
@@ -46,13 +46,24 @@ import type {
 export class EmailService {
   private static instance: EmailService;
   private config: EmailConfig;
-  private resend: Resend | null = null;
+  private transporter: nodemailer.Transporter | null = null;
 
   private constructor() {
     this.config = getEmailConfig();
 
-    if (this.config.resendApiKey) {
-      this.resend = new Resend(this.config.resendApiKey);
+    if (process.env.SMTP_HOST) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else if (this.config.resendApiKey) {
+      // Fallback or warning if SMTP not configured but resend is
+      console.warn('[EmailService] SMTP not configured. Using mock sender.');
     }
   }
 
@@ -68,8 +79,16 @@ export class EmailService {
    */
   public reloadConfig(): void {
     this.config = getEmailConfig();
-    this.resend = this.config.resendApiKey
-      ? new Resend(this.config.resendApiKey)
+    this.transporter = process.env.SMTP_HOST
+      ? nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        })
       : null;
   }
 
@@ -167,44 +186,43 @@ export class EmailService {
         };
       }
 
-      // Validate Resend client
-      if (!this.resend) {
+      // Validate nodemailer client
+      if (!this.transporter) {
         throw new Error(
-          'Resend API key not configured. Set RESEND_API_KEY environment variable.'
+          'SMTP not configured. Set SMTP_HOST and other environment variables.'
         );
       }
 
       // Build payload
       const cc = options.cc
         ? Array.isArray(options.cc)
-          ? options.cc
-          : [options.cc]
+          ? options.cc.join(', ')
+          : options.cc
         : undefined;
       const bcc = options.bcc
         ? Array.isArray(options.bcc)
-          ? options.bcc
-          : [options.bcc]
+          ? options.bcc.join(', ')
+          : options.bcc
         : undefined;
 
-      const payload: CreateEmailOptions = {
+      const mailOptions = {
         from: `${this.config.from.name} <${this.config.from.email}>`,
-        to: recipients,
+        to: recipients.join(', '),
         cc,
         bcc,
         subject: options.subject,
         html: options.html,
         text: options.text,
         replyTo: options.replyTo || this.config.replyTo,
-        headers: options.headers,
-        attachments: options.attachments,
-        tags: options.tags,
-      } as CreateEmailOptions & ({ html: string } | { text: string });
+        headers: options.headers as Record<string, string>,
+        attachments: options.attachments?.map(a => ({
+          filename: a.filename,
+          content: typeof a.content === 'string' ? Buffer.from(a.content, 'base64') : a.content,
+        })),
+      };
 
-      const { data, error } = await this.resend.emails.send(payload);
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      const info = await this.transporter.sendMail(mailOptions);
+      const data = { id: info.messageId };
 
       // Log success
       if (this.config.logging.enabled) {
