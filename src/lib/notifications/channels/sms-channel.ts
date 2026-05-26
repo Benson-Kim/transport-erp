@@ -45,8 +45,53 @@ export class SmsChannel implements INotificationChannel {
       return this.sendViaTwilio(phone, template, data);
     }
 
-    // Future: Link Mobility or other providers
+    if (provider === 'link-mobility') {
+      return this.sendViaLinkMobility(phone, template, data);
+    }
+
     return { success: false, channel: this.name, error: `Unsupported SMS provider: ${provider}` };
+  }
+
+  private async sendViaLinkMobility(
+    phone: string,
+    template: NotificationTemplate,
+    data: Record<string, unknown>,
+  ): Promise<NotificationSendResult> {
+    const apiKey = process.env.LINK_MOBILITY_API_KEY;
+    const sender = process.env.LINK_MOBILITY_SENDER ?? 'TransportERP';
+
+    if (!apiKey) {
+      return { success: false, channel: this.name, error: 'Link Mobility credentials not configured' };
+    }
+
+    try {
+      const body = renderSmsTemplate(template, data);
+
+      const response = await fetch('https://gatewayapi.com/rest/mtsms', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender,
+          message: body,
+          recipients: [{ msisdn: phone.replace('+', '') }]
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.text();
+        console.error(`[SMS] Link Mobility error for ${template}:`, err);
+        return { success: false, channel: this.name, error: `HTTP ${response.status}` };
+      }
+
+      const json = await response.json();
+      return { success: true, channel: this.name, messageId: json?.ids?.[0] };
+    } catch (err: unknown) {
+      console.error(`[SMS] Failed to send ${template}:`, err instanceof Error ? err.message : String(err));
+      return { success: false, channel: this.name, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
   }
 
   private async sendViaTwilio(
