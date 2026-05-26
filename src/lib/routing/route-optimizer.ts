@@ -9,6 +9,7 @@
  */
 
 import prisma from '@/lib/prisma/prisma';
+import { RouteStatus } from '@/app/generated/prisma';
 import { generateUniqueIdentifier } from '@/lib/prisma/db-helpers';
 import { enforceZbeCompliance, type RouteStop } from './zbe';
 
@@ -29,7 +30,7 @@ async function osrmOptimize(stops: RouteStop[]): Promise<{
   totalDistanceKm: number;
   estimatedDurationMin: number;
 }> {
-  const baseUrl = process.env.OSRM_BASE_URL ?? 'http://router.project-osrm.org';
+  const baseUrl = process.env['OSRM_BASE_URL'] ?? 'http://router.project-osrm.org';
 
   // Build the coordinate string: lng,lat;lng,lat;...
   const coords = stops.map((s) => `${s.lng},${s.lat}`).join(';');
@@ -183,7 +184,7 @@ export class RouteOptimizer {
         routeNumber,
         driverId,
         date: new Date(),
-        status: 'PLANNED',
+        status: RouteStatus.PLANNED,
         optimisedPath: orderedStops as any,
         zbeCompliant: true,
         shipments: { connect: shipmentIds.map((id) => ({ id })) },

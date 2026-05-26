@@ -60,6 +60,13 @@ enum ShipmentPriority {
   SAME_DAY
 }
 
+enum RouteStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum ServiceStatus {
   DRAFT
   CONFIRMED
@@ -935,7 +942,7 @@ model Route {
   routeNumber     String   @unique
   driverId        String
   date            DateTime
-  status          String   @default("PLANNED")
+  status          RouteStatus @default(PLANNED)
   optimisedPath   Json?
   zbeCompliant    Boolean  @default(true)
   
