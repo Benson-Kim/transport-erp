@@ -6,9 +6,12 @@
  * modification to PudoService.
  */
 
+/** Union of supported PUDO provider identifiers. */
+export type PudoProviderName = 'CORREOS_CITYPAQ' | 'INPOST' | 'SEUR';
+
 export interface PudoLocation {
   id: string;
-  provider: 'CORREOS_CITYPAQ' | 'INPOST' | 'SEUR';
+  provider: PudoProviderName;
   name: string;
   address: string;
   lat: number;
@@ -17,8 +20,34 @@ export interface PudoLocation {
   availableCapacity: number;
 }
 
+/**
+ * Result of a locker reservation attempt.
+ * `confirmed: false` means the PIN is synthetic / unverified — the caller
+ * should NOT commit the PUDO assignment to the database.
+ */
+export interface ReservationResult {
+  pin: string;
+  confirmed: boolean;
+}
+
+/**
+ * Result of a cancellation attempt.
+ */
+export interface CancellationResult {
+  success: boolean;
+  error?: string;
+}
+
 export interface IPudoProvider {
-  readonly providerName: string;
+  /** Must match one of the PudoProviderName values. */
+  readonly providerName: PudoProviderName;
+
+  /**
+   * The prefix used in locationId strings (e.g. 'inpost', 'citypaq').
+   * Used by PudoService to route reserve/cancel calls to the correct provider.
+   */
+  readonly locationIdPrefix: string;
+
   /**
    * Fetches nearby PUDO locations.
    * Must NOT throw — return an empty array on failure.
@@ -27,11 +56,13 @@ export interface IPudoProvider {
 
   /**
    * Reserves a locker for a shipment.
+   * Returns a ReservationResult indicating whether the PIN is confirmed.
    */
-  reserve(locationId: string, size: string): Promise<string>;
+  reserve(locationId: string, size: string): Promise<ReservationResult>;
 
   /**
    * Cancels a previously reserved locker slot.
+   * Returns a CancellationResult indicating success/failure.
    */
-  cancel(locationId: string, pin: string): Promise<void>;
+  cancel(locationId: string, pin: string): Promise<CancellationResult>;
 }

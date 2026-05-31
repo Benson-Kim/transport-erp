@@ -15,6 +15,8 @@ import {
   InPostProvider,
   type IPudoProvider,
   type PudoLocation,
+  type ReservationResult,
+  type CancellationResult,
 } from './providers';
 
 // Registry of active providers — add new providers here
@@ -23,7 +25,7 @@ const PROVIDERS: IPudoProvider[] = [
   new InPostProvider(),
 ];
 
-export { type PudoLocation };
+export { type PudoLocation, type ReservationResult, type CancellationResult };
 
 export class PudoService {
   /**
@@ -64,39 +66,33 @@ export class PudoService {
 
   /**
    * Reserves a locker for a shipment that is being rerouted.
-   * Delegates to the appropriate provider based on the locationId prefix.
+   * Delegates to the appropriate provider based on the locationIdPrefix.
    */
   static async reserveLocker(
     locationId: string,
     shipmentSize: 'S' | 'M' | 'L',
-  ): Promise<string> {
-    const providerPrefix = locationId.split('-')[0]?.toLowerCase();
-
-    const provider = PROVIDERS.find((p) => 
-      p.providerName.toLowerCase().replace('_', '') === providerPrefix ||
-      p.providerName.toLowerCase() === providerPrefix
+  ): Promise<ReservationResult> {
+    const provider = PROVIDERS.find((p) =>
+      locationId.startsWith(`${p.locationIdPrefix}-`),
     );
 
     if (provider) {
       return provider.reserve(locationId, shipmentSize);
     }
 
-    // Fallback: generate a local PIN for manual handling
+    // No matching provider — cannot confirm reservation
     console.warn(
-      `[PudoService] Unknown provider prefix "${providerPrefix}" — generating local PIN.`,
+      `[PudoService] No provider matched locationId "${locationId}" — reservation unconfirmed.`,
     );
-    return `PIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    return { pin: '', confirmed: false };
   }
 
   /**
    * Cancels a previously reserved locker slot.
    */
-  static async cancelReservation(locationId: string, pin: string): Promise<void> {
-    const providerPrefix = locationId.split('-')[0]?.toLowerCase();
-
-    const provider = PROVIDERS.find((p) => 
-      p.providerName.toLowerCase().replace('_', '') === providerPrefix ||
-      p.providerName.toLowerCase() === providerPrefix
+  static async cancelReservation(locationId: string, pin: string): Promise<CancellationResult> {
+    const provider = PROVIDERS.find((p) =>
+      locationId.startsWith(`${p.locationIdPrefix}-`),
     );
 
     if (provider) {
@@ -104,7 +100,8 @@ export class PudoService {
     }
 
     console.warn(
-      `[PudoService] Unknown provider prefix "${providerPrefix}" — cannot cancel reservation.`,
+      `[PudoService] No provider matched locationId "${locationId}" — cannot cancel reservation.`,
     );
+    return { success: false, error: 'Unknown provider' };
   }
 }
