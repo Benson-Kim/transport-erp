@@ -27,11 +27,11 @@ import {
   systemSettingsSchema,
 } from '@/lib/validations/settings-schema';
 
-import BackupSettings from './SystemSettings/Backup';
-import EmailConfiguration from './SystemSettings/EmailConfig';
-import GeneralSettings from './SystemSettings/General';
-import PDFSettings from './SystemSettings/PDF';
-import SequenceSettings from './SystemSettings/Sequence';
+import { GeneralSettings } from './SystemSettings2/General';
+import { EmailConfiguration } from './SystemSettings2/EmailConfig';
+import { PDFSettings } from './SystemSettings2/PDF';
+import { SequenceSettings } from './SystemSettings2/Sequence';
+import { BackupSettings } from './SystemSettings2/Backup';
 
 type SettingsSection = keyof SystemSettings;
 
