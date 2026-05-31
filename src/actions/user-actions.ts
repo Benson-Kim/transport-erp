@@ -12,7 +12,7 @@ import { requireRole } from '@/lib/auth';
 import { hashPassword } from '@/lib/auth/auth-helpers';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
-import { withPermission } from '@/lib/rbac';
+import { withPermission, requirePermission } from '@/lib/rbac';
 import { createUserSchema, updateUserSchema } from '@/lib/validations/settings-schema';
 
 import type { z } from 'zod';
@@ -352,10 +352,19 @@ export const toggleUserStatus = withPermission('users', 'edit', async (userId: s
 });
 
 /**
+ * Maximum number of IDs allowed in a single bulk operation.
+ */
+const MAX_BULK_IDS = 100;
+
+/**
  * Bulk deactivate users
  */
 export async function bulkDeactivateUsers(userIds: string[]) {
+  if (userIds.length > MAX_BULK_IDS) {
+    throw new Error(`Cannot process more than ${MAX_BULK_IDS} users at once`);
+  }
   const session = await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
+  await requirePermission('users', 'edit');
 
   const results = await Promise.allSettled(
     userIds.map(async (userId) => {
@@ -395,6 +404,9 @@ export async function bulkDeactivateUsers(userIds: string[]) {
  * Bulk delete users
  */
 export async function bulkDeleteUsers(userIds: string[]) {
+  if (userIds.length > MAX_BULK_IDS) {
+    throw new Error(`Cannot process more than ${MAX_BULK_IDS} users at once`);
+  }
   const session = await requireRole([UserRole.SUPER_ADMIN]);
 
   // Check for dependencies
@@ -423,6 +435,15 @@ export async function bulkDeleteUsers(userIds: string[]) {
     },
   });
 
+  // Invalidate all sessions for deleted users so they are logged out immediately
+  await prisma.session.deleteMany({
+    where: {
+      userId: {
+        in: userIds.filter((id) => id !== session.user.id),
+      },
+    },
+  });
+
   await createAuditLog({
     userId: session.user.id,
     action: 'DELETE',
@@ -432,6 +453,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
       action: 'bulk_delete',
       userIds,
       count: results.count,
+      sessionsInvalidated: true,
     },
   });
 

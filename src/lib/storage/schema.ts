@@ -10,6 +10,7 @@ export const b2ConfigSchema = z.object({
   bucketName: z.string().min(1, 'B2 Bucket Name is required'),
   region: z.string().default('us-east-005'),
   endpoint: z.url('Invalid B2 endpoint URL'),
+  keyName: z.string().default('backups'),
   cdnUrl: z.url('Invalid CDN URL').optional(),
   maxFileSize: z.number().default(10 * 1024 * 1024), // 10MB default
   allowedMimeTypes: z.array(z.string()).optional(),

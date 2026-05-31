@@ -242,6 +242,17 @@ export async function exportToExcel(
 export function getEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
+    // Return dummy values during build phase to prevent build crashes
+    const isBuildPhase =
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.npm_lifecycle_event?.includes('build');
+      
+    if (isBuildPhase) {
+      if (name.includes('URL') || name.includes('ENDPOINT')) return 'https://dummy-build-url.com';
+      if (name === 'B2_MAX_FILE_SIZE') return '10485760';
+      return `dummy-${name.toLowerCase()}`;
+    }
+    
     throw new Error(`Missing environment variable: ${name}`);
   }
   return value;

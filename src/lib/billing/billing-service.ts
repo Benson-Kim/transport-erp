@@ -17,27 +17,34 @@ export interface InvoiceData {
   concept: string;
 }
 
+export interface InvoiceResult {
+  success: boolean;
+  invoiceNumber?: string;
+  subtotal?: number;
+  ivaAmount?: number;
+  totalAmount?: number;
+  pdfUrl?: string;
+  documentId?: string;
+  error?: string;
+}
+
 export class BillingService {
   /**
    * Generates an AEAT (Tax Authority) compliant invoice via Holded or Stripe Billing.
    */
-  static async generateSpanishInvoice(data: InvoiceData) {
+  static async generateSpanishInvoice(data: InvoiceData): Promise<InvoiceResult> {
     console.log(`Generating IVA-compliant invoice for client ${data.clientId}`);
-    
+
     // Calculate totals
     const ivaAmount = data.amount * (data.ivaRate / 100);
     const totalAmount = data.amount + ivaAmount;
 
-    const apiKey = process.env['HOLDED_API_KEY'];
+    const apiKey = process.env.HOLDED_API_KEY;
     if (!apiKey) {
-      console.warn('[BillingService] Holded API key missing — generating mock invoice.');
+      console.warn('[BillingService] Holded API key missing — cannot generate invoice.');
       return {
-        invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-        subtotal: data.amount,
-        ivaAmount,
-        totalAmount,
-        pdfUrl: 'https://storage.example.com/mock-invoice.pdf',
-        documentId: 'mock_doc_id',
+        success: false,
+        error: 'Holded API key not configured. Set HOLDED_API_KEY environment variable.',
       };
     }
 
@@ -66,8 +73,9 @@ export class BillingService {
       }
 
       const json = await response.json();
-      
+
       return {
+        success: true,
         invoiceNumber: json.docNumber ?? `INV-${new Date().getFullYear()}-${json.id.substring(0, 5)}`,
         subtotal: data.amount,
         ivaAmount,
@@ -77,7 +85,10 @@ export class BillingService {
       };
     } catch (err: any) {
       console.error('[BillingService] Holded invoice generation failed:', err?.message);
-      throw new Error('Failed to generate Spanish Invoice');
+      return {
+        success: false,
+        error: `Failed to generate Spanish Invoice: ${err?.message ?? 'Unknown error'}`,
+      };
     }
   }
 
@@ -86,8 +97,8 @@ export class BillingService {
    */
   static async chargeSepa(clientId: string, amount: number, invoiceNumber: string) {
     console.log(`Initiating SEPA charge for ${amount} EUR against client ${clientId} for ${invoiceNumber}`);
-    
-    const stripeKey = process.env['STRIPE_SECRET_KEY'];
+
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
       console.warn('[BillingService] Stripe Secret Key missing - skipping SEPA charge');
       return { success: false, error: 'Stripe configuration missing' };
@@ -122,35 +133,86 @@ export class BillingService {
   }
 
   /**
-   * Generates a Bizum payment link for instant mobile payment (common for B2C or small B2B).
+   * Generates a signed Bizum payment request for instant mobile payment.
+   *
+   * Uses the Redsys HMAC-SHA256 signing protocol:
+   * 1. Build Ds_MerchantParameters as base64-encoded JSON
+   * 2. Diversify the merchant secret key using 3DES with the order number
+   * 3. Sign the base64 parameters with HMAC-SHA256 using the diversified key
+   *
+   * Requires env vars:
+   * - BIZUM_MERCHANT_ID
+   * - BIZUM_MERCHANT_SECRET (base64-encoded 3DES key from Redsys admin panel)
+   * - BIZUM_ENDPOINT (optional, defaults to Redsys test environment)
+   * - BIZUM_TERMINAL (optional, defaults to '1')
    */
   static async createBizumPayment(amount: number, reference: string) {
-    if (!process.env['BIZUM_MERCHANT_ID']) {
-      console.warn('Bizum Merchant ID missing.');
+    const merchantId = process.env.BIZUM_MERCHANT_ID;
+    const merchantSecret = process.env.BIZUM_MERCHANT_SECRET;
+
+    if (!merchantId || !merchantSecret) {
+      console.warn('[BillingService] Bizum credentials not configured.');
+      return {
+        success: false,
+        error: 'Bizum merchant credentials not configured. Set BIZUM_MERCHANT_ID and BIZUM_MERCHANT_SECRET.',
+      };
     }
-    console.log(`Generating Bizum payment request for ${amount} EUR (Ref: ${reference})`);
-    
-    // In a real Redsys Bizum integration, you would cryptographically sign the payload
-    // and generate a form to submit to the Redsys TPV (Terminal Punto de Venta) URL.
-    // For this ERP implementation, we return a URL where the ERP frontend or 
-    // payment gateway wrapper handles the Redsys redirection.
-    
-    const bizumBase = process.env['BIZUM_ENDPOINT'] ?? 'https://sis-t.redsys.es:25443/sis/realizarPago';
-    const merchantId = process.env['BIZUM_MERCHANT_ID'] ?? '999008881';
-    
-    // Return structured data for the frontend to create the Redsys form
+
+    // Validate 3DES key length (must be exactly 24 bytes after base64 decode)
+    const secretKeyBuffer = Buffer.from(merchantSecret, 'base64');
+    if (secretKeyBuffer.length !== 24) {
+      console.error(`[BillingService] BIZUM_MERCHANT_SECRET decodes to ${secretKeyBuffer.length} bytes (expected 24).`);
+      return {
+        success: false,
+        error: 'Invalid BIZUM_MERCHANT_SECRET: must be a base64-encoded 24-byte 3DES key.',
+      };
+    }
+
+    const bizumEndpoint = process.env.BIZUM_ENDPOINT ?? 'https://sis-t.redsys.es:25443/sis/realizarPago';
+    const terminal = process.env.BIZUM_TERMINAL ?? '1';
+
+    // Build Redsys merchant parameters
+    const merchantParameters = {
+      Ds_Merchant_Amount: Math.round(amount * 100).toString(),
+      Ds_Merchant_Order: reference,
+      Ds_Merchant_MerchantCode: merchantId,
+      Ds_Merchant_Terminal: terminal,
+      Ds_Merchant_TransactionType: '0',
+      Ds_Merchant_Currency: '978', // EUR
+      Ds_Merchant_PayMethods: 'z', // 'z' is Bizum in Redsys
+    };
+
+    // Step 1: Base64-encode the merchant parameters JSON
+    const merchantParamsB64 = Buffer.from(JSON.stringify(merchantParameters)).toString('base64');
+
+    // Step 2: Diversify the merchant secret key using 3DES-CBC with the order number
+    const { createCipheriv, createHmac } = await import('crypto');
+    // secretKeyBuffer already decoded and validated above
+
+    // Pad the order to 8 bytes (3DES block size)
+    const orderBuffer = Buffer.alloc(8, 0);
+    Buffer.from(reference).copy(orderBuffer);
+
+    // 3DES-CBC encrypt the order number with the merchant secret (IV = 0)
+    const iv = Buffer.alloc(8, 0);
+    const cipher = createCipheriv('des-ede3-cbc', secretKeyBuffer, iv);
+    cipher.setAutoPadding(false);
+    const diversifiedKey = Buffer.concat([cipher.update(orderBuffer), cipher.final()]);
+
+    // Step 3: HMAC-SHA256 sign the base64-encoded parameters with the diversified key
+    const signature = createHmac('sha256', diversifiedKey)
+      .update(merchantParamsB64)
+      .digest('base64');
+
     return {
-      paymentUrl: bizumBase,
-      parameters: {
-        amount: Math.round(amount * 100).toString(),
-        order: reference,
-        merchantCode: merchantId,
-        terminal: '1',
-        transactionType: '0',
-        currency: '978', // EUR
-        payMethod: 'z',  // 'z' is Bizum in Redsys
+      success: true,
+      paymentUrl: bizumEndpoint,
+      formFields: {
+        Ds_SignatureVersion: 'HMAC_SHA256_V1',
+        Ds_MerchantParameters: merchantParamsB64,
+        Ds_Signature: signature,
       },
-      expiresIn: '10m'
+      expiresIn: '10m',
     };
   }
 }

@@ -29,6 +29,7 @@ export function getB2Config(): B2Config {
       // region: getEnv('B2_REGION') || 'us-west-000',
       // endpoint: getEnv('B2_ENDPOINT') || `https://s3.${getEnv('B2_REGION') || 'us-west-000'}.backblazeb2.com`,
       endpoint,
+      keyName: getEnv('B2_KEY_NAME') || 'backups',
       cdnUrl: getEnv('B2_CDN_URL'),
       maxFileSize: getEnv('B2_MAX_FILE_SIZE')
         ? parseInt(getEnv('B2_MAX_FILE_SIZE'))

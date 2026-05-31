@@ -171,7 +171,7 @@ export async function auditPermissionCheck(
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
-      action: 'PERMISSION_CHECK' as any,
+      action: 'PERMISSION_CHECK',
       tableName: 'permissions',
       recordId: `${resource}:${action}`,
       metadata: {

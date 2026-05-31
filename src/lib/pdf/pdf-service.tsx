@@ -1,5 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from '@react-pdf/renderer';
-import { StorageService } from '@/lib/storage/service';
+import { storageService } from '@/lib/storage/service';
 import type { Prisma } from '@/app/generated/prisma';
 
 // Create styles
@@ -53,7 +53,6 @@ type ServiceWithRelations = Prisma.ServiceGetPayload<{
   include: {
     client: true;
     shipments: true;
-    routes: { include: { stops: true } };
   };
 }>;
 
@@ -72,17 +71,17 @@ const LoadingOrderDocument = ({ service }: { service: ServiceWithRelations }) =>
         <Text style={{ fontSize: 16, marginBottom: 10, fontWeight: 'bold' }}>Shipments to Load</Text>
 
         <View style={{ flexDirection: 'row' }}>
-          <Text style={styles.colHeader}>Tracking Number</Text>
-          <Text style={styles.colHeader}>Type</Text>
-          <Text style={styles.colHeader}>Weight (kg)</Text>
+          <Text style={styles.colHeader}>Shipment Number</Text>
+          <Text style={styles.colHeader}>Priority</Text>
+          <Text style={styles.colHeader}>Recipient</Text>
           <Text style={styles.colHeader}>Status</Text>
         </View>
 
         {service.shipments.map((shipment) => (
           <View key={shipment.id} style={styles.row}>
-            <Text style={styles.col}>{shipment.trackingNumber}</Text>
-            <Text style={styles.col}>{shipment.type}</Text>
-            <Text style={styles.col}>{shipment.weight?.toString() || 'N/A'}</Text>
+            <Text style={styles.col}>{shipment.shipmentNumber}</Text>
+            <Text style={styles.col}>{shipment.priority}</Text>
+            <Text style={styles.col}>{shipment.recipientName}</Text>
             <Text style={styles.col}>{shipment.status}</Text>
           </View>
         ))}
@@ -103,22 +102,18 @@ export class PdfService {
    */
   static async generateAndUploadLoadingOrder(service: ServiceWithRelations): Promise<{ url: string; path: string }> {
     try {
-      const storage = StorageService.getInstance();
+      const storage = storageService;
 
-      // Generate PDF Buffer
       const buffer = await renderToBuffer(<LoadingOrderDocument service={service} />);
 
-      // Define path in B2
-      const path = `documents/loading-orders/${service.id}/${service.serviceNumber}.pdf`;
-
-      // Upload to B2
-      const uploadedFile = await storage.uploadFile(buffer, path, {
+      const filePath = `documents/loading-orders/${service.id}/${service.serviceNumber}.pdf`;
+      const uploadedFile = await storage.uploadFile(buffer, filePath, {
         contentType: 'application/pdf',
       });
 
       return {
-        url: uploadedFile.url,
-        path: uploadedFile.path,
+        url: uploadedFile.url ?? uploadedFile.key,
+        path: uploadedFile.key,
       };
     } catch (error) {
       console.error('[PdfService] Error generating PDF:', error);

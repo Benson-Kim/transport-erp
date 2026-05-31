@@ -81,14 +81,14 @@ export class EmailService {
     this.config = getEmailConfig();
     this.transporter = process.env.SMTP_HOST
       ? nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: Number(process.env.SMTP_PORT) || 587,
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        })
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      })
       : null;
   }
 
@@ -431,7 +431,7 @@ export class EmailService {
 
         const results = await NotificationService.dispatch({
           shipmentId: parsedData['shipmentId'] as string,
-          template: job.template as any,
+          template: job.template as import('@/lib/notifications/channels/types').NotificationTemplate,
           data: parsedData,
         });
 
@@ -463,7 +463,7 @@ export class EmailService {
       const result = await this.sendTemplate(
         job.template as EmailTemplate,
         recipients,
-        parsedData as EmailTemplateData
+        parsedData as unknown as EmailTemplateData
       );
 
       if (result.success) {

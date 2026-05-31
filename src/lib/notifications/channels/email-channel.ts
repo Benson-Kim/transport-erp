@@ -29,7 +29,7 @@ export class EmailChannel implements INotificationChannel {
         data: {
           template,
           to: email,
-          data: data as any,
+          data: JSON.stringify(data),
           priority: this.isHighPriority(template) ? 'high' : 'normal',
           status: 'pending',
         },

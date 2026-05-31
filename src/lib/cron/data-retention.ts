@@ -72,7 +72,7 @@ export async function runDataRetention() {
             deliveredAt: { lt: cutoffDate },
           },
           {
-            status: { in: ['FAILED', 'CANCELLED'] },
+            status: { in: ['FAILED', 'RETURNED'] },
             updatedAt: { lt: cutoffDate },
           },
         ],

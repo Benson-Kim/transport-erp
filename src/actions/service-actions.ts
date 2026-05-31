@@ -17,6 +17,8 @@ import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
 import { PdfService } from '@/lib/pdf/pdf-service';
+import { computeFinancials } from '@/lib/service-financials';
+import { filterValidTransitions } from '@/lib/service/service-state-machine';
 
 /**
  * Get a single service by ID
@@ -78,12 +80,11 @@ export async function getServices(filters: ServiceFiltersAPI) {
     ];
   }
 
-  if (filters.dateFrom) {
-    where.date = { ...where.date, gte: new Date(filters.dateFrom) };
-  }
-
-  if (filters.dateTo) {
-    where.date = { ...where.date, lte: new Date(filters.dateTo) };
+  if (filters.dateFrom || filters.dateTo) {
+    const dateFilter: Record<string, Date> = {};
+    if (filters.dateFrom) dateFilter.gte = new Date(filters.dateFrom);
+    if (filters.dateTo) dateFilter.lte = new Date(filters.dateTo);
+    where.date = dateFilter;
   }
 
   if (filters.status) {
@@ -234,24 +235,19 @@ export async function createService(data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  // Generate service number (concurrency-safe via advisory lock)
-  const serviceNumber = await generateUniqueIdentifier('SRV', 'service', 'serviceNumber');
-
-  // Calculate margin and VAT amounts
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
-  const marginPercentage =
-    validatedData.saleAmount > 0
-      ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
-      : 0;
-
-  const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
-  const costVatAmount = Number((validatedData.costAmount * (costVatRate / 100)).toFixed(2));
+  // Service number generated inside transaction below to prevent sequence gaps.
 
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...saveData } =
     validatedData;
+
+  // Single source of truth for financial calculations
+  const financials = computeFinancials({
+    costAmount: validatedData.costAmount,
+    saleAmount: validatedData.saleAmount,
+    costVatRate: validatedData.costVatRate || 0,
+    saleVatRate: validatedData.saleVatRate || 0,
+    cancelled: cancelled || false,
+  });
 
   let serviceStatus: ServiceStatus;
 
@@ -263,31 +259,40 @@ export async function createService(data: ServiceFormData) {
     serviceStatus = saveData.status || ServiceStatus.DRAFT;
   }
 
-  const service = await prisma.service.create({
-    data: {
-      ...(Object.fromEntries(Object.entries(saveData).filter(([_, v]) => v !== undefined)) as any),
-      serviceNumber,
-      margin,
-      marginPercentage,
-      costVatAmount,
-      saleVatAmount,
-      status: serviceStatus,
-      createdById: session.user.id,
-    },
-  });
+  const service = await prisma.$transaction(async (tx) => {
+    // Generate inside tx to avoid orphaned sequence numbers on rollback
+    const serviceNumber = await generateUniqueIdentifier('SRV', 'service', 'serviceNumber', tx);
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'CREATE',
-    tableName: 'services',
-    recordId: service.id,
-    newValues: service,
+    const created = await tx.service.create({
+      data: {
+        ...(Object.fromEntries(Object.entries(saveData).filter(([_, v]) => v !== undefined)) as any),
+        serviceNumber,
+        margin: financials.margin,
+        marginPercentage: financials.marginPercentage,
+        costVatAmount: financials.costVatAmount,
+        saleVatAmount: financials.saleVatAmount,
+        status: serviceStatus,
+        createdById: session.user.id,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: 'CREATE',
+        tableName: 'services',
+        recordId: created.id,
+        newValues: created as any,
+        metadata: { timestamp: new Date().toISOString() },
+      },
+    });
+
+    return created;
   });
 
   revalidatePath('/services');
 
-  return { success: true, service: { ...service, serviceNumber } };
+  return { success: true, service };
 }
 
 /**
@@ -306,22 +311,17 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     await requirePermission('services', 'edit_completed');
   }
 
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  let { costAmount } = validatedData;
-  let { saleAmount } = validatedData;
-  let margin = saleAmount - costAmount;
-  let marginPercentage = saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
-  let saleVatAmount = saleAmount * (saleVatRate / 100);
-  let costVatAmount = costAmount * (costVatRate / 100);
-
-  if (validatedData.cancelled) {
-    costVatAmount = saleVatAmount = costAmount = saleAmount = margin = marginPercentage = 0;
-  }
-
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
     validatedData;
+
+  // Single source of truth for financial calculations
+  const financials = computeFinancials({
+    costAmount: validatedData.costAmount,
+    saleAmount: validatedData.saleAmount,
+    costVatRate: validatedData.costVatRate || 0,
+    saleVatRate: validatedData.saleVatRate || 0,
+    cancelled: cancelled || false,
+  });
 
   let serviceStatus: ServiceStatus;
   if (cancelled) {
@@ -338,28 +338,35 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   const updateData = {
     ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
-    costAmount,
-    saleAmount,
-    margin: Number(margin.toFixed(2)),
-    marginPercentage: Number(marginPercentage.toFixed(2)),
-    costVatAmount: Number(costVatAmount.toFixed(2)),
-    saleVatAmount: Number(saleVatAmount.toFixed(2)),
+    costAmount: financials.costAmount,
+    saleAmount: financials.saleAmount,
+    margin: financials.margin,
+    marginPercentage: financials.marginPercentage,
+    costVatAmount: financials.costVatAmount,
+    saleVatAmount: financials.saleVatAmount,
     status: serviceStatus,
     ...timestamps,
   };
 
-  const service = await prisma.service.update({
-    where: { id: serviceId },
-    data: updateData,
-  });
+  const service = await prisma.$transaction(async (tx) => {
+    const updated = await tx.service.update({
+      where: { id: serviceId },
+      data: updateData,
+    });
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'UPDATE',
-    tableName: 'services',
-    recordId: serviceId,
-    oldValues: currentService,
-    newValues: service,
+    await tx.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: 'UPDATE',
+        tableName: 'services',
+        recordId: serviceId,
+        oldValues: currentService as any,
+        newValues: updated as any,
+        metadata: { timestamp: new Date().toISOString() },
+      },
+    });
+
+    return updated;
   });
 
   revalidatePath('/services');
@@ -375,17 +382,37 @@ export async function deleteService(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
 
-  await prisma.service.update({
-    where: { id: serviceId },
-    data: { deletedAt: new Date() },
+  // Guard: prevent deletion if service has active (non-terminal) shipments
+  const activeShipments = await prisma.shipment.count({
+    where: {
+      serviceId,
+      status: { notIn: ['DELIVERED', 'RETURNED', 'FAILED'] },
+    },
   });
+  if (activeShipments > 0) {
+    throw new Error(
+      `Cannot delete service with ${activeShipments} active shipment(s). ` +
+      `Complete or cancel all shipments first.`
+    );
+  }
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'DELETE',
-    tableName: 'services',
-    recordId: serviceId,
+  await prisma.$transaction(async (tx) => {
+    await tx.service.update({
+      where: { id: serviceId },
+      data: { deletedAt: new Date() },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        userId: session.user.id,
+        action: 'DELETE',
+        tableName: 'services',
+        recordId: serviceId,
+        oldValues: { deletedAt: null },
+        newValues: { deletedAt: new Date().toISOString() },
+        metadata: { timestamp: new Date().toISOString() },
+      },
+    });
   });
 
   revalidatePath('/services');
@@ -422,6 +449,8 @@ export async function duplicateService(sourceServiceId: string) {
  * Get service with all details
  */
 export async function getServiceWithDetails(serviceId: string) {
+  await requirePermission('services', 'view');
+
   const service = await prisma.service.findFirst({
     where: {
       id: serviceId,
@@ -577,6 +606,14 @@ export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('services', 'mark_completed');
 
+  const current = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!current) throw new Error('Service not found');
+
+  const allowedFrom: ServiceStatus[] = [ServiceStatus.DRAFT, ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS];
+  if (!allowedFrom.includes(current.status)) {
+    throw new Error(`Cannot complete a service with status "${current.status}"`);
+  }
+
   const service = await prisma.service.update({
     where: { id: serviceId },
     data: {
@@ -604,6 +641,14 @@ export async function markServiceComplete(serviceId: string) {
 export async function archiveService(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('services', 'archive');
+
+  const current = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!current) throw new Error('Service not found');
+
+  const allowedFrom: ServiceStatus[] = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
+  if (!allowedFrom.includes(current.status)) {
+    throw new Error(`Cannot archive a service with status "${current.status}". Only completed or invoiced services can be archived.`);
+  }
 
   const service = await prisma.service.update({
     where: { id: serviceId },
@@ -638,7 +683,6 @@ export async function generateLoadingOrder(serviceId: string) {
     include: {
       client: true,
       shipments: true,
-      routes: { include: { stops: true } },
     },
   });
 
@@ -674,7 +718,7 @@ export async function generateLoadingOrder(serviceId: string) {
 
   revalidatePath(`/services/${serviceId}`);
 
-  return { url: pdfPath, document };
+  return { url, document };
 }
 
 /**
@@ -687,24 +731,41 @@ export async function sendServiceEmail(serviceId: string) {
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
 
-  // TODO: Implement email sending
-  // await sendEmail({
-  //   to: service.client.billingEmail,
-  //   subject: `Service Details - ${service.serviceNumber}`,
-  //   template: 'service-details',
-  //   data: service,
-  // });
+  const { EmailService } = await import('@/lib/email/service');
+  const emailService = EmailService.getInstance();
+
+  const result = await emailService.sendTemplate(
+    'notification',
+    service.client.billingEmail,
+    {
+      recipientName: service.client.contactPerson ?? service.client.name,
+      title: `Detalles del Servicio — ${service.serviceNumber}`,
+      message: `Servicio ${service.serviceNumber} del ${new Date(service.date).toLocaleDateString('es-ES')}. Origen: ${service.origin} → Destino: ${service.destination}.`,
+      actionUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/services/${serviceId}`,
+      actionLabel: 'Ver Servicio',
+      type: 'info',
+    },
+  );
+
+  if (!result.success) {
+    return { success: false, error: result.error ?? 'Email sending failed' };
+  }
 
   await createAuditLog({
     userId: session.user.id,
     action: 'SEND_EMAIL',
     tableName: 'services',
     recordId: serviceId,
-    metadata: { recipient: service.client.billingEmail },
+    metadata: { recipient: service.client.billingEmail, messageId: result.id },
   });
 
   return { success: true };
 }
+
+/**
+ * Maximum number of IDs allowed in a single bulk operation.
+ */
+const MAX_BULK_IDS = 100;
 
 /**
  * Bulk update services
@@ -713,9 +774,44 @@ export async function bulkUpdateServices(
   serviceIds: string[],
   updates: { status?: ServiceStatus }
 ) {
+  if (serviceIds.length > MAX_BULK_IDS) {
+    throw new Error(`Cannot process more than ${MAX_BULK_IDS} items at once`);
+  }
   const session = await requireAuth();
   await requirePermission('services', 'edit');
 
+  // When updating status, validate transitions via the state machine
+  if (updates.status) {
+    const targetStatus = updates.status;
+
+    // Fetch current statuses
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds }, deletedAt: null },
+      select: { id: true, status: true },
+    });
+
+    const { validIds, skippedCount } = filterValidTransitions(services, targetStatus);
+
+    if (validIds.length > 0) {
+      await prisma.service.updateMany({
+        where: { id: { in: validIds }, deletedAt: null },
+        data: updates,
+      });
+    }
+
+    await createAuditLog({
+      userId: session.user.id,
+      action: 'UPDATE',
+      tableName: 'services',
+      recordId: validIds.join(',') || 'none',
+      metadata: { bulk: true, updates, updatedCount: validIds.length, skippedCount },
+    });
+
+    revalidatePath('/services');
+    return { success: true, updatedCount: validIds.length, skippedCount };
+  }
+
+  // Non-status updates — apply directly
   await prisma.service.updateMany({
     where: {
       id: { in: serviceIds },
@@ -742,12 +838,16 @@ export async function bulkUpdateServices(
  * Bulk delete services
  */
 export async function bulkDeleteServices(serviceIds: string[]) {
+  if (serviceIds.length > MAX_BULK_IDS) {
+    throw new Error(`Cannot process more than ${MAX_BULK_IDS} items at once`);
+  }
   const session = await requireAuth();
   await requirePermission('services', 'delete');
 
   await prisma.service.updateMany({
     where: {
       id: { in: serviceIds },
+      deletedAt: null,
     },
     data: { deletedAt: new Date() },
   });
@@ -770,10 +870,40 @@ export async function bulkDeleteServices(serviceIds: string[]) {
  * Generate bulk loading orders
  */
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
+  if (serviceIds.length > MAX_BULK_IDS) {
+    throw new Error(`Cannot process more than ${MAX_BULK_IDS} items at once`);
+  }
+  const session = await requireAuth();
   await requirePermission('documents', 'create');
 
-  // TODO: Implementation for generating loading orders
-  // This would group services and create loading order documents
+  const results: Array<{ serviceId: string; success: boolean; url?: string; error?: string }> = [];
 
-  return { success: true, count: serviceIds.length };
+  for (const serviceId of serviceIds) {
+    try {
+      const result = await generateLoadingOrder(serviceId);
+      results.push({ serviceId, success: true, url: result.url });
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`[BulkLoadingOrders] Failed for service ${serviceId}:`, error);
+      results.push({ serviceId, success: false, error });
+    }
+  }
+
+  const successCount = results.filter((r) => r.success).length;
+
+  await createAuditLog({
+    userId: session.user.id,
+    action: 'GENERATE_DOCUMENT',
+    tableName: 'services',
+    recordId: serviceIds.join(','),
+    metadata: {
+      bulk: true,
+      documentType: 'LOADING_ORDER',
+      totalRequested: serviceIds.length,
+      successCount,
+      failedCount: serviceIds.length - successCount,
+    },
+  });
+
+  return { success: successCount > 0, count: successCount, results };
 }

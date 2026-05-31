@@ -290,7 +290,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
   const totalServices = totals._count.id;
 
   const statusMap = Object.fromEntries(
-    statusCounts.map((s) => [s.status, s._count.id])
+    (statusCounts as Array<{ status: ServiceStatus; _count: { id: number } }>).map((s) => [s.status, s._count.id])
   );
 
   const activeStatuses = [ServiceStatus.DRAFT, ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS];
@@ -527,9 +527,17 @@ export async function deleteClient(id: string): Promise<ActionResult> {
 }
 
 /**
+ * Maximum number of IDs allowed in a single bulk operation.
+ */
+const MAX_BULK_IDS = 100;
+
+/**
  * Bulk delete clients
  */
 export async function bulkDeleteClients(ids: string[]): Promise<ActionResult<{ deleted: number }>> {
+  if (ids.length > MAX_BULK_IDS) {
+    return { success: false, error: `Cannot process more than ${MAX_BULK_IDS} items at once` };
+  }
   return withAction(
     { resource: RESOURCES.CLIENTS, action: ACTIONS.DELETE },
     async ({ userId, ipAddress, userAgent }) => {

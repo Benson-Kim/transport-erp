@@ -3,7 +3,6 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { format as formatDate } from 'date-fns';
 import z from 'zod';
 
 import { AuditAction } from '@/app/generated/prisma';
@@ -11,7 +10,6 @@ import { getServerAuth, requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
-import { getEnv } from '@/lib/utils/export';
 import {
   type CompanySettings,
   type EmailConfigInput,
@@ -31,21 +29,10 @@ import {
 import type { ActionResult } from '@/types/settings';
 import { SettingKey } from '@/types/settings';
 import { getB2Config } from '@/lib/storage/utils';
-
-/**
- * B2 Configuration Interface
- */
-interface B2Config {
-  applicationKeyId: string;
-  applicationKey: string;
-  bucketId: string;
-  bucketName: string;
-  region: string;
-  endpoint: string;
-  keyName: string;
-  maxFileSize: number;
-  cdnUrl?: string;
-}
+import type { B2Config } from '@/lib/storage/schema';
+import { BackupManager } from '@/lib/storage/backup-manager';
+import type { BackupInfo } from '@/lib/storage/backup-manager';
+import { storageService } from '@/lib/storage/service';
 
 function validateB2Config(config: B2Config): void {
   const required = ['applicationKeyId', 'applicationKey', 'bucketName', 'endpoint'] as const;
@@ -147,11 +134,6 @@ export async function updateCompanySettings(data: CompanySettings) {
  * Upload logo to B2
  */
 async function uploadLogoToB2(base64Data: string): Promise<string> {
-  const b2Config = getB2Config();
-  validateB2Config(b2Config);
-
-  const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-
   // Extract mime type and data from base64
   const matches = base64Data.match(/^data:(.+);base64,(.+)$/);
   if (!matches?.[1] || !matches[2]) {
@@ -160,38 +142,16 @@ async function uploadLogoToB2(base64Data: string): Promise<string> {
 
   const mimeType = matches[1];
   const base64Content = matches[2];
-
   const buffer = Buffer.from(base64Content, 'base64');
-
-  // Generate unique filename
   const extension = mimeType?.split('/')[1] ?? 'png';
-  const filename = `logos/company-logo-${Date.now()}.${extension}`;
+  const filename = `company-logo-${Date.now()}.${extension}`;
 
-  const s3Client = new S3Client({
-    region: b2Config.region,
-    endpoint: b2Config.endpoint,
-    credentials: {
-      accessKeyId: b2Config.applicationKeyId,
-      secretAccessKey: b2Config.applicationKey,
-    },
-    forcePathStyle: true,
+  const fileInfo = await storageService.uploadFile(buffer, filename, {
+    contentType: mimeType,
+    isPublic: true,
   });
 
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: b2Config.bucketName,
-      Key: filename,
-      Body: buffer,
-      ContentType: mimeType,
-    })
-  );
-
-  // Return CDN URL if available, otherwise construct B2 URL
-  if (b2Config.cdnUrl) {
-    return `${b2Config.cdnUrl}/${filename}`;
-  }
-
-  return `${b2Config.endpoint}/${b2Config.bucketName}/${filename}`;
+  return fileInfo.url || fileInfo.key;
 }
 
 /**
@@ -532,36 +492,9 @@ async function sendTestEmail(config: EmailConfigInput, recipient: string): Promi
   }
 }
 
-// Backup Operations with Backblaze B2
-export interface BackupInfo {
-  filename: string;
-  key: string;
-  size: number;
-  createdAt: string;
-  url?: string;
-}
+// Backup Operations — delegates to BackupManager
 
-/**
- * Get B2 S3 Client
- */
-async function getB2Client() {
-  const { S3Client } = await import('@aws-sdk/client-s3');
-  const b2Config = getB2Config();
-  validateB2Config(b2Config);
-
-  return {
-    client: new S3Client({
-      region: b2Config.region,
-      endpoint: b2Config.endpoint,
-      credentials: {
-        accessKeyId: b2Config.applicationKeyId,
-        secretAccessKey: b2Config.applicationKey,
-      },
-      forcePathStyle: true,
-    }),
-    config: b2Config,
-  };
-}
+export type { BackupInfo };
 
 /**
  * Trigger manual backup
@@ -577,15 +510,11 @@ export async function runManualBackup(): Promise<ActionResult<BackupInfo>> {
     );
 
     if (!backupSettings?.enabled) {
-      return {
-        success: false,
-        error: 'Backups are disabled in settings',
-      };
+      return { success: false, error: 'Backups are disabled in settings' };
     }
 
-    const result = await executeBackup(backupSettings);
+    const result = await BackupManager.run();
 
-    // Update last backup timestamp
     await upsertSetting(
       SettingKey.LAST_BACKUP,
       {
@@ -598,8 +527,7 @@ export async function runManualBackup(): Promise<ActionResult<BackupInfo>> {
       session?.user.id
     );
 
-    // Cleanup old backups based on retention
-    await cleanupOldBackups(backupSettings.retentionDays);
+    await BackupManager.cleanup(backupSettings.retentionDays);
 
     return { success: true, data: result };
   } catch (error) {
@@ -611,196 +539,7 @@ export async function runManualBackup(): Promise<ActionResult<BackupInfo>> {
   }
 }
 
-/**
- * Execute backup - creates SQL dump and uploads to Backblaze B2
- */
-async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo> {
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const fs = await import('fs/promises');
-  const path = await import('path');
-  const os = await import('os');
-  const { createGzip } = await import('zlib');
-  const { createReadStream, createWriteStream } = await import('fs');
-  const { pipeline } = await import('stream/promises');
-  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
 
-  const execAsync = promisify(exec);
-
-  // Get database URL
-  const databaseUrl = getEnv('DATABASE_URL');
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-
-  // Parse database URL
-  const dbUrlMatch = databaseUrl.match(
-    /^postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)(\?.*)?$/
-  );
-
-  if (!dbUrlMatch) {
-    throw new Error('Invalid DATABASE_URL format');
-  }
-
-  const [, user, password, host, port, database] = dbUrlMatch;
-
-  if (!database) {
-    throw new Error('Database name could not be parsed from DATABASE_URL');
-  }
-
-  // Create temp directory for backup
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backup-'));
-  const timestamp = formatDate(new Date(), 'yyyy-MM-dd-HHmmss');
-  const sqlFilename = `backup-${timestamp}.sql`;
-  const gzFilename = `${sqlFilename}.gz`;
-  const sqlPath = path.join(tempDir, sqlFilename);
-  const gzPath = path.join(tempDir, gzFilename);
-
-  try {
-    // Create SQL dump using pg_dump
-    await execAsync(
-      `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} --no-owner --no-acl -F p -f "${sqlPath}"`,
-      {
-        env: { ...process.env, PGPASSWORD: password },
-        maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-      }
-    );
-
-    // Compress the SQL file
-    await pipeline(createReadStream(sqlPath), createGzip({ level: 9 }), createWriteStream(gzPath));
-
-    // Get compressed file stats
-    const stats = await fs.stat(gzPath);
-    const b2Config = getB2Config();
-
-    // Check file size limit
-    if (stats.size > b2Config.maxFileSize) {
-      throw new Error(
-        `Backup size (${formatBytes(stats.size)}) exceeds maximum allowed size (${formatBytes(b2Config.maxFileSize)})`
-      );
-    }
-
-    // Upload to B2
-    const { client, config } = await getB2Client();
-    const key = `${config.keyName}/${gzFilename}`;
-
-    const fileContent = await fs.readFile(gzPath);
-
-    await client.send(
-      new PutObjectCommand({
-        Bucket: config.bucketName,
-        Key: key,
-        Body: fileContent,
-        ContentType: 'application/gzip',
-        ContentLength: stats.size,
-        Metadata: {
-          'backup-timestamp': new Date().toISOString(),
-          database,
-          'original-size': (await fs.stat(sqlPath).catch(() => ({ size: 0 }))).size.toString(),
-        },
-      })
-    );
-
-    // Generate URL
-    const url = config.cdnUrl
-      ? `${config.cdnUrl}/${key}`
-      : `${config.endpoint}/${config.bucketName}/${key}`;
-
-    return {
-      filename: gzFilename,
-      key,
-      size: stats.size,
-      createdAt: new Date().toISOString(),
-      url,
-    };
-  } finally {
-    // Cleanup temp files
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
-  }
-}
-
-/**
- * Format bytes to human readable string
- */
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-}
-
-/**
- * Clean up old backups based on retention policy
- */
-/**
- * Clean up old backups based on retention policy
- */
-async function cleanupOldBackups(retentionDays: number): Promise<number> {
-  const { ListObjectsV2Command, DeleteObjectsCommand } = await import('@aws-sdk/client-s3');
-  const { client, config } = await getB2Client();
-
-  const prefix = `${config.keyName}/`;
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-
-  // Collect all expired keys
-  const keysToDelete: { Key: string }[] = [];
-  let continuationToken: string | undefined;
-
-  do {
-    // eslint-disable-next-line no-await-in-loop -- Pagination requires sequential requests
-    const listResponse = await client.send(
-      new ListObjectsV2Command({
-        Bucket: config.bucketName,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      })
-    );
-
-    if (listResponse.Contents) {
-      const expiredKeys = listResponse.Contents
-        .filter(
-          (object): object is typeof object & { Key: string } =>
-            typeof object.Key === 'string' &&
-            object.LastModified !== undefined &&
-            object.LastModified < cutoffDate
-        )
-        .map((obj) => ({ Key: obj.Key }));
-
-      keysToDelete.push(...expiredKeys);
-    }
-
-    continuationToken = listResponse.NextContinuationToken;
-  } while (continuationToken);
-
-  if (keysToDelete.length === 0) {
-    return 0;
-  }
-
-  // Batch delete
-  const batchSize = 1000;
-  const deleteBatches: Promise<{ deleted: number }>[] = [];
-
-  for (let i = 0; i < keysToDelete.length; i += batchSize) {
-    const batch = keysToDelete.slice(i, i + batchSize);
-
-    deleteBatches.push(
-      client
-        .send(
-          new DeleteObjectsCommand({
-            Bucket: config.bucketName,
-            Delete: { Objects: batch },
-          })
-        )
-        .then((result) => ({ deleted: result.Deleted?.length ?? 0 }))
-    );
-  }
-
-  const results = await Promise.all(deleteBatches);
-
-  return results.reduce((total, result) => total + result.deleted, 0);
-}
 
 /**
  * List available backups from B2
@@ -808,65 +547,7 @@ async function cleanupOldBackups(retentionDays: number): Promise<number> {
 export async function listBackups(): Promise<ActionResult<BackupInfo[]>> {
   try {
     await requirePermission('settings', 'view');
-
-    const { ListObjectsV2Command } = await import('@aws-sdk/client-s3');
-    const { client, config } = await getB2Client();
-
-    const prefix = `${config.keyName}/`;
-    let continuationToken: string | undefined;
-
-    // Define a type for valid backup objects
-    interface ValidBackupObject {
-      Key: string;
-      Size: number;
-      LastModified: Date;
-    }
-
-    const allObjects: ValidBackupObject[] = [];
-
-    do {
-      // eslint-disable-next-line no-await-in-loop -- Pagination requires sequential requests
-      const response = await client.send(
-        new ListObjectsV2Command({
-          Bucket: config.bucketName,
-          Prefix: prefix,
-          ContinuationToken: continuationToken,
-        })
-      );
-
-      if (response.Contents) {
-        const validObjects = response.Contents.filter(
-          (object): object is ValidBackupObject =>
-            typeof object.Key === 'string' &&
-            object.Key.endsWith('.sql.gz') &&
-            typeof object.Size === 'number' &&
-            object.LastModified instanceof Date
-        );
-
-        allObjects.push(...validObjects);
-      }
-
-      continuationToken = response.NextContinuationToken;
-    } while (continuationToken);
-
-    // Transform to BackupInfo
-    const backups: BackupInfo[] = allObjects
-      .map((object) => {
-        const filename = object.Key.split('/').pop();
-        const url = config.cdnUrl
-          ? `${config.cdnUrl}/${object.Key}`
-          : `${config.endpoint}/${config.bucketName}/${object.Key}`;
-
-        return {
-          filename: filename ?? object.Key,
-          key: object.Key,
-          size: object.Size,
-          createdAt: object.LastModified.toISOString(),
-          url,
-        };
-      })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
+    const backups = await BackupManager.list();
     return { success: true, data: backups };
   } catch (error) {
     console.error('List backups error:', error);
@@ -884,23 +565,12 @@ export async function getBackupDownloadUrl(key: string): Promise<ActionResult<st
   try {
     await requirePermission('settings', 'view');
 
-    const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
-    const { client, config } = await getB2Client();
-
-    // Validate key is within our backup folder
-    if (!key.startsWith(`${config.keyName}/`)) {
+    const b2Config = getB2Config();
+    if (!key.startsWith(`${b2Config.keyName}/`)) {
       return { success: false, error: 'Invalid backup key' };
     }
 
-    const command = new GetObjectCommand({
-      Bucket: config.bucketName,
-      Key: key,
-    });
-
-    // Generate signed URL valid for 1 hour
-    const signedUrl = await getSignedUrl(client, command, { expiresIn: 3600 });
-
+    const signedUrl = await storageService.getPresignedDownloadUrl(key, 3600);
     return { success: true, data: signedUrl };
   } catch (error) {
     console.error('Get download URL error:', error);
@@ -919,22 +589,13 @@ export async function deleteBackup(key: string): Promise<ActionResult> {
     await requirePermission('settings', 'edit');
     const session = await getServerAuth();
 
-    const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-    const { client, config } = await getB2Client();
-
-    // Validate key is within our backup folder
-    if (!key.startsWith(`${config.keyName}/`)) {
+    const b2Config = getB2Config();
+    if (!key.startsWith(`${b2Config.keyName}/`)) {
       return { success: false, error: 'Invalid backup key' };
     }
 
-    await client.send(
-      new DeleteObjectCommand({
-        Bucket: config.bucketName,
-        Key: key,
-      })
-    );
+    await storageService.deleteFile(key);
 
-    // Create audit log
     if (session?.user.id) {
       await createAuditLog({
         userId: session.user.id,
@@ -978,128 +639,6 @@ export async function getLastBackupTime(): Promise<{
 }
 
 /**
- * Restore database from a backup
- */
-// export async function restoreFromBackup(key: string): Promise<ActionResult> {
-//     try {
-//         await requirePermission('settings', 'edit');
-//         const session = await getServerAuth();
-
-//         const { exec } = await import('child_process');
-//         const { promisify } = await import('util');
-//         const fs = await import('fs/promises');
-//         const path = await import('path');
-//         const os = await import('os');
-//         const { createGunzip } = await import('zlib');
-//         const { createWriteStream } = await import('fs');
-//         const { pipeline } = await import('stream/promises');
-//         const { Readable } = await import('stream');
-//         const { GetObjectCommand } = await import('@aws-sdk/client-s3');
-
-//         const execAsync = promisify(exec);
-//         const { client, config } = await getB2Client();
-
-//         // Validate key
-//         if (!key.startsWith(`${config.keyName}/`)) {
-//             return { success: false, error: 'Invalid backup key' };
-//         }
-
-//         // Get database URL
-//         const databaseUrl = getEnv('DATABASE_URL');
-//         if (!databaseUrl) {
-//             throw new Error('DATABASE_URL environment variable is not set');
-//         }
-
-//         const dbUrlMatch = databaseUrl.match(
-//             /^postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)(\?.*)?$/
-//         );
-
-//         if (!dbUrlMatch) {
-//             throw new Error('Invalid DATABASE_URL format');
-//         }
-
-//         const [, user, password, host, port, database] = dbUrlMatch;
-
-//         // Create temp directory
-//         const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'restore-'));
-//         const gzPath = path.join(tempDir, 'backup.sql.gz');
-//         const sqlPath = path.join(tempDir, 'backup.sql');
-
-//         try {
-//             // Download backup from B2
-//             console.log('Downloading backup from B2...');
-//             const response = await client.send(new GetObjectCommand({
-//                 Bucket: config.bucketName,
-//                 Key: key,
-//             }));
-
-//             if (!response.Body) {
-//                 throw new Error('Empty response from B2');
-//             }
-
-//             // Write to temp file
-//             const writeStream = createWriteStream(gzPath);
-
-//             await pipeline(response.Body as Readable, writeStream);
-
-//             // Decompress
-//             console.log('Decompressing backup...');
-//             const { createReadStream } = await import('fs');
-//             await pipeline(
-//                 createReadStream(gzPath),
-//                 createGunzip(),
-//                 createWriteStream(sqlPath)
-//             );
-
-//             // Restore database
-//             console.log('Restoring database...');
-
-//             // First, drop and recreate schema (optional - be careful!)
-//             // await execAsync(
-//             //     `psql -h ${host} -p ${port} -U ${user} -d ${database} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"`,
-//             //     { env: { ...process.env, PGPASSWORD: password } }
-//             // );
-
-//             // Restore from SQL file
-//             await execAsync(
-//                 `psql -h ${host} -p ${port} -U ${user} -d ${database} -f "${sqlPath}"`,
-//                 {
-//                     env: { ...process.env, PGPASSWORD: password },
-//                     maxBuffer: 1024 * 1024 * 100,
-//                 }
-//             );
-
-//             // Create audit log
-//             if (session?.user.id) {
-//                 await createAuditLog({
-//                     userId: session.user.id,
-//                     action: AuditAction.UPDATE,
-//                     tableName: 'database',
-//                     recordId: 'restore',
-//                     metadata: {
-//                         action: 'database_restored',
-//                         backupKey: key,
-//                         restoredAt: new Date().toISOString(),
-//                     },
-//                 });
-//             }
-
-//             console.log('Database restored successfully');
-//             return { success: true };
-//         } finally {
-//             // Cleanup temp files
-//             await fs.rm(tempDir, { recursive: true, force: true }).catch(() => { });
-//         }
-//     } catch (error) {
-//         console.error('Restore error:', error);
-//         return {
-//             success: false,
-//             error: error instanceof Error ? error.message : 'Failed to restore backup'
-//         };
-//     }
-// }
-
-/**
  * Get last backup information
  */
 export async function getLastBackupInfo(): Promise<ActionResult<BackupInfo | null>> {
@@ -1130,20 +669,15 @@ export async function verifyB2Configuration(): Promise<
   try {
     await requirePermission('settings', 'view');
 
-    const { HeadBucketCommand } = await import('@aws-sdk/client-s3');
-    const { client, config } = await getB2Client();
+    const b2Config = getB2Config();
+    validateB2Config(b2Config);
 
-    await client.send(
-      new HeadBucketCommand({
-        Bucket: config.bucketName,
-      })
-    );
-
+    // Simple validation — if getB2Config doesn't throw, config is valid
     return {
       success: true,
       data: {
-        bucketName: config.bucketName,
-        endpoint: config.endpoint,
+        bucketName: b2Config.bucketName,
+        endpoint: b2Config.endpoint,
       },
     };
   } catch (error) {

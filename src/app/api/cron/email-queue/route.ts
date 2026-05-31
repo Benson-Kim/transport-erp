@@ -1,19 +1,18 @@
 import { NextRequest } from 'next/server';
 import { timingSafeEqual } from 'crypto';
-import { runDataRetention } from '@/lib/cron/data-retention';
+import { EmailService } from '@/lib/email/service';
 import prisma from '@/lib/prisma/prisma';
 import { AuditAction } from '@/app/generated/prisma';
 
 /**
- * Data Retention Cron API
- * GET /api/cron/data-retention
+ * Email Queue Consumer Cron API
+ * GET /api/cron/email-queue
  *
- * Triggers the GDPR/AEPD data retention job that anonymises shipment PII
- * older than 60 days.
+ * Processes pending emails from the EmailQueue table.
+ * Should be called by an external scheduler (e.g. every 1-2 minutes):
+ *   * /1 * * * *  curl -H "Authorization: Bearer $CRON_SECRET" https://app/api/cron/email-queue
  *
  * Protected by a Bearer token (CRON_SECRET env var).
- * Designed to be called by an external scheduler:
- *   0 2 * * *  curl -H "Authorization: Bearer $CRON_SECRET" https://app/api/cron/data-retention
  */
 export async function GET(req: NextRequest) {
   // Bearer token authentication (timing-safe comparison)
@@ -40,7 +39,8 @@ export async function GET(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    await runDataRetention();
+    const emailService = EmailService.getInstance();
+    const { processed, failed } = await emailService.processQueue();
 
     const durationMs = Date.now() - startTime;
 
@@ -49,26 +49,28 @@ export async function GET(req: NextRequest) {
       data: {
         action: AuditAction.UPDATE,
         tableName: 'system',
-        recordId: 'cron:data-retention',
+        recordId: 'cron:email-queue',
         metadata: {
           status: 'success',
+          processed,
+          failed,
           durationMs,
           timestamp: new Date().toISOString(),
         },
       },
     });
 
-    return Response.json({ ok: true, durationMs });
+    return Response.json({ ok: true, processed, failed, durationMs });
   } catch (err: any) {
     const durationMs = Date.now() - startTime;
 
-    // Audit: record failed cron run so ops can investigate without console access
+    // Audit: record failed cron run
     try {
       await prisma.auditLog.create({
         data: {
           action: AuditAction.UPDATE,
           tableName: 'system',
-          recordId: 'cron:data-retention',
+          recordId: 'cron:email-queue',
           metadata: {
             status: 'error',
             error: String(err?.message ?? err),
@@ -78,11 +80,10 @@ export async function GET(req: NextRequest) {
         },
       });
     } catch {
-      // If even the audit log fails, just log to console
       console.error('[Cron] Failed to write error audit log.');
     }
 
-    console.error('[Cron] Data retention failed:', err);
+    console.error('[Cron] Email queue processing failed:', err);
     return Response.json({ error: 'Cron failed' }, { status: 500 });
   }
 }
