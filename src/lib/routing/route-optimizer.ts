@@ -9,9 +9,10 @@
  */
 
 import prisma from '@/lib/prisma/prisma';
-import { RouteStatus } from '@/app/generated/prisma';
+import { RouteStatus, Prisma } from '@/app/generated/prisma';
 import { generateUniqueIdentifier } from '@/lib/prisma/db-helpers';
 import { enforceZbeCompliance, type RouteStop } from './zbe';
+import { haversineKm } from './geo-utils';
 
 export interface OptimisedRoute {
   route: {
@@ -30,7 +31,7 @@ async function osrmOptimize(stops: RouteStop[]): Promise<{
   totalDistanceKm: number;
   estimatedDurationMin: number;
 }> {
-  const baseUrl = process.env['OSRM_BASE_URL'] ?? 'http://router.project-osrm.org';
+  const baseUrl = process.env.OSRM_BASE_URL ?? 'http://router.project-osrm.org';
 
   // Build the coordinate string: lng,lat;lng,lat;...
   const coords = stops.map((s) => `${s.lng},${s.lat}`).join(';');
@@ -68,21 +69,7 @@ async function osrmOptimize(stops: RouteStop[]): Promise<{
   };
 }
 
-// Nearest-neighbour fallback 
-
-function haversineKm(
-  lat1: number, lng1: number,
-  lat2: number, lng2: number,
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const R = 6371;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
+// Nearest-neighbour fallback (uses canonical haversineKm from geo-utils)
 
 function nearestNeighbourSort(stops: RouteStop[]): {
   orderedStops: RouteStop[];
@@ -185,7 +172,7 @@ export class RouteOptimizer {
         driverId,
         date: new Date(),
         status: RouteStatus.PLANNED,
-        optimisedPath: orderedStops as any,
+        optimisedPath: orderedStops as unknown as Prisma.InputJsonValue,
         zbeCompliant: true,
         shipments: { connect: shipmentIds.map((id) => ({ id })) },
       },

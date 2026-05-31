@@ -2,17 +2,47 @@ import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma/prisma';
 import { checkRateLimit } from '@/lib/rate-limiter';
 import { DeliveryStatus } from '@/app/generated/prisma';
+import { storageService } from '@/lib/storage/service';
 
 /**
  * Proof of Delivery Verification API
  * POST /api/tracking/[token]/proof
  *
  * Verifies the recipient's identity (last 4 digits of phone)
- * before returning signed proof-of-delivery URLs.
+ * before returning short-lived presigned proof-of-delivery URLs.
  *
  * This prevents PII (photos, signatures) from being accessible
  * on the public tracking page without verification.
  */
+
+/** Presigned URL lifetime in seconds (5 minutes). */
+const PROOF_URL_EXPIRY_SECONDS = 300;
+
+/**
+ * Converts a stored URL or object key into a short-lived presigned
+ * download URL.  Returns null when the input is empty/null.
+ */
+async function toPresignedUrl(urlOrKey: string | null): Promise<string | null> {
+  if (!urlOrKey) return null;
+
+  // Extract the object key from the URL
+  // Handles both full URLs (https://cdn.../path/file.jpg) and bare keys (path/file.jpg)
+  let key = urlOrKey;
+  try {
+    const parsed = new URL(urlOrKey);
+    key = parsed.pathname.replace(/^\//, '');
+  } catch {
+    // urlOrKey is already a bare key
+  }
+
+  try {
+    return await storageService.getPresignedDownloadUrl(key, PROOF_URL_EXPIRY_SECONDS);
+  } catch {
+    // If presigning fails (e.g. object deleted by data-retention), return null
+    return null;
+  }
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
@@ -77,10 +107,16 @@ export async function POST(
     return Response.json({ error: 'Verification failed' }, { status: 403 });
   }
 
-  // Return proof URLs only after successful verification
+  // Return short-lived presigned URLs (5 min) instead of raw S3 URLs
+  const [proofPhotoUrl, signatureUrl] = await Promise.all([
+    toPresignedUrl(shipment.proofPhotoUrl),
+    toPresignedUrl(shipment.signatureUrl),
+  ]);
+
   return Response.json({
     verified: true,
-    proofPhotoUrl: shipment.proofPhotoUrl ?? null,
-    signatureUrl: shipment.signatureUrl ?? null,
+    proofPhotoUrl,
+    signatureUrl,
+    expiresInSeconds: PROOF_URL_EXPIRY_SECONDS,
   });
 }

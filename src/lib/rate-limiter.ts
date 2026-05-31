@@ -108,7 +108,7 @@ async function getRedis() {
   if (redisInitialized) return redisClient;
   redisInitialized = true;
 
-  const url = process.env['REDIS_URL'];
+  const url = process.env.REDIS_URL;
   if (!url) {
     console.warn('[RateLimiter] REDIS_URL not set — falling back to in-memory rate limiter.');
     return null;
@@ -155,9 +155,7 @@ async function checkWithRedis(
   return { allowed: true, retryAfterMs: 0 };
 }
 
-// ---------------------------------------------------------------------------
 // Public API — auto-selects Redis or fallback
-// ---------------------------------------------------------------------------
 
 const fallback = new InMemoryRateLimiter();
 

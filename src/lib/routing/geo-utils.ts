@@ -44,9 +44,7 @@ export function pointInPolygon(
   return inside;
 }
 
-// ---------------------------------------------------------------------------
 // Haversine Distance (canonical implementation — single source of truth)
-// ---------------------------------------------------------------------------
 
 const EARTH_RADIUS_M = 6_371_000; // Earth's mean radius in meters
 

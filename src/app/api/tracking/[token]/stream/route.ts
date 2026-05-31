@@ -14,7 +14,7 @@ const MAX_SSE_CONNECTIONS = 500;
  * Returns null if Redis is unavailable (falls back to DB polling).
  */
 async function getRedisSubscriber() {
-  const url = process.env['REDIS_URL'];
+  const url = process.env.REDIS_URL;
   if (!url) return null;
 
   try {
@@ -73,12 +73,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
   const stream = new ReadableStream({
     async start(controller) {
       activeConnections++;
+      let closed = false;
 
       const send = (data: object) => {
+        if (closed) return;
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch {
-          // Stream already closed
+          // Stream closed by client — trigger cleanup
+          if (!closed) {
+            closed = true;
+            cleanup();
+          }
         }
       };
 
@@ -90,10 +96,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
       let interval: ReturnType<typeof setInterval> | null = null;
 
       const cleanup = () => {
+        if (closed) return; // Prevent double-cleanup
+        closed = true;
         activeConnections--;
         if (interval) clearInterval(interval);
         if (redisSub) {
-          redisSub.unsubscribe(channel).catch(() => {});
+          redisSub.unsubscribe(channel).catch(() => { });
           redisSub.disconnect();
         }
       };
@@ -107,12 +115,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
             const data = JSON.parse(message);
             send(data);
 
-            // Close stream on terminal status
             if (data.status === DeliveryStatus.DELIVERED || data.status === DeliveryStatus.FAILED) {
               send({ type: 'status', status: data.status });
-              controller.enqueue(encoder.encode(`event: close\ndata: end\n\n`));
-              cleanup();
-              controller.close();
+              if (!closed) {
+                try { controller.enqueue(encoder.encode(`event: close\ndata: end\n\n`)); } catch { /* already closed */ }
+                cleanup();
+                try { controller.close(); } catch { /* already closed */ }
+              }
             }
           } catch {
             // Malformed message — skip
@@ -144,9 +153,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
               currentShipment.status === DeliveryStatus.FAILED
             ) {
               send({ type: 'status', status: currentShipment.status });
-              controller.enqueue(encoder.encode(`event: close\ndata: end\n\n`));
-              cleanup();
-              controller.close();
+              if (!closed) {
+                try { controller.enqueue(encoder.encode(`event: close\ndata: end\n\n`)); } catch { /* already closed */ }
+                cleanup();
+                try { controller.close(); } catch { /* already closed */ }
+              }
               return;
             }
 
