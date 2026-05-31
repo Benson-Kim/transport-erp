@@ -52,3 +52,4 @@ scripts
 husky
 .husky
 .eslintcache
+src/components/features/settings/SystemSettings

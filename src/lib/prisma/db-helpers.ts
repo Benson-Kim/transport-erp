@@ -8,6 +8,15 @@ import type { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
 import prisma from './prisma';
 
 /**
+ * Typed accessor for dynamic Prisma model delegates.
+ * Centralises the single necessary cast so callers don't need `as any`.
+ */
+function getPrismaDelegate(model: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (prisma as Record<string, any>)[model];
+}
+
+/**
  * Soft Delete Helper
  * Adds soft delete conditions to queries
  */
@@ -189,7 +198,7 @@ export async function softDelete(model: string, id: string, userId?: string): Pr
   }
 
   // Perform soft delete
-  await (prisma as any)[model].update({
+  await getPrismaDelegate(model).update({
     where: { id },
     data: { deletedAt: now },
   });
@@ -212,7 +221,7 @@ export async function restore(model: string, id: string, userId?: string): Promi
   }
 
   // Restore record
-  await (prisma as any)[model].update({
+  await getPrismaDelegate(model).update({
     where: { id },
     data: { deletedAt: null },
   });
@@ -230,7 +239,7 @@ export async function bulkInsert<T>(
   let inserted = 0;
 
   await processBatch(data, batchSize, async (batch) => {
-    const result = await (prisma as any)[model].createMany({
+    const result = await getPrismaDelegate(model).createMany({
       data: batch,
       skipDuplicates: true,
     });
@@ -291,26 +300,34 @@ export function createDateRangeCondition(field: string, range: DateRangeFilter) 
  *
  * Uses a PostgreSQL advisory lock to prevent TOCTOU race conditions
  * when multiple concurrent requests generate identifiers simultaneously.
+ *
+ * @param prefix  e.g. 'SRV', 'SHP', 'RT'
+ * @param model   Prisma model name (e.g. 'service')
+ * @param field   The field holding the identifier (e.g. 'serviceNumber')
+ * @param tx      Optional Prisma transaction client. When provided the
+ *                function participates in the caller's transaction instead
+ *                of opening a nested one (which would deadlock).
  */
 export async function generateUniqueIdentifier(
   prefix: string,
   model: string,
-  field: string
+  field: string,
+  tx?: any
 ): Promise<string> {
   const year = new Date().getFullYear();
   const lockKey = `${prefix}_${model}_${field}`;
 
-  // Use a transaction with advisory lock for atomicity
-  return prisma.$transaction(async (tx: any) => {
+  // Core logic extracted so it can run inside any transaction context
+  async function generateInTx(client: any): Promise<string> {
     // Acquire an advisory lock scoped to this transaction.
     // hashtext() produces a stable int4 from the lock key string.
-    await tx.$queryRawUnsafe(
+    await client.$queryRawUnsafe(
       `SELECT pg_advisory_xact_lock(hashtext($1))`,
       lockKey
     );
 
     // Get the last number for this prefix and year
-    const lastRecord = await tx[model].findFirst({
+    const lastRecord = await client[model].findFirst({
       where: {
         [field]: {
           startsWith: `${prefix}-${year}-`,
@@ -329,7 +346,14 @@ export async function generateUniqueIdentifier(
     }
 
     return `${prefix}-${year}-${String(nextNumber).padStart(5, '0')}`;
-  });
+  }
+
+  // If a transaction client was provided, reuse it (no nesting).
+  // Otherwise create a standalone transaction (backwards-compatible).
+  if (tx) {
+    return generateInTx(tx);
+  }
+  return prisma.$transaction(async (newTx: any) => generateInTx(newTx));
 }
 
 /**

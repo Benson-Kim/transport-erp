@@ -9,9 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ENUMS
@@ -108,6 +108,7 @@ enum AuditAction {
   SEND_EMAIL
   GENERATE_DOCUMENT
   ARCHIVE
+  PERMISSION_CHECK
 }
 
 enum DocumentType {

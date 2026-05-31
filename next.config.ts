@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 import createBundleAnalyzer from '@next/bundle-analyzer';
 
 const withBundleAnalyzer = createBundleAnalyzer({
-  enabled: process.env['ANALYZE'] === 'true',
+  enabled: process.env.ANALYZE === 'true',
 });
 
 const securityHeaders: { key: string; value: string }[] = [
@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
-      allowedOrigins: (process.env['ALLOWED_ORIGINS']
+      allowedOrigins: (process.env.ALLOWED_ORIGINS
         ?.split(',')
         .map((s) => s.trim())
         .filter(Boolean) as string[]) || ['localhost:3000'],
@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
-    if (process.env['NODE_ENV'] !== 'production') return [];
+    if (process.env.NODE_ENV !== 'production') return [];
     return [
       {
         source: '/:path*',
@@ -94,8 +94,8 @@ const nextConfig: NextConfig = {
   },
 
   env: {
-    NEXT_PUBLIC_APP_URL: process.env['NEXT_PUBLIC_APP_URL'],
-    NEXT_PUBLIC_APP_NAME: process.env['NEXT_PUBLIC_APP_NAME'],
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
   },
 
   poweredByHeader: false,

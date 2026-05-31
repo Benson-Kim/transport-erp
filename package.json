@@ -48,7 +48,7 @@
     "docker:dev:up": "docker compose -f docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose -f docker-compose.dev.yml down",
     "setup:env": "node scripts/setup-env.js",
-    "prepare": "husky install",
+    "prepare": "node -e \"try { require('fs').accessSync('.git') } catch { process.exit(0) }; require('child_process').execSync('npx husky')\"",
     "setup": "npm run prisma:generate && npm run db:push",
     "setup:prod": "npm run prisma:generate:prod && npm run prisma:push:prod",
     "reset": "npm run db:migrate -- --reset && npm run db:seed"
@@ -98,6 +98,7 @@
     "react-dom": "^19.2.4",
     "react-hook-form": "^7.71.1",
     "recharts": "^3.3.0",
+    "resend": "^6.12.4",
     "sharp": "^0.34.5",
     "stream-browserify": "^3.0.0",
     "stripe": "^22.1.1",
