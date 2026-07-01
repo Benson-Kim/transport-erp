@@ -23,9 +23,25 @@ import { EmailTemplate } from '@/types/mail';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
+ * NextAuth v5 signs JWTs with AUTH_SECRET. Support NEXTAUTH_SECRET as a
+ * transitional fallback (the old v4 name) but require a secret in production
+ * so tokens are never signed with an undefined/insecure key.
+ */
+const authSecret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
+if (!authSecret && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'AUTH_SECRET is required in production. Set AUTH_SECRET to a 32+ character random value.'
+  );
+}
+
+/**
  * NextAuth configuration
  */
 export const authConfig = {
+  // Sign JWTs with AUTH_SECRET (v5); undefined in dev lets NextAuth derive a
+  // dev-only secret, while production is guarded by the check above.
+  secret: authSecret,
+
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
