@@ -1,0 +1,96 @@
+# Quality gate.
+#
+# `verify` stage (Phase 0): type-check, lint, build must not regress.
+# `database` stage (Phase 1): migrations, drift, and DB integration tests run
+# against a real Postgres so the schema/migrations are the source of truth.
+
+default:
+  image: node:22
+
+stages:
+  - verify
+  - database
+
+variables:
+  # Direct postgresql:// URL selects the non-Accelerate (engine) client path.
+  DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/transport_erp"
+  POSTGRES_DB: transport_erp
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  NEXT_TELEMETRY_DISABLED: "1"
+
+.node_setup: &node_setup
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - npx prisma generate
+
+# ---------------------------------------------------------------------------
+# verify stage (Phase 0)
+# ---------------------------------------------------------------------------
+
+type-check:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run type-check
+
+lint:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run lint:check
+
+build:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run build
+
+# ---------------------------------------------------------------------------
+# database stage (Phase 1)
+# ---------------------------------------------------------------------------
+
+# Prove migrations run cleanly forward on a fresh DB, are idempotent, and that
+# the seed applies on top (fresh + seeded DB).
+migrate-fresh:
+  stage: database
+  services:
+    - name: postgres:16
+  <<: *node_setup
+  script:
+    - npx prisma migrate deploy
+    # Idempotency / seeded-DB: re-running deploy is a no-op, then seed applies.
+    - npx prisma migrate deploy
+    - npx prisma db seed
+
+# Fail on schema/migration drift for schema-managed objects (enums, columns,
+# tables). Empty diff => in sync.
+drift-check:
+  stage: database
+  services:
+    - name: postgres:16
+  <<: *node_setup
+  script:
+    - npx prisma migrate deploy
+    - >-
+      npx prisma migrate diff
+      --from-migrations prisma/migrations
+      --to-schema-datamodel prisma/schema.prisma
+      --shadow-database-url "$DATABASE_URL"
+      --exit-code
+
+# DB integration tests: constraints, enum reconciliation, race-free numbering.
+test-db:
+  stage: database
+  services:
+    - name: postgres:16
+  <<: *node_setup
+  script:
+    - npx prisma migrate deploy
+    - npm run test:db
