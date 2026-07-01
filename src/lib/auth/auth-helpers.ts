@@ -29,7 +29,11 @@ const TOKEN_EXPIRY = {
 };
 
 /**
- * Token identifier prefixes
+ * Token identifier prefixes.
+ *
+ * NOTE: PASSWORD_RESET was previously the literal string '[REDACTED]' — a
+ * secret-scanner false-positive replacement that was committed into source.
+ * It has been corrected to the intended 'password-reset:' prefix.
  */
 const TOKEN_PREFIX = {
   VERIFICATION: 'email-verification:',
@@ -82,6 +86,25 @@ export function checkPasswordStrength(password: string): {
 }
 
 /**
+ * Hash a raw token with SHA-256 for at-rest storage.
+ *
+ * The raw token is sent to the user via email; only its hash is stored in the
+ * DB. A leaked verification_tokens row cannot be used to reset a password
+ * because the attacker would need to reverse SHA-256 to recover the raw token.
+ *
+ * Uses the Web Crypto API (available in Node 18+ and Edge runtimes).
+ * Exported for unit testing.
+ */
+export async function hashToken(rawToken: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(rawToken);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
  * Generate a secure random token
  */
 export function generateToken(length: number = 32): string {
@@ -99,10 +122,15 @@ export function generateSessionToken(): string {
 }
 
 /**
- * Generate and store email verification token
+ * Generate and store email verification token.
+ *
+ * Stores the SHA-256 hash of the token in the DB; returns the raw token for
+ * inclusion in the verification URL. A leaked DB row cannot be used to verify
+ * an account without the raw token.
  */
 export async function generateVerificationToken(email: string): Promise<string> {
-  const token = generateToken();
+  const rawToken = generateToken();
+  const tokenHash = await hashToken(rawToken);
   const expires = addHours(new Date(), TOKEN_EXPIRY.VERIFICATION);
   const identifier = `${TOKEN_PREFIX.VERIFICATION}${email}`;
 
@@ -111,23 +139,30 @@ export async function generateVerificationToken(email: string): Promise<string> 
     where: { identifier },
   });
 
-  // Create new token
+  // Store the hash, not the raw token
   await prisma.verificationToken.create({
-    data: { identifier, token, expires },
+    data: { identifier, token: tokenHash, expires },
   });
 
-  return token;
+  // Return the raw token for inclusion in the email URL
+  return rawToken;
 }
 
 /**
- * Verify email verification token
+ * Verify email verification token.
+ *
+ * Hashes the incoming raw token and looks up the hash. Consumes (deletes) the
+ * token on success. Should only be called from a POST-confirmed action, not
+ * directly from a GET render, to prevent email scanners from burning the token.
  */
 export async function verifyEmailToken(
-  token: string
+  rawToken: string
 ): Promise<{ success: boolean; email?: string; error?: string }> {
   try {
+    const tokenHash = await hashToken(rawToken);
+
     const verificationToken = await prisma.verificationToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
     });
 
     if (!verificationToken) {
@@ -140,7 +175,7 @@ export async function verifyEmailToken(
 
     if (verificationToken.expires < new Date()) {
       await prisma.verificationToken.delete({
-        where: { token },
+        where: { token: tokenHash },
       });
       return { success: false, error: 'Token expired' };
     }
@@ -156,7 +191,7 @@ export async function verifyEmailToken(
 
     // Delete used token
     await prisma.verificationToken.delete({
-      where: { token },
+      where: { token: tokenHash },
     });
 
     // Create audit log
@@ -179,7 +214,34 @@ export async function verifyEmailToken(
 }
 
 /**
- * Generate and store password reset token
+ * Check whether a verification token exists and is unexpired, WITHOUT
+ * consuming it. Used by the verify-email GET page to show the correct UI
+ * state before the user clicks the POST-confirm button.
+ */
+export async function peekVerificationToken(
+  rawToken: string
+): Promise<{ valid: boolean; expired: boolean }> {
+  try {
+    const tokenHash = await hashToken(rawToken);
+    const record = await prisma.verificationToken.findUnique({
+      where: { token: tokenHash },
+    });
+    if (!record || !record.identifier.startsWith(TOKEN_PREFIX.VERIFICATION)) {
+      return { valid: false, expired: false };
+    }
+    if (record.expires < new Date()) {
+      return { valid: false, expired: true };
+    }
+    return { valid: true, expired: false };
+  } catch {
+    return { valid: false, expired: false };
+  }
+}
+
+/**
+ * Generate and store password reset token.
+ *
+ * Stores the SHA-256 hash; returns the raw token for the reset URL.
  */
 export async function generatePasswordResetToken(email: string): Promise<string | null> {
   try {
@@ -190,7 +252,8 @@ export async function generatePasswordResetToken(email: string): Promise<string 
 
     if (!user) return null;
 
-    const token = generateToken();
+    const rawToken = generateToken();
+    const tokenHash = await hashToken(rawToken);
     const expires = addHours(new Date(), TOKEN_EXPIRY.PASSWORD_RESET);
     const identifier = `${TOKEN_PREFIX.PASSWORD_RESET}${email}`;
 
@@ -199,12 +262,12 @@ export async function generatePasswordResetToken(email: string): Promise<string 
       where: { identifier },
     });
 
-    // Create new token
+    // Store the hash
     await prisma.verificationToken.create({
-      data: { identifier, token, expires },
+      data: { identifier, token: tokenHash, expires },
     });
 
-    return token;
+    return rawToken;
   } catch (error) {
     console.error('Error generating password reset token:', error);
     return null;
@@ -212,15 +275,19 @@ export async function generatePasswordResetToken(email: string): Promise<string 
 }
 
 /**
- * Reset password with token
+ * Reset password with token.
+ *
+ * Hashes the incoming raw token and looks up the hash.
  */
 export async function resetPasswordWithToken(
-  token: string,
+  rawToken: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const tokenHash = await hashToken(rawToken);
+
     const resetToken = await prisma.verificationToken.findUnique({
-      where: { token },
+      where: { token: tokenHash },
     });
 
     if (!resetToken?.identifier.startsWith(TOKEN_PREFIX.PASSWORD_RESET)) {
@@ -229,7 +296,7 @@ export async function resetPasswordWithToken(
 
     if (resetToken.expires < new Date()) {
       await prisma.verificationToken.delete({
-        where: { token },
+        where: { token: tokenHash },
       });
       return { success: false, error: 'Token expired' };
     }
@@ -237,19 +304,20 @@ export async function resetPasswordWithToken(
     const email = resetToken.identifier.replaceAll(TOKEN_PREFIX.PASSWORD_RESET, '');
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update user password
+    // Update user password and revoke existing JWTs
     const user = await prisma.user.update({
       where: { email },
       data: {
         password: hashedPassword,
         passwordChangedAt: new Date(),
+        tokenVersion: { increment: 1 },
       },
       select: { id: true },
     });
 
     // Delete used token
     await prisma.verificationToken.delete({
-      where: { token },
+      where: { token: tokenHash },
     });
 
     // Create audit log
@@ -263,7 +331,8 @@ export async function resetPasswordWithToken(
       },
     });
 
-    // Invalidate all sessions for this user
+    // session.deleteMany is inert under JWT; tokenVersion bump above is the
+    // effective revocation mechanism (wired in #15b).
     await prisma.session.deleteMany({
       where: { userId: user.id },
     });
@@ -276,8 +345,8 @@ export async function resetPasswordWithToken(
 }
 
 /**
- * Regenerate verification token for an existing user
- * Returns null if user doesn't exist or is already verified
+ * Regenerate verification token for an existing user.
+ * Returns null if user doesn't exist or is already verified.
  */
 export async function regenerateVerificationToken(
   email: string
@@ -387,15 +456,15 @@ export async function updatePassword(
       return { success: false, error: 'Current password is incorrect' };
     }
 
-    // Hash new password
+    // Hash new password and revoke existing JWTs
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update password
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
         passwordChangedAt: new Date(),
+        tokenVersion: { increment: 1 },
       },
     });
 
@@ -418,49 +487,8 @@ export async function updatePassword(
 }
 
 /**
- * Check if user has permission for an action
- */
-export function hasPermission(userRole: UserRole, action: string, resource: string): boolean {
-  const permissions: Record<UserRole, string[]> = {
-    SUPER_ADMIN: ['*'], // All permissions
-    ADMIN: [
-      'users:*',
-      'companies:*',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-      'settings:*',
-    ],
-    MANAGER: [
-      'users:read',
-      'companies:read',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-    ],
-    ACCOUNTANT: ['clients:read', 'suppliers:read', 'services:read', 'invoices:*', 'reports:read'],
-    OPERATOR: ['clients:read', 'suppliers:read', 'services:*', 'invoices:read'],
-    VIEWER: ['clients:read', 'suppliers:read', 'services:read', 'invoices:read', 'reports:read'],
-  };
-
-  const userPermissions = permissions[userRole] || [];
-  const permission = `${resource}:${action}`;
-
-  return (
-    userPermissions.includes('*') ||
-    userPermissions.includes(`${resource}:*`) ||
-    userPermissions.includes(permission)
-  );
-}
-
-/**
  * Check if session is expired
  */
-
 interface SessionLike {
   expires: string | Date;
 }
