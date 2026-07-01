@@ -30,14 +30,14 @@ export default async function CompanySettingsPage() {
   const userRole = session.user?.role ?? UserRole.VIEWER;
 
   if (!canAccessRoute(userRole, '/settings/company')) {
-    redirect('/settings/profile');
+    redirect('/dashboard');
   }
 
   const canView = hasPermission(userRole, RESOURCES.COMPANIES, ACTIONS.VIEW);
   const canEdit = hasPermission(userRole, RESOURCES.COMPANIES, ACTIONS.EDIT);
 
   if (!canView) {
-    redirect('/settings/profile');
+    redirect('/dashboard');
   }
 
   const result = await getCompanySettings();
