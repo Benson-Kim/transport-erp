@@ -9,7 +9,6 @@ import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-re
 import { FormProvider, useForm } from 'react-hook-form';
 
 import {
-  getSystemSettings,
   runManualBackup,
   saveEmailSettings,
   testEmailConfiguration,
@@ -35,41 +34,32 @@ import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 
-export function SystemSettingsContent() {
-  const [loading, setLoading] = useState(true);
+export function SystemSettingsContent({
+  initialSettings,
+}: {
+  initialSettings: Partial<SystemSettings>;
+}) {
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('email');
+
+  const mergedDefaults = useMemo<SystemSettings>(
+    () => ({
+      email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
+      pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...initialSettings.pdf },
+      backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...initialSettings.backup },
+      numberSequences: {
+        ...DEFAULT_SYSTEM_SETTINGS.numberSequences,
+        ...initialSettings.numberSequences,
+      },
+      general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...initialSettings.general },
+    }),
+    [initialSettings]
+  );
 
   const methods = useForm<SystemSettings>({
     resolver: zodResolver(systemSettingsSchema),
-    defaultValues: DEFAULT_SYSTEM_SETTINGS,
+    defaultValues: mergedDefaults,
   });
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getSystemSettings();
-      const mergedData = {
-        email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...data.email },
-        pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...data.pdf },
-        backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...data.backup },
-        numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...data.numberSequences },
-        general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
-      };
-      methods.reset(mergedData);
-    } catch (error) {
-      setError('Failed to load system settings. Please check your permissions.');
-      console.error('Load settings error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleSaveSection(section: SettingsSection) {
     setSaving(section);
