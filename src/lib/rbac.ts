@@ -22,7 +22,9 @@ import prisma from '@/lib/prisma/prisma';
 export async function checkPermission(resource: Resource, action: Action): Promise<boolean> {
   const session = await getServerAuth();
 
-  if (!session?.user) {
+  // Deactivated/revoked sessions (isActive:false, set by the jwt re-check)
+  // are treated as unauthenticated on every permission-gated path.
+  if (!session?.user || session.user.isActive === false) {
     return false;
   }
 
@@ -46,7 +48,7 @@ export async function requirePermission(resource: Resource, action: Action): Pro
 export async function checkRouteAccess(path: string): Promise<boolean> {
   const session = await getServerAuth();
 
-  if (!session?.user) {
+  if (!session?.user || session.user.isActive === false) {
     return false;
   }
 
