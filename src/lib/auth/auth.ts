@@ -23,6 +23,25 @@ import { EmailTemplate } from '@/types/mail';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
+ * How long (ms) a JWT may trust its cached isActive/role before the jwt
+ * callback re-queries the DB. Small enough that revocation is effective
+ * within seconds; large enough to avoid a DB read on every request.
+ */
+export const TOKEN_REVALIDATE_MS = 60 * 1000;
+
+/**
+ * Pure decision: should the token re-validate isActive/role from the DB?
+ * Exported for unit testing.
+ */
+export function shouldRevalidateToken(
+  checkedAt: number | undefined,
+  now: number = Date.now()
+): boolean {
+  if (typeof checkedAt !== 'number') return true;
+  return now - checkedAt >= TOKEN_REVALIDATE_MS;
+}
+
+/**
  * NextAuth configuration
  */
 export const authConfig = {
@@ -239,8 +258,10 @@ export const authConfig = {
         token['role'] = user.role;
         token['emailVerified'] = user.emailVerified;
         token['twoFactorEnabled'] = user.twoFactorEnabled;
+        token['isActive'] = user.isActive ?? true;
         token['department'] = user.department;
         token['avatar'] = user.avatar;
+        token['checkedAt'] = Date.now();
       }
 
       if (trigger === 'update' && session) {
@@ -254,6 +275,28 @@ export const authConfig = {
         }
       }
 
+      // Re-validate isActive/role from the DB on a short cache so that
+      // deactivating a user or changing their role takes effect within
+      // seconds instead of waiting up to the 30-day token maxAge.
+      // session.deleteMany is inert under the JWT strategy, so this DB
+      // re-check is the actual revocation mechanism.
+      const userId = token['id'] as string | undefined;
+      if (userId && shouldRevalidateToken(token['checkedAt'] as number | undefined)) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true, isActive: true, deletedAt: true },
+        });
+
+        if (!dbUser || dbUser.deletedAt) {
+          // User no longer exists (or is soft-deleted): revoke.
+          token['isActive'] = false;
+        } else {
+          token['role'] = dbUser.role;
+          token['isActive'] = dbUser.isActive;
+        }
+        token['checkedAt'] = Date.now();
+      }
+
       return token;
     },
 
@@ -264,6 +307,7 @@ export const authConfig = {
         session.user.role = (token['role'] as UserRole) ?? UserRole.VIEWER;
         session.user.emailVerified = (token['emailVerified'] as Date | null) ?? null;
         session.user.twoFactorEnabled = Boolean(token['twoFactorEnabled']);
+        session.user.isActive = token['isActive'] !== false;
         session.user.department = (token['department'] as string | null) ?? null;
         session.user.avatar = (token['avatar'] as string | null) ?? null;
       }
@@ -350,6 +394,13 @@ export async function requireAuth() {
   const session = await getServerAuth();
 
   if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+
+  // A deactivated / removed user's JWT is still cryptographically valid, but
+  // the jwt callback re-check flags isActive:false. Reject here so every
+  // gated action and layout that calls requireAuth enforces revocation.
+  if (session.user.isActive === false) {
     throw new Error('Unauthorized');
   }
 
