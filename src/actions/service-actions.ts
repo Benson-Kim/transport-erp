@@ -12,7 +12,7 @@ import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
-import { requirePermission } from '@/lib/rbac';
+import { checkPermission, requirePermission } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -702,6 +702,43 @@ export async function sendServiceEmail(serviceId: string) {
 }
 
 /**
+ * Statuses that are locked for edit/delete unless the caller holds the
+ * elevated edit_completed / delete_completed permission. Mirrors the
+ * single-op guard in updateService (which requires edit_completed for a
+ * COMPLETED service) so bulk paths cannot bypass it.
+ */
+const PROTECTED_STATUSES: ServiceStatus[] = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
+
+/**
+ * Enforce, for a set of non-deleted services, that the caller may mutate them.
+ * Returns the ids that actually exist and are not soft-deleted. Throws if the
+ * selection includes COMPLETED/INVOICED services and the caller lacks the
+ * elevated permission — exactly like the single-op path refuses them.
+ */
+async function assertBulkServiceInvariants(
+  serviceIds: string[],
+  elevatedAction: 'edit_completed' | 'delete_completed'
+): Promise<string[]> {
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds }, deletedAt: null },
+    select: { id: true, status: true },
+  });
+
+  const hasProtected = services.some((s) => PROTECTED_STATUSES.includes(s.status));
+  if (hasProtected) {
+    const allowed = await checkPermission('services', elevatedAction);
+    if (!allowed) {
+      throw new Error(
+        'Selection includes completed or invoiced services. ' +
+          'You do not have permission to modify them.'
+      );
+    }
+  }
+
+  return services.map((s) => s.id);
+}
+
+/**
  * Bulk update services
  */
 export async function bulkUpdateServices(
@@ -711,9 +748,17 @@ export async function bulkUpdateServices(
   const session = await requireAuth();
   await requirePermission('services', 'edit');
 
-  await prisma.service.updateMany({
+  // Enforce the same completed/invoiced guard and deletedAt filter as the
+  // single-op path; only operate on the ids that pass.
+  const targetIds = await assertBulkServiceInvariants(serviceIds, 'edit_completed');
+
+  if (targetIds.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const result = await prisma.service.updateMany({
     where: {
-      id: { in: serviceIds },
+      id: { in: targetIds },
       deletedAt: null,
     },
     data: updates,
@@ -724,13 +769,13 @@ export async function bulkUpdateServices(
     userId: session.user.id,
     action: 'UPDATE',
     tableName: 'services',
-    recordId: serviceIds.join(','),
-    metadata: { bulk: true, updates },
+    recordId: targetIds.join(','),
+    metadata: { bulk: true, updates, count: result.count },
   });
 
   revalidatePath('/services');
 
-  return { success: true };
+  return { success: true, count: result.count };
 }
 
 /**
@@ -740,9 +785,19 @@ export async function bulkDeleteServices(serviceIds: string[]) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
 
-  await prisma.service.updateMany({
+  // Same invariants as single delete: never re-stamp already-deleted rows
+  // (deletedAt: null filter) and refuse completed/invoiced services unless
+  // the caller holds delete_completed.
+  const targetIds = await assertBulkServiceInvariants(serviceIds, 'delete_completed');
+
+  if (targetIds.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const result = await prisma.service.updateMany({
     where: {
-      id: { in: serviceIds },
+      id: { in: targetIds },
+      deletedAt: null,
     },
     data: { deletedAt: new Date() },
   });
@@ -752,13 +807,13 @@ export async function bulkDeleteServices(serviceIds: string[]) {
     userId: session.user.id,
     action: 'DELETE',
     tableName: 'services',
-    recordId: serviceIds.join(','),
-    metadata: { bulk: true },
+    recordId: targetIds.join(','),
+    metadata: { bulk: true, count: result.count },
   });
 
   revalidatePath('/services');
 
-  return { success: true };
+  return { success: true, count: result.count };
 }
 
 /**
