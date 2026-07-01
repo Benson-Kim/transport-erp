@@ -1,13 +1,20 @@
 /**
  * Next.js Middleware
- * Protects routes based on authentication and permissions
+ * Protects routes based on authentication and permissions.
+ *
+ * Runs on the Edge runtime, so it uses the edge-safe auth config (no Node-only
+ * deps) to decode the JWT session. The full auth runtime lives in @/lib/auth
+ * and is used by the API route handlers and server actions.
  */
 
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-import { auth } from '@/lib/auth';
+import { authEdgeConfig } from '@/lib/auth/auth.config';
 import { canAccessRoute } from '@/lib/permissions';
+
+const { auth } = NextAuth(authEdgeConfig);
 
 /**
  * Public routes that don't require authentication
@@ -26,7 +33,7 @@ const PUBLIC_ROUTES = [
  */
 const API_ROUTES = ['/api/auth'];
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
