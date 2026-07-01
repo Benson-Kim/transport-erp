@@ -128,33 +128,44 @@ export function UserForm({
   }, [user, reset]);
 
   /**
-   * Generate secure password
+   * Generate a cryptographically secure password using crypto.getRandomValues.
+   * Math.random() is not suitable for security-sensitive values.
    */
   const generatePassword = () => {
     const upperCase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     const lowerCase = 'abcdefghjkmnpqrstuvwxyz';
     const numbers = '23456789';
     const symbols = '!@#$%^&*';
-
-    // Ensure at least one of each type
-    let password = '';
-    password += upperCase[Math.floor(Math.random() * upperCase.length)];
-    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
-
-    // Fill remaining length
     const allChars = upperCase + lowerCase + numbers + symbols;
-    for (let i = 4; i < 12; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
+
+    const randomByte = () => {
+      const buf = new Uint8Array(1);
+      // Rejection-sample to avoid modulo bias
+      let val: number;
+      do {
+        crypto.getRandomValues(buf);
+        val = buf[0]!;
+      } while (val >= 256 - (256 % allChars.length));
+      return val % allChars.length;
+    };
+
+    // Guarantee at least one character from each required class
+    const pick = (charset: string) => charset[randomByte() % charset.length]!;
+    const chars = [
+      pick(upperCase),
+      pick(lowerCase),
+      pick(numbers),
+      pick(symbols),
+      ...Array.from({ length: 8 }, () => allChars[randomByte()]!),
+    ];
+
+    // Fisher-Yates shuffle using crypto.getRandomValues
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = randomByte() % (i + 1);
+      [chars[i], chars[j]] = [chars[j]!, chars[i]!];
     }
 
-    // Shuffle password
-    password = password
-      .split('')
-      .sort(() => Math.random() - 0.5)
-      .join('');
-
+    const password = chars.join('');
     setGeneratedPassword(password);
     setValue('password', password, { shouldDirty: true });
     setValue('confirmPassword', password, { shouldDirty: true });
@@ -227,16 +238,12 @@ export function UserForm({
           isEditing ? 'User updated' : 'User created',
           isEditing
             ? 'User information has been updated successfully'
-            : generatedPassword
-              ? `User created successfully. Password: ${generatedPassword}`
-              : 'User has been created successfully'
+            : 'User has been created successfully. Share the password securely.'
         );
 
-        // Auto-copy password for new users
-        if (!isEditing && generatedPassword) {
-          try {
-            await navigator.clipboard.writeText(generatedPassword);
-            toast.info('Password copied', 'The generated password has been copied to clipboard');
+        // Do NOT auto-copy or surface the password in a toast — it may be
+        // captured by screen-recording, logging, or shared-screen observers.
+        // The admin should use the visible password field to copy it manually.
           } catch (error) {
             // Silent fail for clipboard
           }
