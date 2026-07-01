@@ -72,11 +72,8 @@ export async function getClients(
     }
 
     if (country) {
-      // Filter by country in billingAddress JSON
-      where.billingAddress = {
-        path: ['country'],
-        equals: country,
-      };
+      // Filter by the indexed, generated billingCountry column (#14).
+      where.billingCountry = country;
     }
 
     if (isActive !== undefined) {
