@@ -22,6 +22,7 @@ import { useForm } from 'react-hook-form';
 import { createUser, updateUser } from '@/actions/user-actions';
 import { UserRole } from '@/app/generated/prisma';
 import { Button, Card, Input, Select, FormField, Switch } from '@/components/ui';
+import { generateSecurePassword } from '@/lib/security/password';
 import { toast } from '@/lib/toast';
 import type {
   CreateUser,
@@ -128,44 +129,10 @@ export function UserForm({
   }, [user, reset]);
 
   /**
-   * Generate a cryptographically secure password using crypto.getRandomValues.
-   * Math.random() is not suitable for security-sensitive values.
+   * Generate a cryptographically secure password (crypto.getRandomValues).
    */
   const generatePassword = () => {
-    const upperCase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowerCase = 'abcdefghjkmnpqrstuvwxyz';
-    const numbers = '23456789';
-    const symbols = '!@#$%^&*';
-    const allChars = upperCase + lowerCase + numbers + symbols;
-
-    const randomByte = () => {
-      const buf = new Uint8Array(1);
-      // Rejection-sample to avoid modulo bias
-      let val: number;
-      do {
-        crypto.getRandomValues(buf);
-        val = buf[0]!;
-      } while (val >= 256 - (256 % allChars.length));
-      return val % allChars.length;
-    };
-
-    // Guarantee at least one character from each required class
-    const pick = (charset: string) => charset[randomByte() % charset.length]!;
-    const chars = [
-      pick(upperCase),
-      pick(lowerCase),
-      pick(numbers),
-      pick(symbols),
-      ...Array.from({ length: 8 }, () => allChars[randomByte()]!),
-    ];
-
-    // Fisher-Yates shuffle using crypto.getRandomValues
-    for (let i = chars.length - 1; i > 0; i--) {
-      const j = randomByte() % (i + 1);
-      [chars[i], chars[j]] = [chars[j]!, chars[i]!];
-    }
-
-    const password = chars.join('');
+    const password = generateSecurePassword(12);
     setGeneratedPassword(password);
     setValue('password', password, { shouldDirty: true });
     setValue('confirmPassword', password, { shouldDirty: true });
