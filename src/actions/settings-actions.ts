@@ -327,6 +327,15 @@ async function updateSetting<T>(
 }
 
 /**
+ * Email secret fields are write-only: they are never sent to the client, and
+ * a blank value on save means "keep the stored secret". This prevents the
+ * plaintext API key / SMTP password from being hydrated into the browser.
+ */
+function redactEmailSecrets(email: EmailConfigInput): EmailConfigInput {
+  return { ...email, apiKey: '', password: '' };
+}
+
+/**
  * Get all system settings
  */
 export async function getSystemSettings(): Promise<SystemSettings> {
@@ -344,7 +353,8 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   ]);
 
   return {
-    email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...email },
+    // Never surface stored email secrets to the client.
+    email: redactEmailSecrets({ ...DEFAULT_SYSTEM_SETTINGS.email, ...email }),
     pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
     backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...backup },
     numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...numberSequences },
@@ -353,9 +363,24 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 }
 
 export async function saveEmailSettings(data: unknown) {
+  // Preserve stored secrets when the client submits blanks (write-only fields):
+  // the redacted values sent to the client come back empty unless the admin
+  // typed a new secret.
+  let incoming = data as Partial<EmailConfigInput> | null;
+  if (incoming && typeof incoming === 'object') {
+    const stored = await getSetting<EmailConfigInput>(
+      SettingKey.EMAIL,
+      DEFAULT_SYSTEM_SETTINGS.email
+    );
+    const merged: Partial<EmailConfigInput> = { ...incoming };
+    if (!merged.apiKey) merged.apiKey = stored.apiKey;
+    if (!merged.password) merged.password = stored.password;
+    incoming = merged;
+  }
+
   return updateSetting(
     SettingKey.EMAIL,
-    data,
+    incoming,
     emailConfigSchema,
     'Email configuration for System notifications'
   );
