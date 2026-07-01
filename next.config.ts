@@ -1,47 +1,11 @@
 import createBundleAnalyzer from '@next/bundle-analyzer';
-
+import { securityHeaders } from './src/lib/security-headers';
 import type { NextConfig } from 'next';
 
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
 });
 
-/**
- * Content-Security-Policy.
- *
- * Next.js App Router injects inline bootstrap/hydration scripts and styled
- * content, so 'unsafe-inline' is required for script/style until a per-request
- * nonce is wired through the middleware. This is a pragmatic baseline that
- * blocks external script injection and framing; nonce-based hardening of
- * script-src is tracked as a follow-up. connect/img allow self + B2 + Google
- * (avatars) which the app actually uses.
- */
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.backblazeb2.com https://lh3.googleusercontent.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.backblazeb2.com",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-]
-  .join('; ');
-
-const securityHeaders: { key: string; value: string }[] = [
-  { key: 'X-DNS-Prefetch-Control', value: 'on' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Content-Security-Policy', value: contentSecurityPolicy },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=63072000; includeSubDomains; preload',
-  },
-];
 
 type NextImageFormats = NonNullable<NonNullable<NextConfig['images']>['formats']>;
 const imageFormats: NextImageFormats = ['image/avif', 'image/webp'];
