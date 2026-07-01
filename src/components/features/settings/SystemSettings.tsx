@@ -1,11 +1,11 @@
 // /components/features/settings/SystemSettingsContent.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
+import { Mail, FileText, Database, Hash, Settings } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import {
@@ -17,7 +17,7 @@ import {
   updateNumberSequences,
   updatePDF,
 } from '@/actions/settings-actions';
-import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
+import { Button, Card, PageHeader, Tabs } from '@/components/ui';
 import type { Tab } from '@/components/ui/Tabs';
 import { toast } from '@/lib/toast';
 import {
@@ -236,25 +236,6 @@ export function SystemSettingsContent({
     ],
     [saving, methods]
   );
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 bg-neutral-200 rounded w-1/4 animate-pulse" />
-        <div className="h-12 bg-neutral-100 rounded animate-pulse" />
-        <div className="h-96 bg-neutral-50 rounded animate-pulse" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="error">
-        <AlertCircle className="h-4 w-4" />
-        <span>{error}</span>
-      </Alert>
-    );
-  }
 
   return (
     <FormProvider {...methods}>
