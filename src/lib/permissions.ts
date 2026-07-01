@@ -274,9 +274,13 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
     UserRole.ACCOUNTANT,
     UserRole.VIEWER,
   ],
-  '/settings': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   '/settings/users': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-  '/settings/company': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+  '/settings/system': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+  // Mirrors COMPANIES:VIEW in PERMISSION_MATRIX so MANAGER's canView and
+  // canAccessRoute agree (previously MANAGER passed canView but was
+  // redirected to a dead /settings/profile).
+  '/settings/company': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
+  '/settings': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
   '/audit-logs': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
 };
 
