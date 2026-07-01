@@ -124,6 +124,25 @@ export async function createAuditLog({
 }
 
 /**
+ * Increment a user's tokenVersion to revoke all their existing JWTs.
+ *
+ * Call on security events (deactivation, role change, credential reset).
+ * The jwt callback compares the token's version to the DB value and revokes
+ * on mismatch, so this takes effect on the user's next request. Accepts an
+ * optional transaction client so it can run atomically with the triggering
+ * mutation.
+ */
+export async function bumpUserTokenVersion(
+  userId: string,
+  client: Pick<PrismaClient, 'user'> | Prisma.TransactionClient = prisma
+): Promise<void> {
+  await client.user.update({
+    where: { id: userId },
+    data: { tokenVersion: { increment: 1 } },
+  });
+}
+
+/**
  * Batch Operations Helper
  * Process large datasets in batches
  */
