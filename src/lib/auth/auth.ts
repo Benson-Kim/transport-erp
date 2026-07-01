@@ -141,6 +141,7 @@ export const authConfig = {
               emailVerified: true,
               twoFactorEnabled: true,
               isActive: true,
+              tokenVersion: true,
               department: true,
               avatar: true,
             },
@@ -208,6 +209,7 @@ export const authConfig = {
             emailVerified: user.emailVerified,
             twoFactorEnabled: user.twoFactorEnabled ?? false,
             isActive: user.isActive,
+            tokenVersion: user.tokenVersion,
             department: user.department,
             avatar: user.avatar,
           };
@@ -239,6 +241,7 @@ export const authConfig = {
           role: UserRole.VIEWER, // Default role for OAuth users
           twoFactorEnabled: false,
           isActive: true,
+          tokenVersion: 0,
           department: null,
         };
       },

@@ -30,6 +30,7 @@ declare module 'next-auth' {
     department?: string | null;
     avatar?: string | null;
     isActive: boolean;
+    tokenVersion?: number;
   }
 }
 
