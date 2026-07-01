@@ -244,10 +244,6 @@ export function UserForm({
         // Do NOT auto-copy or surface the password in a toast — it may be
         // captured by screen-recording, logging, or shared-screen observers.
         // The admin should use the visible password field to copy it manually.
-          } catch (error) {
-            // Silent fail for clipboard
-          }
-        }
 
         onSuccess();
       }
