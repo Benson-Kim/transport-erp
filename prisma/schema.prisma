@@ -268,6 +268,10 @@ model Client {
   billingAddress  Json // { line1, line2, city, state, postalCode, country }
   shippingAddress Json? // Optional different shipping address
 
+  // Normalized, indexable copy of billingAddress->>'country'. DB-generated
+  // (GENERATED ALWAYS ... STORED); never written by the app. See #14.
+  billingCountry String?
+
   // Contacts
   billingEmail  String
   trafficEmail  String? // For operational communications
@@ -307,6 +311,7 @@ model Client {
   @@index([vatNumber])
   @@index([companyId])
   @@index([deletedAt])
+  @@index([billingCountry])
   @@map("clients")
 }
 
