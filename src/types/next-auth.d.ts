@@ -41,7 +41,9 @@ declare module 'next-auth/jwt' {
     emailVerified?: Date | null;
     twoFactorEnabled?: boolean;
     isActive?: boolean;
-    /** Epoch ms of the last DB re-validation of isActive/role. */
+    /** User.tokenVersion at sign-in; a DB bump revokes stale tokens. */
+    tokenVersion?: number;
+    /** Epoch ms of the last DB re-validation of isActive/role/tokenVersion. */
     checkedAt?: number;
     department?: string | null;
     avatar?: string | null;

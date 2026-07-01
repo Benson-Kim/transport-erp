@@ -46,22 +46,30 @@ export interface TokenRevalidationUser {
   role: UserRole;
   isActive: boolean;
   deletedAt: Date | null;
+  tokenVersion: number;
 }
 
 /**
  * Pure token revalidation: given the current DB user state (or null when the
  * user is missing), return the isActive/role values the token should carry.
- * A missing or soft-deleted user is treated as revoked (isActive: false).
+ * The token is revoked (isActive: false) when the user is missing,
+ * soft-deleted, deactivated, or when the DB tokenVersion is newer than the
+ * version carried by the token (a security event bumped it).
  * Exported for unit testing.
  */
 export function revalidateTokenFields(
   dbUser: TokenRevalidationUser | null,
-  currentRole: UserRole | undefined
+  currentRole: UserRole | undefined,
+  tokenVersion: number | undefined
 ): { role: UserRole; isActive: boolean } {
-  if (!dbUser || dbUser.deletedAt) {
-    return { role: currentRole ?? UserRole.VIEWER, isActive: false };
+  if (!dbUser || dbUser.deletedAt || !dbUser.isActive) {
+    return { role: dbUser?.role ?? currentRole ?? UserRole.VIEWER, isActive: false };
   }
-  return { role: dbUser.role, isActive: dbUser.isActive };
+  // A newer DB version means the token predates a security event: revoke.
+  if (dbUser.tokenVersion !== (tokenVersion ?? 0)) {
+    return { role: dbUser.role, isActive: false };
+  }
+  return { role: dbUser.role, isActive: true };
 }
 
 /**
@@ -282,6 +290,7 @@ export const authConfig = {
         token['emailVerified'] = user.emailVerified;
         token['twoFactorEnabled'] = user.twoFactorEnabled;
         token['isActive'] = user.isActive ?? true;
+        token['tokenVersion'] = user.tokenVersion ?? 0;
         token['department'] = user.department;
         token['avatar'] = user.avatar;
         token['checkedAt'] = Date.now();
@@ -307,10 +316,14 @@ export const authConfig = {
       if (userId && shouldRevalidateToken(token['checkedAt'] as number | undefined)) {
         const dbUser = await prisma.user.findUnique({
           where: { id: userId },
-          select: { role: true, isActive: true, deletedAt: true },
+          select: { role: true, isActive: true, deletedAt: true, tokenVersion: true },
         });
 
-        const revalidated = revalidateTokenFields(dbUser, token['role'] as UserRole | undefined);
+        const revalidated = revalidateTokenFields(
+          dbUser,
+          token['role'] as UserRole | undefined,
+          token['tokenVersion'] as number | undefined
+        );
         token['role'] = revalidated.role;
         token['isActive'] = revalidated.isActive;
         token['checkedAt'] = Date.now();
