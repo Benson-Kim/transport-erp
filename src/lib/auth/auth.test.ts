@@ -44,7 +44,7 @@ describe('shouldRevalidateToken', () => {
 
 describe('revalidateTokenFields', () => {
   it('revokes when the user is missing', () => {
-    expect(revalidateTokenFields(null, UserRole.ADMIN)).toEqual({
+    expect(revalidateTokenFields(null, UserRole.ADMIN, 0)).toEqual({
       role: UserRole.ADMIN,
       isActive: false,
     });
@@ -53,8 +53,9 @@ describe('revalidateTokenFields', () => {
   it('revokes when the user is soft-deleted', () => {
     expect(
       revalidateTokenFields(
-        { role: UserRole.MANAGER, isActive: true, deletedAt: new Date() },
-        UserRole.MANAGER
+        { role: UserRole.MANAGER, isActive: true, deletedAt: new Date(), tokenVersion: 0 },
+        UserRole.MANAGER,
+        0
       )
     ).toEqual({ role: UserRole.MANAGER, isActive: false });
   });
@@ -62,8 +63,9 @@ describe('revalidateTokenFields', () => {
   it('revokes when the user is deactivated', () => {
     expect(
       revalidateTokenFields(
-        { role: UserRole.OPERATOR, isActive: false, deletedAt: null },
-        UserRole.OPERATOR
+        { role: UserRole.OPERATOR, isActive: false, deletedAt: null, tokenVersion: 0 },
+        UserRole.OPERATOR,
+        0
       )
     ).toEqual({ role: UserRole.OPERATOR, isActive: false });
   });
@@ -72,14 +74,46 @@ describe('revalidateTokenFields', () => {
     // Token still says OPERATOR; DB now says MANAGER -> token should follow DB.
     expect(
       revalidateTokenFields(
-        { role: UserRole.MANAGER, isActive: true, deletedAt: null },
-        UserRole.OPERATOR
+        { role: UserRole.MANAGER, isActive: true, deletedAt: null, tokenVersion: 0 },
+        UserRole.OPERATOR,
+        0
       )
     ).toEqual({ role: UserRole.MANAGER, isActive: true });
   });
 
+  it('keeps an active user with a matching tokenVersion', () => {
+    expect(
+      revalidateTokenFields(
+        { role: UserRole.ADMIN, isActive: true, deletedAt: null, tokenVersion: 3 },
+        UserRole.ADMIN,
+        3
+      )
+    ).toEqual({ role: UserRole.ADMIN, isActive: true });
+  });
+
+  it('revokes when the DB tokenVersion is ahead of the token (security event bump)', () => {
+    expect(
+      revalidateTokenFields(
+        { role: UserRole.ADMIN, isActive: true, deletedAt: null, tokenVersion: 4 },
+        UserRole.ADMIN,
+        3
+      )
+    ).toEqual({ role: UserRole.ADMIN, isActive: false });
+  });
+
+  it('treats an undefined token version as 0', () => {
+    // Legacy token minted before tokenVersion existed; DB still at 0 -> valid.
+    expect(
+      revalidateTokenFields(
+        { role: UserRole.VIEWER, isActive: true, deletedAt: null, tokenVersion: 0 },
+        UserRole.VIEWER,
+        undefined
+      )
+    ).toEqual({ role: UserRole.VIEWER, isActive: true });
+  });
+
   it('falls back to VIEWER when no current role and user is missing', () => {
-    expect(revalidateTokenFields(null, undefined)).toEqual({
+    expect(revalidateTokenFields(null, undefined, undefined)).toEqual({
       role: UserRole.VIEWER,
       isActive: false,
     });
