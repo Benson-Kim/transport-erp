@@ -9,6 +9,7 @@ import {
   ServiceSidebar,
 } from '@/components/features/services';
 import { ErrorState } from '@/components/ui/ErrorState';
+import { auth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
 
 import type { Metadata } from 'next';
