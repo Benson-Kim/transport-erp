@@ -878,6 +878,36 @@ async function createAuditLogs(
   );
 }
 
+/**
+ * Seed the race-free counters (issue #12) to the highest number the seed used
+ * for each prefix+year scope, so app-side allocation continues past the seed
+ * rather than colliding with it. PAY numbers reuse the invoice index, so their
+ * max is bounded by the invoice count.
+ */
+async function initDocumentCounters(
+  serviceCount: number,
+  invoiceCount: number,
+  loadingOrderCount: number
+): Promise<void> {
+  const year = new Date().getFullYear();
+  const scopes: Array<{ prefix: string; value: number }> = [
+    { prefix: 'SRV', value: serviceCount },
+    { prefix: 'INV', value: invoiceCount },
+    { prefix: 'PAY', value: invoiceCount },
+    { prefix: 'LO', value: loadingOrderCount },
+  ];
+
+  for (const { prefix, value } of scopes) {
+    if (value <= 0) continue;
+    const scope = `${prefix}-${year}`;
+    await prisma.documentCounter.upsert({
+      where: { scope },
+      create: { scope, value: BigInt(value) },
+      update: { value: BigInt(value) },
+    });
+  }
+}
+
 async function main() {
   console.log('Starting database seed...');
 
@@ -912,6 +942,9 @@ async function main() {
 
   const auditLogs = await createAuditLogs(users, services, invoices);
   console.log(`Created ${auditLogs.length} audit logs.`);
+
+  await initDocumentCounters(services.length, invoices.length, loadingOrders.length);
+  console.log('Initialised document counters.');
 
   console.log('Database seed completed successfully!');
 
