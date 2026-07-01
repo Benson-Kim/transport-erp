@@ -36,14 +36,14 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
   // getService enforces auth + services:view + ownership and throws on
   // denial (e.g. an OPERATOR editing a service they don't own). Redirect
   // rather than crashing the route.
-  let service: Awaited<ReturnType<typeof getService>>;
-  let clients: Awaited<ReturnType<typeof getClientsAndSuppliers>>['clients'];
-  let suppliers: Awaited<ReturnType<typeof getClientsAndSuppliers>>['suppliers'];
+  let data: {
+    service: Awaited<ReturnType<typeof getService>>;
+    clients: Awaited<ReturnType<typeof getClientsAndSuppliers>>['clients'];
+    suppliers: Awaited<ReturnType<typeof getClientsAndSuppliers>>['suppliers'];
+  } | null = null;
   try {
-    const [svc, related] = await Promise.all([getService(id), getClientsAndSuppliers()]);
-    service = svc;
-    clients = related.clients;
-    suppliers = related.suppliers;
+    const [service, related] = await Promise.all([getService(id), getClientsAndSuppliers()]);
+    data = { service, clients: related.clients, suppliers: related.suppliers };
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       redirect('/login');
@@ -51,9 +51,11 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
     redirect('/services');
   }
 
-  if (!service) {
+  if (!data?.service) {
     notFound();
   }
+
+  const { service, clients, suppliers } = data;
 
   // Check if completed service can be edited
   const isCompleted = service.status === ServiceStatus.COMPLETED;
