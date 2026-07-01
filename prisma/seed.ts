@@ -14,7 +14,7 @@ import {
   ServiceStatus,
   InvoiceStatus,
   PaymentStatus,
-} from '@/app/generated/prisma';
+} from '../src/app/generated/prisma';
 import type {
   Company,
   Client,
@@ -26,7 +26,7 @@ import type {
   Notification,
   AuditLog,
   User,
-} from '@/app/generated/prisma';
+} from '../src/app/generated/prisma';
 
 const prisma = new PrismaClient();
 
@@ -969,11 +969,13 @@ async function main() {
 }
 
 /* ---------- Run ---------- */
-try {
-  await main();
-} catch (e) {
-  console.error('Seed error:', e);
-  process.exit(1);
-} finally {
-  await prisma.$disconnect();
-}
+void (async () => {
+  try {
+    await main();
+  } catch (e) {
+    console.error('Seed error:', e);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+})();
