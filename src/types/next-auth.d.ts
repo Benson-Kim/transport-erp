@@ -13,6 +13,7 @@ declare module 'next-auth' {
       role: UserRole;
       emailVerified: Date | null;
       twoFactorEnabled: boolean;
+      isActive: boolean;
       department?: string | null;
       avatar?: string | null;
     }
@@ -39,6 +40,9 @@ declare module 'next-auth/jwt' {
     role?: UserRole;
     emailVerified?: Date | null;
     twoFactorEnabled?: boolean;
+    isActive?: boolean;
+    /** Epoch ms of the last DB re-validation of isActive/role. */
+    checkedAt?: number;
     department?: string | null;
     avatar?: string | null;
   }
