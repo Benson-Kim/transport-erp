@@ -5,6 +5,8 @@
 
 'use server';
 
+import { cache } from 'react';
+
 import { revalidatePath } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
@@ -12,7 +14,7 @@ import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
-import { requirePermission } from '@/lib/rbac';
+import { requirePermission, requireServiceAccess } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -21,7 +23,7 @@ import type { ServiceFiltersAPI } from '@/types/service';
  * Get a single service by ID
  */
 export async function getService(serviceId: string) {
-  await requirePermission('services', 'view');
+  await requireServiceAccess('view', serviceId);
 
   const service = await prisma.service.findFirst({
     where: { id: serviceId, deletedAt: null },
@@ -295,7 +297,7 @@ export async function createService(data: ServiceFormData) {
  */
 export async function updateService(serviceId: string, data: ServiceFormData) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const validatedData = serviceSchema.parse(data);
 
@@ -373,7 +375,7 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
  */
 export async function deleteService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'delete');
+  await requireServiceAccess('delete', serviceId);
 
   await prisma.service.update({
     where: { id: serviceId },
@@ -397,7 +399,9 @@ export async function deleteService(serviceId: string) {
  * Duplicate service
  */
 export async function duplicateService(sourceServiceId: string) {
+  await requireAuth();
   await requirePermission('services', 'create');
+  // getService below enforces read access (incl. ownership) on the source.
 
   const sourceService = await getService(sourceServiceId);
 
@@ -421,7 +425,9 @@ export async function duplicateService(sourceServiceId: string) {
 /**
  * Get service with all details
  */
-export async function getServiceWithDetails(serviceId: string) {
+export const getServiceWithDetails = cache(async (serviceId: string) => {
+  await requireServiceAccess('view', serviceId);
+
   const service = await prisma.service.findFirst({
     where: {
       id: serviceId,
@@ -473,7 +479,7 @@ export async function getServiceWithDetails(serviceId: string) {
     invoiceId: invoice?.id,
     editCount,
   };
-}
+});
 
 /**
  * Get service activity timeline
@@ -482,6 +488,8 @@ export async function getServiceActivity(
   serviceId: string,
   options: { page?: number; limit?: number } = {}
 ) {
+  await requireServiceAccess('view', serviceId);
+
   const { page = 1, limit = 10 } = options;
   const offset = (page - 1) * limit;
 
@@ -575,7 +583,7 @@ export async function getServiceActivity(
  */
 export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'mark_completed');
+  await requireServiceAccess('mark_completed', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
@@ -603,7 +611,7 @@ export async function markServiceComplete(serviceId: string) {
  */
 export async function archiveService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'archive');
+  await requireServiceAccess('archive', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
@@ -631,6 +639,7 @@ export async function archiveService(serviceId: string) {
 export async function generateLoadingOrder(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('documents', 'create');
+  await requireServiceAccess('view', serviceId);
 
   // Get service details
   const service = await getServiceWithDetails(serviceId);
@@ -677,7 +686,7 @@ export async function generateLoadingOrder(serviceId: string) {
  */
 export async function sendServiceEmail(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
@@ -765,6 +774,7 @@ export async function bulkDeleteServices(serviceIds: string[]) {
  * Generate bulk loading orders
  */
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
+  await requireAuth();
   await requirePermission('documents', 'create');
 
   // TODO: Implementation for generating loading orders
