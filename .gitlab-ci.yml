@@ -1,0 +1,45 @@
+# Phase 0 quality gate: fail the pipeline if the branch stops type-checking,
+# linting, or building. Keep this fast and deterministic; it does not require a
+# database because `prisma generate` only needs the schema.
+
+default:
+  image: node:22
+
+stages:
+  - verify
+
+variables:
+  # Prisma reads DATABASE_URL at generate time via prisma.config.ts / dotenv.
+  # A dummy direct URL is enough for `generate` and for prisma.ts to select the
+  # non-Accelerate (engine) path used in CI and local/docker.
+  DATABASE_URL: "postgresql://user:pass@localhost:5432/transport_erp"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+.node_setup: &node_setup
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - npx prisma generate
+
+type-check:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run type-check
+
+lint:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run lint:check
+
+build:
+  stage: verify
+  <<: *node_setup
+  script:
+    - npm run build
