@@ -5,8 +5,6 @@
 
 'use server';
 
-import { cache } from 'react';
-
 import { revalidatePath } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
@@ -14,6 +12,7 @@ import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
+import { getServiceWithDetails } from '@/lib/data/service-data';
 import { requirePermission, requireServiceAccess } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
@@ -421,65 +420,6 @@ export async function duplicateService(sourceServiceId: string) {
     updatedAt: undefined,
   };
 }
-
-/**
- * Get service with all details
- */
-export const getServiceWithDetails = cache(async (serviceId: string) => {
-  await requireServiceAccess('view', serviceId);
-
-  const service = await prisma.service.findFirst({
-    where: {
-      id: serviceId,
-      deletedAt: null,
-    },
-    include: {
-      client: true,
-      supplier: true,
-      createdBy: true,
-      assignedTo: true,
-      invoiceItems: {
-        include: {
-          invoice: {
-            select: {
-              id: true,
-              invoiceNumber: true,
-              status: true,
-            },
-          },
-        },
-      },
-      documents: {
-        where: { deletedAt: null },
-        orderBy: { uploadedAt: 'desc' },
-      },
-      statusHistory: {
-        orderBy: { changedAt: 'desc' },
-        take: 10,
-      },
-    },
-  });
-
-  if (!service) return null;
-
-  const invoice = service.invoiceItems?.[0]?.invoice || null;
-
-  // Calculate edit count from audit logs
-  const editCount = await prisma.auditLog.count({
-    where: {
-      tableName: 'services',
-      recordId: serviceId,
-      action: 'UPDATE',
-    },
-  });
-
-  return {
-    ...service,
-    invoice,
-    invoiceId: invoice?.id,
-    editCount,
-  };
-});
 
 /**
  * Get service activity timeline
