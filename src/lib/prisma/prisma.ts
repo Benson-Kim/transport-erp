@@ -5,18 +5,33 @@
 
 import { withAccelerate } from '@prisma/extension-accelerate';
 
+import { PrismaClient } from '@/app/generated/prisma';
+
 const globalForPrisma = global as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined;
 };
 
 /**
+ * Whether the configured database connection uses Prisma Accelerate.
+ * Accelerate requires the `--no-engine` client (engine mode `none`) and a
+ * `prisma://` / `accelerate.prisma-data.net` URL. Direct `postgresql://`
+ * connections (local, docker, migrations) must NOT use the extension.
+ */
+const usesAccelerate = ((): boolean => {
+  const url = process.env.DATABASE_URL ?? '';
+  return url.startsWith('prisma://') || url.includes('accelerate.prisma-data.net');
+})();
+
+/**
  * Create Prisma client with extensions
  */
 function createPrismaClient() {
-  return new PrismaClient({
+  const client = new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     errorFormat: process.env.NODE_ENV === 'development' ? 'pretty' : 'minimal',
-  }).$extends(withAccelerate());
+  });
+
+  return usesAccelerate ? client.$extends(withAccelerate()) : client;
 }
 
 
