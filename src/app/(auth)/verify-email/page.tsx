@@ -1,70 +1,131 @@
 /**
  * Verify Email Page
- * Processes the email verification token from the URL
+ *
+ * GET: peeks at the token (non-consuming) to show the correct UI state.
+ * POST-confirm: the user clicks "Verify my email" which calls a server action
+ * that consumes the token. This prevents email security scanners / link-preview
+ * bots from burning the single-use token on a GET request.
  */
 
+'use server';
+
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { CheckCircle, XCircle } from 'lucide-react';
 
-import { getServerAuth, verifyEmailToken } from '@/lib/auth';
+import { getServerAuth, verifyEmailToken, peekVerificationToken } from '@/lib/auth';
 import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
 import { AuthFormFooter } from '@/components/features/auth';
 
 export const metadata: Metadata = {
-  title: 'Verify Email | Enterprise Dashboard',
+  title: 'Verify Email | Transport ERP',
   description: 'Verify your email address to activate your account',
 };
 
 interface VerifyEmailPageProps {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; confirmed?: string }>;
+}
+
+/**
+ * Server action: consume the token and mark the email as verified.
+ * Only called when the user explicitly clicks the confirm button.
+ */
+async function confirmEmailVerification(formData: FormData) {
+  'use server';
+  const rawToken = formData.get('token');
+  if (typeof rawToken !== 'string' || !rawToken) {
+    redirect('/verify-email?confirmed=invalid');
+  }
+  const result = await verifyEmailToken(rawToken);
+  if (result.success) {
+    redirect('/verify-email?confirmed=ok');
+  } else if (result.error === 'Token expired') {
+    redirect('/verify-email?confirmed=expired');
+  } else {
+    redirect('/verify-email?confirmed=invalid');
+  }
 }
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {
     redirect('/dashboard');
   }
 
-  const { token } = await searchParams;
+  const { token, confirmed } = await searchParams;
 
-  if (!token) {
+  // --- POST-confirm result states ---
+  if (confirmed === 'ok') {
     return (
       <VerifyEmailLayout>
-        <ErrorState
-          title="Missing verification Link"
-          description="This email verification link is invalid. Please request a new one."
-        />
+        <SuccessState />
       </VerifyEmailLayout>
     );
   }
 
-  // Verify the token server-side
-  const result = await verifyEmailToken(token);
-
-  if (!result.success) {
+  if (confirmed === 'expired') {
     return (
       <VerifyEmailLayout>
         <ErrorState
-          title="Verification failed"
-          description={
-            result.error === 'Token expired'
-              ? 'This verification link has expired. Please request a new one.'
-              : 'This verification link is invalid. Please request a new one.'
-          }
+          title="Link expired"
+          description="This verification link has expired. Please request a new one."
           showResend
         />
       </VerifyEmailLayout>
     );
   }
 
-  // success
+  if (confirmed === 'invalid') {
+    return (
+      <VerifyEmailLayout>
+        <ErrorState
+          title="Invalid link"
+          description="This verification link is invalid. Please request a new one."
+          showResend
+        />
+      </VerifyEmailLayout>
+    );
+  }
+
+  // --- GET: no token ---
+  if (!token) {
+    return (
+      <VerifyEmailLayout>
+        <ErrorState
+          title="Missing verification link"
+          description="This email verification link is invalid. Please request a new one."
+        />
+      </VerifyEmailLayout>
+    );
+  }
+
+  // --- GET: peek at the token (non-consuming) ---
+  const peek = await peekVerificationToken(token);
+
+  if (!peek.valid) {
+    return (
+      <VerifyEmailLayout>
+        <ErrorState
+          title={peek.expired ? 'Link expired' : 'Invalid link'}
+          description={
+            peek.expired
+              ? 'This verification link has expired. Please request a new one.'
+              : 'This verification link is invalid. Please request a new one.'
+          }
+          showResend={peek.expired}
+        />
+      </VerifyEmailLayout>
+    );
+  }
+
+  // Token exists and is unexpired: show the confirm button.
+  // The token is NOT consumed here; only the form POST consumes it.
   return (
     <VerifyEmailLayout>
-      <SuccessState {...(result.email ? { email: result.email } : {})} />
+      <ConfirmState token={token} action={confirmEmailVerification} />
     </VerifyEmailLayout>
   );
 }
@@ -76,7 +137,6 @@ function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col items-center">
           <Logo className="h-12 w-auto" />
         </div>
-
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
           {children}
         </div>
@@ -85,7 +145,37 @@ function VerifyEmailLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SuccessState({ email }: { email?: string }) {
+function ConfirmState({
+  token,
+  action,
+}: {
+  token: string;
+  action: (formData: FormData) => Promise<void>;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="space-y-4 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+          <CheckCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+          Confirm your email
+        </h1>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+          Click the button below to verify your email address and activate your account.
+        </p>
+      </div>
+      <form action={action}>
+        <input type="hidden" name="token" value={token} />
+        <Button type="submit" className="w-full">
+          Verify my email
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+function SuccessState() {
   return (
     <div className="space-y-6">
       <div className="space-y-4 text-center">
@@ -96,22 +186,9 @@ function SuccessState({ email }: { email?: string }) {
           Email verified
         </h1>
         <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          {email ? (
-            <>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">
-                {email}
-              </span>{' '}
-              has been verified successfully.
-            </>
-          ) : (
-            'Your email has been verified successfully.'
-          )}
-        </p>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          You can now sign in to your account.
+          Your email has been verified successfully. You can now sign in.
         </p>
       </div>
-
       <Button asChild className="w-full">
         <Link href="/login">Sign in to your account</Link>
       </Button>
@@ -137,38 +214,16 @@ function ErrorState({
         <h1 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
           {title}
         </h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
-          {description}
-        </p>
+        <p className="text-sm text-neutral-600 dark:text-neutral-400">{description}</p>
       </div>
-
       <div className="flex flex-col space-y-3">
         {showResend && (
           <Button asChild variant="secondary" className="w-full">
-            <Link href="/resend-verification">
-              Resend verification email
-            </Link>
+            <Link href="/resend-verification">Resend verification email</Link>
           </Button>
         )}
-
         <AuthFormFooter />
-
-        {/* <Button asChild variant="ghost" className="w-full">
-          <Link href="/login">Back to sign in</Link>
-        </Button>
-        </div>
-        
-        <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-        Need help?{' '}
-        <Link
-          href="/support"
-          className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-        >
-          Contact support
-        </Link>
-      </p> */}
       </div>
-
     </div>
   );
 }
