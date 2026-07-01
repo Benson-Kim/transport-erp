@@ -41,6 +41,29 @@ export function shouldRevalidateToken(
   return now - checkedAt >= TOKEN_REVALIDATE_MS;
 }
 
+/** Minimal user state used to re-validate a token against the DB. */
+export interface TokenRevalidationUser {
+  role: UserRole;
+  isActive: boolean;
+  deletedAt: Date | null;
+}
+
+/**
+ * Pure token revalidation: given the current DB user state (or null when the
+ * user is missing), return the isActive/role values the token should carry.
+ * A missing or soft-deleted user is treated as revoked (isActive: false).
+ * Exported for unit testing.
+ */
+export function revalidateTokenFields(
+  dbUser: TokenRevalidationUser | null,
+  currentRole: UserRole | undefined
+): { role: UserRole; isActive: boolean } {
+  if (!dbUser || dbUser.deletedAt) {
+    return { role: currentRole ?? UserRole.VIEWER, isActive: false };
+  }
+  return { role: dbUser.role, isActive: dbUser.isActive };
+}
+
 /**
  * NextAuth configuration
  */
@@ -287,13 +310,9 @@ export const authConfig = {
           select: { role: true, isActive: true, deletedAt: true },
         });
 
-        if (!dbUser || dbUser.deletedAt) {
-          // User no longer exists (or is soft-deleted): revoke.
-          token['isActive'] = false;
-        } else {
-          token['role'] = dbUser.role;
-          token['isActive'] = dbUser.isActive;
-        }
+        const revalidated = revalidateTokenFields(dbUser, token['role'] as UserRole | undefined);
+        token['role'] = revalidated.role;
+        token['isActive'] = revalidated.isActive;
         token['checkedAt'] = Date.now();
       }
 
