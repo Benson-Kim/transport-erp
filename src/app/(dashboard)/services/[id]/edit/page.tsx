@@ -33,11 +33,23 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
     redirect('/services');
   }
 
-  // Fetch service and related data
-  const [service, { clients, suppliers }] = await Promise.all([
-    getService(id),
-    getClientsAndSuppliers(),
-  ]);
+  // getService enforces auth + services:view + ownership and throws on
+  // denial (e.g. an OPERATOR editing a service they don't own). Redirect
+  // rather than crashing the route.
+  let service: Awaited<ReturnType<typeof getService>>;
+  let clients: Awaited<ReturnType<typeof getClientsAndSuppliers>>['clients'];
+  let suppliers: Awaited<ReturnType<typeof getClientsAndSuppliers>>['suppliers'];
+  try {
+    const [svc, related] = await Promise.all([getService(id), getClientsAndSuppliers()]);
+    service = svc;
+    clients = related.clients;
+    suppliers = related.suppliers;
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      redirect('/login');
+    }
+    redirect('/services');
+  }
 
   if (!service) {
     notFound();
