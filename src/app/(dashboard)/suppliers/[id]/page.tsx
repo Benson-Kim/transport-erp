@@ -1,5 +1,7 @@
 /**
  * Supplier Detail Page (#29)
+ * Maps Prisma Decimals to plain numbers server-side (decimalToNumber, the
+ * sanctioned DTO exit) before values reach client boundaries.
  */
 
 import { Suspense } from 'react';
@@ -7,10 +9,15 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 
 import { getSupplierById, getSupplierServices } from '@/actions/supplier-actions';
-import { SupplierDetail } from '@/components/features/suppliers/SupplierDetail';
+import {
+  SupplierDetail,
+  type SupplierDetailView,
+} from '@/components/features/suppliers/SupplierDetail';
 import { Breadcrumbs, Skeleton } from '@/components/ui';
 import { getServerAuth } from '@/lib/auth';
 import { hasPermission, RESOURCES, ACTIONS } from '@/lib/permissions';
+import { decimalToNumber } from '@/lib/pricing';
+import type { SupplierWithStats } from '@/types/supplier';
 
 import type { Metadata } from 'next';
 
@@ -27,6 +34,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${result.data.name} | Suppliers`,
     description: `Supplier ${result.data.supplierCode}`,
+  };
+}
+
+function toDetailView(supplier: SupplierWithStats): SupplierDetailView {
+  return {
+    id: supplier.id,
+    supplierCode: supplier.supplierCode,
+    name: supplier.name,
+    tradeName: supplier.tradeName,
+    vatNumber: supplier.vatNumber,
+    addressLine1: supplier.addressLine1,
+    addressLine2: supplier.addressLine2,
+    city: supplier.city,
+    state: supplier.state,
+    postalCode: supplier.postalCode,
+    country: supplier.country,
+    email: supplier.email,
+    phone: supplier.phone,
+    contactPerson: supplier.contactPerson,
+    contactMobile: supplier.contactMobile,
+    irpfRate: supplier.irpfRate != null ? decimalToNumber(supplier.irpfRate) : null,
+    vatRate: decimalToNumber(supplier.vatRate),
+    paymentTerms: supplier.paymentTerms,
+    paymentMethod: supplier.paymentMethod,
+    bankName: supplier.bankName,
+    iban: supplier.iban,
+    currency: supplier.currency,
+    isActive: supplier.isActive,
+    notes: supplier.notes,
+    stats: supplier.stats,
   };
 }
 
@@ -62,7 +99,7 @@ async function SupplierContent({ id }: { id: string }) {
 
   return (
     <SupplierDetail
-      supplier={supplierResult.data}
+      supplier={toDetailView(supplierResult.data)}
       services={servicesResult.success ? (servicesResult.data?.data ?? []) : []}
       servicesTotal={servicesResult.success ? (servicesResult.data?.total ?? 0) : 0}
       canEdit={hasPermission(userRole, RESOURCES.SUPPLIERS, ACTIONS.EDIT)}
