@@ -3,7 +3,7 @@
  * Helper functions for permission checking and enforcement
  */
 
-import { UserRole } from '@/app/generated/prisma';
+import { AuditAction, UserRole } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import type {
   Resource,
@@ -171,7 +171,7 @@ export async function auditPermissionCheck(
   await prisma.auditLog.create({
     data: {
       userId: session.user.id,
-      action: 'PERMISSION_CHECK' as any,
+      action: AuditAction.PERMISSION_CHECK,
       tableName: 'permissions',
       recordId: `${resource}:${action}`,
       metadata: {

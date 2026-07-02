@@ -14,7 +14,7 @@ import {
   ServiceStatus,
   InvoiceStatus,
   PaymentStatus,
-} from '@/app/generated/prisma';
+} from '../src/app/generated/prisma';
 import type {
   Company,
   Client,
@@ -26,7 +26,7 @@ import type {
   Notification,
   AuditLog,
   User,
-} from '@/app/generated/prisma';
+} from '../src/app/generated/prisma';
 
 const prisma = new PrismaClient();
 
@@ -601,12 +601,24 @@ async function createSingleInvoice(
 ): Promise<Invoice> {
   console.log('Creating invoices and payments...');
 
-  // calculate amounts
-  const subtotal = invoiceServices.reduce((sum, s) => sum + Number(s.costAmount), 0);
-  const taxAmount = Math.round(subtotal * 0.21 * 100) / 100;
+  // Compose money in INTEGER CENTS (review !15 item 10): the invoice faces the
+  // exact-equality CHECK invoices_total_composition_check (#11), and
+  // per-component Math.round(n * 100) / 100 has binary-float edges (1.005).
+  // Integer-cent arithmetic makes total = subtotal + tax - irpf exact by
+  // construction. This is also the reference pattern for app code facing the
+  // same constraint.
+  const toCents = (n: number) => Math.round(n * 100);
+
+  const subtotalCents = invoiceServices.reduce((sum, s) => sum + toCents(Number(s.costAmount)), 0);
+  const taxCents = Math.round(subtotalCents * 0.21);
   const irpfRate = supplier.irpfRate ? Number(supplier.irpfRate) : 0;
-  const irpfAmount = irpfRate > 0 ? Math.round(subtotal * (irpfRate / 100) * 100) / 100 : 0;
-  const totalAmount = Math.round((subtotal + taxAmount - irpfAmount) * 100) / 100;
+  const irpfCents = irpfRate > 0 ? Math.round((subtotalCents * irpfRate) / 100) : 0;
+  const totalCents = subtotalCents + taxCents - irpfCents;
+
+  const subtotal = subtotalCents / 100;
+  const taxAmount = taxCents / 100;
+  const irpfAmount = irpfCents / 100;
+  const totalAmount = totalCents / 100;
 
   const invoiceDate = subDays(currentDate, 45 - index * 3);
   const dueDate = addDays(invoiceDate, supplier.paymentTerms ?? 30);
@@ -874,6 +886,43 @@ async function createAuditLogs(
   );
 }
 
+/**
+ * Seed the race-free counters (issue #12) to the highest number the seed used
+ * for each prefix+year scope, so app-side allocation continues past the seed
+ * rather than colliding with it. PAY numbers reuse the invoice index, so their
+ * max is bounded by the invoice count.
+ */
+async function initDocumentCounters(
+  serviceCount: number,
+  invoiceCount: number,
+  loadingOrderCount: number
+): Promise<void> {
+  const year = new Date().getFullYear();
+  const scopes: Array<{ prefix: string; value: number }> = [
+    { prefix: 'SRV', value: serviceCount },
+    { prefix: 'INV', value: invoiceCount },
+    { prefix: 'PAY', value: invoiceCount },
+    { prefix: 'LO', value: loadingOrderCount },
+  ];
+
+  for (const { prefix, value } of scopes) {
+    if (value <= 0) continue;
+    const scope = `${prefix}-${year}`;
+    // Monotone, matching the migration backfill (review !15 round 2): an
+    // unconditional overwrite could LOWER a counter the migration backfilled
+    // higher and re-open the P2002 window. GREATEST means counters only ever
+    // move forward, regardless of which writer runs first.
+    // eslint-disable-next-line no-await-in-loop -- 4 sequential upserts at seed time
+    await prisma.$executeRaw`
+      INSERT INTO "document_counters" ("scope", "value", "updatedAt")
+      VALUES (${scope}, ${BigInt(value)}, now())
+      ON CONFLICT ("scope") DO UPDATE
+        SET "value" = GREATEST("document_counters"."value", EXCLUDED."value"),
+            "updatedAt" = now();
+    `;
+  }
+}
+
 async function main() {
   console.log('Starting database seed...');
 
@@ -909,6 +958,9 @@ async function main() {
   const auditLogs = await createAuditLogs(users, services, invoices);
   console.log(`Created ${auditLogs.length} audit logs.`);
 
+  await initDocumentCounters(services.length, invoices.length, loadingOrders.length);
+  console.log('Initialised document counters.');
+
   console.log('Database seed completed successfully!');
 
   /* ---------- Summary ---------- */
@@ -932,11 +984,13 @@ async function main() {
 }
 
 /* ---------- Run ---------- */
-try {
-  await main();
-} catch (e) {
-  console.error('Seed error:', e);
-  process.exit(1);
-} finally {
-  await prisma.$disconnect();
-}
+void (async () => {
+  try {
+    await main();
+  } catch (e) {
+    console.error('Seed error:', e);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+})();

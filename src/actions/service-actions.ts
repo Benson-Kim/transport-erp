@@ -11,6 +11,7 @@ import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
+import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
@@ -233,10 +234,6 @@ export async function createService(data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  // Generate service number
-  const count = await prisma.service.count();
-  const serviceNumber = `SRV-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
-
   // Calculate margin and VAT amounts
   const costVatRate = validatedData.costVatRate ?? 21;
   const saleVatRate = validatedData.saleVatRate ?? 21;
@@ -263,17 +260,25 @@ export async function createService(data: ServiceFormData) {
     serviceStatus = saveData.status || ServiceStatus.DRAFT;
   }
 
-  const service = await prisma.service.create({
-    data: {
-      ...(Object.fromEntries(Object.entries(saveData).filter(([_, v]) => v !== undefined)) as any),
-      serviceNumber,
-      margin,
-      marginPercentage,
-      costVatAmount,
-      saleVatAmount,
-      status: serviceStatus,
-      createdById: session.user.id,
-    },
+  // Allocate the service number and insert in one transaction so the counter
+  // bump and the row insert commit together (race-free, no P2002).
+  const service = await prisma.$transaction(async (tx) => {
+    const serviceNumber = await generateDocumentNumber(tx, 'SRV');
+
+    return tx.service.create({
+      data: {
+        ...(Object.fromEntries(
+          Object.entries(saveData).filter(([_, v]) => v !== undefined)
+        ) as any),
+        serviceNumber,
+        margin,
+        marginPercentage,
+        costVatAmount,
+        saleVatAmount,
+        status: serviceStatus,
+        createdById: session.user.id,
+      },
+    });
   });
 
   // Create audit log
@@ -287,7 +292,7 @@ export async function createService(data: ServiceFormData) {
 
   revalidatePath('/services');
 
-  return { success: true, service: { ...service, serviceNumber } };
+  return { success: true, service };
 }
 
 /**
