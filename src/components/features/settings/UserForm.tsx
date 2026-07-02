@@ -206,20 +206,12 @@ export function UserForm({
           isEditing ? 'User updated' : 'User created',
           isEditing
             ? 'User information has been updated successfully'
-            : generatedPassword
-              ? `User created successfully. Password: ${generatedPassword}`
-              : 'User has been created successfully'
+            : 'User has been created successfully. Share the password securely.'
         );
 
-        // Auto-copy password for new users
-        if (!isEditing && generatedPassword) {
-          try {
-            await navigator.clipboard.writeText(generatedPassword);
-            toast.info('Password copied', 'The generated password has been copied to clipboard');
-          } catch (error) {
-            // Silent fail for clipboard
-          }
-        }
+        // Do NOT auto-copy or surface the password in a toast - it may be
+        // captured by screen recording, logging, or shared-screen observers.
+        // The admin copies it manually from the visible password field. (#19)
 
         onSuccess();
       }
