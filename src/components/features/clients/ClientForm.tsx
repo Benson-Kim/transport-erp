@@ -11,7 +11,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Save, X, Building2, MapPin, CreditCard, Settings, AlertCircle, Check } from 'lucide-react';
+import { Save, X, Building2, MapPin, CreditCard, Settings } from 'lucide-react';
 import { useForm, Controller, FormProvider, useWatch } from 'react-hook-form';
 
 import { createClient, updateClient } from '@/actions/client-actions';
@@ -25,7 +25,6 @@ import {
   Modal,
   Select,
   Skeleton,
-  SkeletonGroup,
   Switch,
   Tabs,
 } from '@/components/ui';
@@ -76,7 +75,7 @@ const FORM_SECTION_IDS = [
 ] as const;
 
 const SECTION_CONFIG: Record<
-  string,
+  (typeof FORM_SECTION_IDS)[number],
   { icon: boolean; title: string; fields: number; columns: 1 | 2 }
 > = {
   'section-basic': { icon: true, title: 'Basic Information', fields: 4, columns: 2 },
@@ -144,6 +143,14 @@ function FormFieldSkeleton() {
       <Skeleton className="h-10 w-full rounded-md" />
     </div>
   );
+}
+
+/**
+ * Coerced numeric fields (z.coerce.number) type their form value as `unknown`;
+ * narrow to what an <input> accepts.
+ */
+function numericInputValue(value: unknown): string | number {
+  return typeof value === 'number' || typeof value === 'string' ? value : '';
 }
 
 export function ClientForm({ client, mode }: ClientFormProps) {
@@ -307,7 +314,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Active Client</Label>
                       </div>
                     )}
@@ -519,7 +526,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                   control={control}
                   render={({ field }) => (
                     <div className="flex items-center gap-2">
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                       <Label>Use different shipping address</Label>
                     </div>
                   )}
@@ -655,6 +662,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                   >
                     <Input
                       {...field}
+                      value={numericInputValue(field.value)}
                       type="number"
                       min="0"
                       max="365"
@@ -670,7 +678,14 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                 control={control}
                 render={({ field }) => (
                   <FormField label="Credit Limit" error={errors.creditLimit?.message ?? ''}>
-                    <Input {...field} type="number" min="0" step="0.01" placeholder="10000.00" />
+                    <Input
+                      {...field}
+                      value={numericInputValue(field.value)}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="10000.00"
+                    />
                   </FormField>
                 )}
               />
@@ -680,7 +695,15 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                 control={control}
                 render={({ field }) => (
                   <FormField label="Discount (%)" error={errors.discount?.message ?? ''}>
-                    <Input {...field} type="number" min="0" max="100" step="0.01" placeholder="0" />
+                    <Input
+                      {...field}
+                      value={numericInputValue(field.value)}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      placeholder="0"
+                    />
                   </FormField>
                 )}
               />
@@ -715,7 +738,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Send payment reminders</Label>
                       </div>
                     )}
@@ -726,7 +749,7 @@ export function ClientForm({ client, mode }: ClientFormProps) {
                     control={control}
                     render={({ field }) => (
                       <div className="flex items-center gap-2">
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Switch checked={field.value ?? false} onCheckedChange={field.onChange} />
                         <Label>Auto-generate invoices</Label>
                       </div>
                     )}

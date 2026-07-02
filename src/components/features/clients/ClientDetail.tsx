@@ -28,8 +28,9 @@ import {
 
 import { deleteClient } from '@/actions/client-actions';
 import { Alert, Badge, Button, Card, Modal, Skeleton, SkeletonGroup } from '@/components/ui';
+import { asAddress } from '@/lib/utils/address';
 import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
-import type { ClientWithStats, Address } from '@/types/client';
+import type { ClientWithStats } from '@/types/client';
 
 import { ClientServices } from './ClientServices';
 
@@ -322,8 +323,8 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const billingAddress = client.billingAddress as Address;
-  const shippingAddress = client.shippingAddress as Address | null;
+  const billingAddress = asAddress(client.billingAddress);
+  const shippingAddress = asAddress(client.shippingAddress);
 
   const handleCopy = async (text: string, field: string) => {
     await navigator.clipboard.writeText(text);
@@ -435,7 +436,7 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleCopy(client.contactPhone, 'phone')}
+                          onClick={() => handleCopy(client.contactPhone ?? '', 'phone')}
                           icon={
                             copiedField === 'phone' ? (
                               <Check className="w-3 h-3 text-status-completed-text" />
@@ -469,21 +470,23 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
                 Address
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-neutral-400 mt-0.5" />
-                  <div>
-                    <p className="text-xs text-neutral-500">Billing Address</p>
-                    <address className="text-neutral-900 not-italic">
-                      {billingAddress.line1}
-                      {billingAddress.line2 && <>, {billingAddress.line2}</>}
-                      <br />
-                      {billingAddress.city}, {billingAddress.postalCode}
-                      <br />
-                      {billingAddress.state && <>{billingAddress.state}, </>}
-                      {billingAddress.country}
-                    </address>
+                {billingAddress && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-neutral-400 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-neutral-500">Billing Address</p>
+                      <address className="text-neutral-900 not-italic">
+                        {billingAddress.line1}
+                        {billingAddress.line2 && <>, {billingAddress.line2}</>}
+                        <br />
+                        {billingAddress.city}, {billingAddress.postalCode}
+                        <br />
+                        {billingAddress.state && <>{billingAddress.state}, </>}
+                        {billingAddress.country}
+                      </address>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {shippingAddress && (
                   <div className="flex items-start gap-3">

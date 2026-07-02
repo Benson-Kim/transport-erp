@@ -11,8 +11,7 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-import type { Prisma } from '@/app/generated/prisma';
-import { ServiceStatus } from '@/app/generated/prisma';
+import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import { RESOURCES, ACTIONS } from '@/lib/permissions';
 import {
@@ -24,6 +23,7 @@ import {
 } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
+import { asAddress } from '@/lib/utils/address';
 import { clientSchema, clientFilterSchema } from '@/lib/validations/client-schema';
 import type {
   ActionResult,
@@ -32,7 +32,6 @@ import type {
   ClientStats,
   ClientService,
   PaginatedClients,
-  Address,
 } from '@/types/client';
 
 /**
@@ -119,7 +118,7 @@ export async function getClients(
 
     // Transform to list items
     const data: ClientListItem[] = clients.map((client) => {
-      const billingAddress = client.billingAddress as Address;
+      const billingAddress = asAddress(client.billingAddress);
       return {
         id: client.id,
         clientCode: client.clientCode,
@@ -233,7 +232,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
       ? services.reduce((sum, s) => sum + Number(s.marginPercentage), 0) / totalServices
       : 0;
 
-  const lastServiceDate = services.length > 0 ? services[0].date : null;
+  const lastServiceDate = services[0]?.date ?? null;
 
   return {
     totalServices,
@@ -354,7 +353,10 @@ export async function createClient(data: unknown): Promise<ActionResult<{ id: st
       tradeName: validated.tradeName ?? null,
       vatNumber: validated.vatNumber ?? null,
       billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress ? validated.shippingAddress : null,
+      shippingAddress:
+        validated.useShippingAddress && validated.shippingAddress
+          ? validated.shippingAddress
+          : Prisma.DbNull,
       billingEmail: validated.billingEmail,
       trafficEmail: validated.trafficEmail ?? null,
       contactPerson: validated.contactPerson ?? null,
@@ -459,7 +461,10 @@ export async function updateClient(
       tradeName: validated.tradeName ?? null,
       vatNumber: validated.vatNumber ?? null,
       billingAddress: validated.billingAddress,
-      shippingAddress: validated.useShippingAddress ? validated.shippingAddress : null,
+      shippingAddress:
+        validated.useShippingAddress && validated.shippingAddress
+          ? validated.shippingAddress
+          : Prisma.DbNull,
       billingEmail: validated.billingEmail,
       trafficEmail: validated.trafficEmail ?? null,
       contactPerson: validated.contactPerson ?? null,
@@ -655,7 +660,7 @@ export async function getClientCountries(): Promise<ActionResult<string[]>> {
 
     const countries = new Set<string>();
     clients.forEach((client) => {
-      const address = client.billingAddress as Address;
+      const address = asAddress(client.billingAddress);
       if (address?.country) {
         countries.add(address.country);
       }
@@ -744,7 +749,7 @@ export async function exportClients(
     ];
 
     const rows = clients.map((client) => {
-      const addr = client.billingAddress as Address;
+      const addr = asAddress(client.billingAddress);
       return [
         client.clientCode,
         `"${client.name.replace(/"/g, '""')}"`,
