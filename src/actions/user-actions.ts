@@ -361,12 +361,10 @@ export async function bulkDeactivateUsers(userIds: string[]) {
 
       await prisma.user.update({
         where: { id: userId },
-        data: { isActive: false },
+        data: { isActive: false, tokenVersion: { increment: 1 } },
       });
 
-      await prisma.session.deleteMany({
-        where: { userId },
-      });
+      await prisma.session.deleteMany({ where: { userId } });
 
       return { success: true };
     })
