@@ -5,6 +5,7 @@
 
 import type { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
 
+import { generateDocumentNumber } from './numbering';
 import prisma from './prisma';
 
 /**
@@ -287,35 +288,28 @@ export function createDateRangeCondition(field: string, range: DateRangeFilter) 
 
 /**
  * Generate Unique Identifier
- * Creates unique identifiers for various entities
+ *
+ * @deprecated Prefer calling {@link generateDocumentNumber} directly inside the
+ * create transaction. This wrapper is kept for existing call sites and now
+ * delegates to the race-free counter-based allocator; the `model` and `field`
+ * arguments are ignored (the scope is derived from the prefix + current year).
  */
+let generateUniqueIdentifierWarned = false;
+
 export async function generateUniqueIdentifier(
   prefix: string,
-  model: string,
-  field: string
+  _model?: string,
+  _field?: string
 ): Promise<string> {
-  const year = new Date().getFullYear();
-
-  // Get the last number for this prefix and year
-  const lastRecord = await (prisma as any)[model].findFirst({
-    where: {
-      [field]: {
-        startsWith: `${prefix}-${year}-`,
-      },
-    },
-    orderBy: {
-      [field]: 'desc',
-    },
-  });
-
-  let nextNumber = 1;
-  if (lastRecord?.[field]) {
-    const parts = lastRecord[field].split('-');
-    const currentNumber = Number.parseInt(parts[parts.length - 1], 10);
-    nextNumber = currentNumber + 1;
+  if (!generateUniqueIdentifierWarned) {
+    generateUniqueIdentifierWarned = true;
+    console.warn(
+      'generateUniqueIdentifier is deprecated (#61): model/field arguments are ignored, and ' +
+        'allocating outside the create transaction burns a number if the subsequent insert fails. ' +
+        'Call generateDocumentNumber(tx, prefix) inside the create transaction instead.'
+    );
   }
-
-  return `${prefix}-${year}-${String(nextNumber).padStart(5, '0')}`;
+  return generateDocumentNumber(prisma, prefix);
 }
 
 /**

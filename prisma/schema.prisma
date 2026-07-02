@@ -66,6 +66,7 @@ enum AuditAction {
   SEND_EMAIL
   GENERATE_DOCUMENT
   ARCHIVE
+  PERMISSION_CHECK
 }
 
 enum DocumentType {
@@ -202,10 +203,10 @@ model User {
 
 model Company {
   id             String  @id @default(cuid())
-  code           String  @unique // Internal company code
+  code           String // Internal company code (unique among live rows; see #13 partial index)
   legalName      String
   tradeName      String?
-  vatNumber      String  @unique // VAT/Tax ID
+  vatNumber      String // VAT/Tax ID (unique among live rows; see #13 partial index)
   registrationNo String? // Company registration number
 
   // Address
@@ -256,7 +257,7 @@ model Company {
 
 model Client {
   id         String  @id @default(cuid())
-  clientCode String  @unique // Internal client code
+  clientCode String // Internal client code (unique among live rows; see #13 partial index)
   companyId  String? // Optional link to company
 
   // Basic Information
@@ -267,6 +268,13 @@ model Client {
   // Addresses
   billingAddress  Json // { line1, line2, city, state, postalCode, country }
   shippingAddress Json? // Optional different shipping address
+
+  // Normalized, indexable copy of billingAddress->>'country'. DB-generated
+  // (GENERATED ALWAYS ... STORED). Postgres rejects any write to it - proven
+  // by tests/db/billing-country.test.ts. Prisma's types still accept it in
+  // create/update inputs; a compile-level Omit guard on the action input
+  // types is deferred to the typed-DTO phase. See #14.
+  billingCountry String?
 
   // Contacts
   billingEmail  String
@@ -307,6 +315,7 @@ model Client {
   @@index([vatNumber])
   @@index([companyId])
   @@index([deletedAt])
+  @@index([billingCountry])
   @@map("clients")
 }
 
@@ -334,7 +343,7 @@ model ClientContact {
 
 model Supplier {
   id           String  @id @default(cuid())
-  supplierCode String  @unique // Internal supplier code
+  supplierCode String // Internal supplier code (unique among live rows; see #13 partial index)
   companyId    String? // Optional link to company
 
   // Basic Information
@@ -765,4 +774,21 @@ model SystemSetting {
 
   @@index([key])
   @@map("system_settings")
+}
+
+/// Race-free business-number allocation. One row per prefix+year scope
+/// (e.g. "SRV-2026"). See generateDocumentNumber() and migration #12.
+model DocumentCounter {
+  scope String @id // e.g. "SRV-2026", "INV-2026", "PAY-2026", "LO-2026"
+  // BigInt does not survive a server-action/JSON boundary - convert with
+  // String() before returning it from any action (review !15 item 11).
+  value BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  // @default(now()) mirrors the DB DEFAULT CURRENT_TIMESTAMP in the migration:
+  // the counter backfill INSERT relies on that default, and drift-check
+  // requires schema and migrations to agree on it.
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("document_counters")
 }

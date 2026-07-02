@@ -4,6 +4,7 @@
 
 stages:
   - verify
+  - database
 
 phase0-gate:
   stage: verify
@@ -30,3 +31,97 @@ phase0-gate:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH'
+
+# ---------------------------------------------------------------------------
+# database stage (Phase 1, issues #10-#14): migrations, drift, and DB
+# integration tests run against a real Postgres so the schema/migrations are
+# the source of truth.
+# ---------------------------------------------------------------------------
+
+.database-job:
+  stage: database
+  image: node:22
+  services:
+    - postgres:16
+  variables:
+    POSTGRES_DB: transport_erp
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: postgres
+    # Direct postgresql:// URL to the job service (non-Accelerate client path).
+    DATABASE_URL: 'postgresql://postgres:postgres@postgres:5432/transport_erp'
+    NEXT_TELEMETRY_DISABLED: '1'
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+    - npx prisma generate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
+# Prove migrations run cleanly forward on a fresh DB, are idempotent, and that
+# the seed applies on top (fresh + seeded DB). (#10-#14 acceptance)
+migrate-fresh:
+  extends: .database-job
+  script:
+    - npx prisma migrate deploy
+    - npx prisma db seed
+    # Idempotency (review !15 item 3): `migrate deploy` skips recorded
+    # migrations, so re-running it re-executes zero SQL and proves nothing.
+    # Re-apply the raw SQL of the Phase 1 migrations against the migrated AND
+    # seeded DB so every IF NOT EXISTS / DROP-IF-EXISTS / ON CONFLICT guard is
+    # genuinely exercised. --url is required because prisma.config.ts makes
+    # the CLI skip env loading (same reason drift-check passes --url).
+    - for f in prisma/migrations/2026*/migration.sql; do echo "Re-applying $f"; npx prisma db execute --file "$f" --url "$DATABASE_URL" || exit 1; done
+
+# Surface schema/migration drift. Two objects are intentionally SQL-managed
+# because Prisma cannot express them declaratively:
+#   - partial-unique indexes `... WHERE deletedAt IS NULL` (#13)
+#   - the GENERATED ALWAYS clients.billingCountry column (#14)
+# These will always appear in the diff, so this job is advisory
+# (allow_failure): it flags UNINTENDED drift as a warning. Any diff beyond
+# those two exceptions must be reconciled.
+drift-check:
+  extends: .database-job
+  script:
+    - npx prisma migrate deploy
+    # The shadow DB must be EMPTY so the migration replay can succeed.
+    - echo 'CREATE DATABASE drift_shadow;' | npx prisma db execute --stdin --url "postgresql://postgres:postgres@postgres:5432/postgres"
+    - >-
+      npx prisma migrate diff
+      --from-migrations prisma/migrations
+      --to-schema-datamodel prisma/schema.prisma
+      --shadow-database-url "postgresql://postgres:postgres@postgres:5432/drift_shadow"
+      --script > drift.sql
+    - cat drift.sql
+    # Binary signal (review !15 item 4) with an EXACT-NAME allowlist (round 2):
+    # substring patterns like *_active_* would swallow future unintended
+    # indexes that follow this MR's own naming convention. Enumerate the seven
+    # known SQL-managed index names (#13) and the generated column (#14);
+    # anything else - including any NEW *_active_* object - fails the job.
+    # (grep exits 1 when nothing remains: that is the good case, hence || true.)
+    - grep -vE '"clients_clientCode_active_key"|"suppliers_supplierCode_active_key"|"companies_code_active_key"|"companies_vatNumber_active_key"|"services_status_date_active_idx"|"services_clientId_date_active_idx"|"services_supplierId_date_active_idx"|"billingCountry"|^[[:space:]]*$|^--|empty migration' drift.sql > unexpected.sql || true
+    - |
+      if [ -s unexpected.sql ]; then
+        echo 'Unintended schema drift detected:'
+        cat unexpected.sql
+        exit 1
+      fi
+      echo 'No unintended drift (allowlisted: #13 partial indexes, #14 generated column).'
+
+# DB integration tests: constraints, enum reconciliation, race-free numbering,
+# soft-delete code reuse. ts-jest is installed --no-save because
+# package-lock.json could not be regenerated in this environment; move it to a
+# locked devDependency in a follow-up.
+test-db:
+  extends: .database-job
+  script:
+    - npx prisma migrate deploy
+    # >=29.4.0: Jest 30 support landed in ts-jest 29.4.0 (review !15 round 2).
+    # Contract recorded in #59 (move to a locked devDependency).
+    - npm install --no-save ts-jest@^29.4.0
+    - npm run test:db
