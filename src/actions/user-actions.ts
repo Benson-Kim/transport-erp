@@ -279,19 +279,17 @@ export const resetUserPassword = withPermission(
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update password
+    // Update password and revoke existing JWTs (tokenVersion bump, #15).
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
         passwordChangedAt: new Date(),
+        tokenVersion: { increment: 1 },
       },
     });
 
-    // Invalidate all user sessions
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
+    await prisma.session.deleteMany({ where: { userId } });
 
     // Create audit log
     await createAuditLog({

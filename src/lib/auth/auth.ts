@@ -438,6 +438,13 @@ export async function requireAuth() {
     throw new Error('Unauthorized');
   }
 
+  // A deactivated / removed user's JWT is still cryptographically valid, but
+  // the jwt callback re-check flags isActive:false. Reject here so every
+  // gated action and layout that calls requireAuth enforces revocation. (#15)
+  if (session.user.isActive === false) {
+    throw new Error('Unauthorized');
+  }
+
   return session;
 }
 
