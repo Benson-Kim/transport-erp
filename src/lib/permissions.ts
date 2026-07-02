@@ -56,10 +56,13 @@ export type Permission = `${Resource}:${Action}`;
  */
 export const PERMISSION_MATRIX: Record<Resource, Partial<Record<Action, UserRole[]>>> = {
   [RESOURCES.DASHBOARD]: {
+    // ACCOUNTANT reconciled with the route table (#17): /dashboard is the
+    // post-login landing page and the route already admitted accountants.
     [ACTIONS.VIEW]: [
       UserRole.SUPER_ADMIN,
       UserRole.ADMIN,
       UserRole.MANAGER,
+      UserRole.ACCOUNTANT,
       UserRole.OPERATOR,
       UserRole.VIEWER,
     ],
@@ -228,57 +231,32 @@ export const PERMISSION_MATRIX: Record<Resource, Partial<Record<Action, UserRole
 } as const;
 
 /**
- * Route access configuration
+ * Route access configuration (#17).
+ *
+ * Each route is mapped to the PERMISSION_MATRIX entry that guards it and the
+ * role lists are DERIVED from the matrix, so route access and action access
+ * cannot drift apart.
  */
-export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
-  '/dashboard': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.OPERATOR,
-    UserRole.VIEWER,
-  ],
-  '/services': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.OPERATOR,
-    UserRole.VIEWER,
-  ],
-  '/clients': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.OPERATOR,
-    UserRole.VIEWER,
-  ],
-  '/suppliers': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.OPERATOR,
-    UserRole.VIEWER,
-  ],
-  '/invoices': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.VIEWER,
-  ],
-  '/reports': [
-    UserRole.SUPER_ADMIN,
-    UserRole.ADMIN,
-    UserRole.MANAGER,
-    UserRole.ACCOUNTANT,
-    UserRole.VIEWER,
-  ],
-  '/settings': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER],
-  '/settings/users': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-  '/settings/company': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-  '/audit-logs': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+const ROUTE_RESOURCE_ACTIONS: Record<string, readonly [Resource, Action]> = {
+  '/dashboard': [RESOURCES.DASHBOARD, ACTIONS.VIEW],
+  '/services': [RESOURCES.SERVICES, ACTIONS.VIEW],
+  '/clients': [RESOURCES.CLIENTS, ACTIONS.VIEW],
+  '/suppliers': [RESOURCES.SUPPLIERS, ACTIONS.VIEW],
+  '/invoices': [RESOURCES.INVOICES, ACTIONS.VIEW],
+  '/reports': [RESOURCES.REPORTS, ACTIONS.VIEW],
+  '/settings': [RESOURCES.SETTINGS, ACTIONS.VIEW],
+  '/settings/users': [RESOURCES.USERS, ACTIONS.VIEW],
+  '/settings/company': [RESOURCES.COMPANIES, ACTIONS.VIEW],
+  '/settings/system': [RESOURCES.SETTINGS, ACTIONS.MANAGE],
+  '/audit-logs': [RESOURCES.AUDIT_LOGS, ACTIONS.VIEW],
 };
+
+export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = Object.fromEntries(
+  Object.entries(ROUTE_RESOURCE_ACTIONS).map(([route, [resource, action]]) => [
+    route,
+    [...(PERMISSION_MATRIX[resource][action] ?? [])],
+  ])
+);
 
 /**
  * Get all permissions for a role
@@ -328,8 +306,12 @@ export function canAccessRoute(userRole: UserRole | undefined, path: string): bo
   // Super admin can access all routes
   if (userRole === UserRole.SUPER_ADMIN) return true;
 
-  // Find the matching route pattern
-  const matchingRoute = Object.entries(ROUTE_PERMISSIONS).find(([route]) => path.startsWith(route));
+  // Longest matching prefix wins (so '/settings' cannot shadow
+  // '/settings/users' via object insertion order) and matching stops at path
+  // boundaries (so '/settings-x' never matches '/settings').
+  const matchingRoute = Object.entries(ROUTE_PERMISSIONS)
+    .filter(([route]) => path === route || path.startsWith(`${route}/`))
+    .sort(([a], [b]) => b.length - a.length)[0];
 
   if (!matchingRoute) return false;
 

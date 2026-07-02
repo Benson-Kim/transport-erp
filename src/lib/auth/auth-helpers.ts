@@ -418,46 +418,6 @@ export async function updatePassword(
 }
 
 /**
- * Check if user has permission for an action
- */
-export function hasPermission(userRole: UserRole, action: string, resource: string): boolean {
-  const permissions: Record<UserRole, string[]> = {
-    SUPER_ADMIN: ['*'], // All permissions
-    ADMIN: [
-      'users:*',
-      'companies:*',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-      'settings:*',
-    ],
-    MANAGER: [
-      'users:read',
-      'companies:read',
-      'clients:*',
-      'suppliers:*',
-      'services:*',
-      'invoices:*',
-      'reports:*',
-    ],
-    ACCOUNTANT: ['clients:read', 'suppliers:read', 'services:read', 'invoices:*', 'reports:read'],
-    OPERATOR: ['clients:read', 'suppliers:read', 'services:*', 'invoices:read'],
-    VIEWER: ['clients:read', 'suppliers:read', 'services:read', 'invoices:read', 'reports:read'],
-  };
-
-  const userPermissions = permissions[userRole] || [];
-  const permission = `${resource}:${action}`;
-
-  return (
-    userPermissions.includes('*') ||
-    userPermissions.includes(`${resource}:*`) ||
-    userPermissions.includes(permission)
-  );
-}
-
-/**
  * Check if session is expired
  */
 
