@@ -14,7 +14,7 @@ import { getServiceWithDetails } from '@/lib/data/service-data';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
-import { requirePermission, requireServiceAccess } from '@/lib/rbac';
+import { checkPermission, requirePermission, requireServiceAccess } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
