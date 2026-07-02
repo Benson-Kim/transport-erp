@@ -19,7 +19,8 @@ import {
   Mail,
 } from 'lucide-react';
 
-import type { Service, UserRole } from '@/app/generated/prisma';
+import type { ServiceWithDetails } from '@/actions/service-actions';
+import type { UserRole } from '@/app/generated/prisma';
 import type { DropdownMenuItem } from '@/components/ui';
 import { Button, Badge, DropdownMenu } from '@/components/ui';
 // import { ServiceActions } from './ServiceActions';
@@ -29,7 +30,7 @@ import { getStatusLabel, getStatusVariant } from '@/lib/service-helpers';
 import { ServiceActions } from './ServiceActions';
 
 interface ServiceHeaderProps {
-  service: Service;
+  service: ServiceWithDetails;
   userRole: UserRole;
   userId: string;
 }
@@ -143,11 +144,6 @@ export function ServiceHeader({ service, userRole }: Readonly<ServiceHeaderProps
               <Badge variant={getStatusVariant(service.status)} size="lg">
                 {getStatusLabel(service.status)}
               </Badge>
-              {service.urgent && (
-                <Badge variant="cancelled" size="lg">
-                  Urgent
-                </Badge>
-              )}
             </div>
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

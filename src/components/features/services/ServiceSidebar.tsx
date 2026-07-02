@@ -3,7 +3,8 @@
 
 import { Info, Calendar, Building2, Phone, Mail, ExternalLink } from 'lucide-react';
 
-import type { UserRole, ServiceStatus, Prisma } from '@/app/generated/prisma';
+import type { ServiceWithDetails } from '@/actions/service-actions';
+import type { UserRole, ServiceStatus } from '@/app/generated/prisma';
 import { Card, CardBody, Badge } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
 import { SERVICE_STATUS_CONFIG } from '@/lib/service-helpers';
@@ -13,26 +14,7 @@ import { RelatedDocuments } from './RelatedDocuments';
 import { ServiceStatusBadge } from './ServiceStatusBadge';
 
 interface ServiceSidebarProps {
-  service: Prisma.ServiceGetPayload<{
-    include: {
-      client: {
-        select: {
-          name: true;
-          vatNumber: true;
-          billingEmail: true;
-          contactPhone: true;
-        };
-      };
-      supplier: {
-        select: {
-          name: true;
-          vatNumber: true;
-          email: true;
-          phone: true;
-        };
-      };
-    };
-  }>;
+  service: ServiceWithDetails;
   userRole: UserRole;
 }
 
@@ -140,7 +122,7 @@ export function ServiceSidebar({ service, userRole }: Readonly<ServiceSidebarPro
       )}
 
       {/* Related Documents */}
-      <RelatedDocuments serviceId={service.id} documents={service.attachments || []} />
+      <RelatedDocuments serviceId={service.id} documents={service.documents} />
 
       {/* Client Quick Info */}
       <Card>
