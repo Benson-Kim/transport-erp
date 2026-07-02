@@ -1,0 +1,32 @@
+# Phase 0 gate: the branch must always type-check, lint, and build.
+# Local equivalent:
+#   npx prisma generate && npm run type-check && npm run lint:check && npm run build
+
+stages:
+  - verify
+
+phase0-gate:
+  stage: verify
+  image: node:22
+  variables:
+    # prisma generate and next build do not open DB connections
+    # (src/lib/prisma/prisma.ts skips client creation during the build phase).
+    DATABASE_URL: 'postgresql://ci:ci@localhost:5432/ci'
+    NEXT_PUBLIC_APP_URL: 'http://localhost:3000'
+    AUTH_SECRET: 'ci-only-not-a-real-secret'
+    NEXT_TELEMETRY_DISABLED: '1'
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npx prisma generate
+    - npm run type-check
+    - npm run lint:check
+    - npm run build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'

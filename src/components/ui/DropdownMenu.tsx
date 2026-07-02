@@ -55,6 +55,7 @@ export function DropdownMenu({
     const calculatePosition = () => {
       const triggerRect = triggerRef.current?.getBoundingClientRect();
       const menuRect = menuRef.current?.getBoundingClientRect();
+      if (!triggerRect || !menuRect) return;
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
 

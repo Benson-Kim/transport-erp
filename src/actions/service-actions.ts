@@ -475,6 +475,9 @@ export async function getServiceWithDetails(serviceId: string) {
   };
 }
 
+/** Full service payload returned by getServiceWithDetails (type-only export). */
+export type ServiceWithDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithDetails>>>;
+
 /**
  * Get service activity timeline
  */

@@ -348,6 +348,8 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
 
 /** Type exports from schemas */
 export type SystemSettings = z.infer<typeof systemSettingsSchema>;
+/** Form-input shape of the combined settings (z.coerce fields accept unknown). */
+export type SystemSettingsInput = z.input<typeof systemSettingsSchema>;
 export type EmailConfigInput = z.infer<typeof emailConfigSchema>;
 export type PDFSettingsInput = z.infer<typeof pdfSettingsSchema>;
 export type BackupSettingsInput = z.infer<typeof backupSettingsSchema>;

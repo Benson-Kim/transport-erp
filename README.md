@@ -1,4 +1,4 @@
-# Enterprise Dashboard Application
+# Transport ERP
 
 A complete enterprise management system built with Next.js 16, TypeScript, and modern web
 technologies.

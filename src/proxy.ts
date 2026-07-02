@@ -1,6 +1,7 @@
 /**
- * Next.js Middleware
- * Protects routes based on authentication and permissions
+ * Next.js Proxy (middleware) — Next 16 convention.
+ * Runs on the Node.js runtime, so importing the full auth stack is fine.
+ * Protects routes based on authentication and permissions.
  */
 
 import { NextResponse } from 'next/server';
@@ -18,6 +19,8 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/resend-verification',
+  '/check-email',
   '/auth-error',
 ];
 
@@ -68,8 +71,8 @@ export default async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', session.user.id);
   requestHeaders.set('x-user-role', session.user.role);
-  requestHeaders.set('x-user-email', session.user.email);
-  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+  requestHeaders.set('x-user-email', session.user.email ?? '');
+  requestHeaders.set('x-pathname', pathname);
 
   return NextResponse.next({
     request: {
