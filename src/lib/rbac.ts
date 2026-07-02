@@ -17,6 +17,28 @@ import {
 import prisma from '@/lib/prisma/prisma';
 
 /**
+ * Typed authorization errors (review !16 finding 5).
+ *
+ * The contract between rbac.ts and pages/actions: catch by instanceof and
+ * rethrow everything else, so infrastructure failures (DB outages) are never
+ * masked as authorization decisions. Adopt in all subsequent security work
+ * items (#21, #22, #23).
+ */
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message = 'Forbidden') {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
+/**
  * Check if current user has permission for an action
  */
 export async function checkPermission(resource: Resource, action: Action): Promise<boolean> {
@@ -38,7 +60,7 @@ export async function requirePermission(resource: Resource, action: Action): Pro
   const hasAccess = await checkPermission(resource, action);
 
   if (!hasAccess) {
-    throw new Error(`Insufficient permissions: ${resource}:${action} required`);
+    throw new ForbiddenError(`Insufficient permissions: ${resource}:${action} required`);
   }
 }
 
