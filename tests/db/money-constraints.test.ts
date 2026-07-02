@@ -104,4 +104,33 @@ describe('invoices money constraints (#11)', () => {
       })
     ).resolves.toBeDefined();
   });
+
+  // Sign constraints (#11 sign-off): each case keeps the composition equality
+  // satisfied and the total positive, so the rejection isolates the sign
+  // constraint itself, not composition or the paidAmount range.
+  it('rejects a negative subtotal even when composition holds', async () => {
+    // -100 + 221 - 0 = 121
+    await expect(
+      invoice({ subtotal: '-100.00', taxAmount: '221.00', totalAmount: '121.00' })
+    ).rejects.toThrow();
+  });
+
+  it('rejects a negative taxAmount even when composition holds', async () => {
+    // 142 + (-21) - 0 = 121
+    await expect(
+      invoice({ subtotal: '142.00', taxAmount: '-21.00', totalAmount: '121.00' })
+    ).rejects.toThrow();
+  });
+
+  it('rejects a negative irpfAmount even when composition holds', async () => {
+    // 100 + 21 - (-15) = 136
+    await expect(
+      invoice({
+        subtotal: '100.00',
+        taxAmount: '21.00',
+        irpfAmount: '-15.00',
+        totalAmount: '136.00',
+      })
+    ).rejects.toThrow();
+  });
 });
