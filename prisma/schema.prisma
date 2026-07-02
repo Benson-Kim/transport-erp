@@ -203,10 +203,10 @@ model User {
 
 model Company {
   id             String  @id @default(cuid())
-  code           String  @unique // Internal company code
+  code           String // Internal company code (unique among live rows; see #13 partial index)
   legalName      String
   tradeName      String?
-  vatNumber      String  @unique // VAT/Tax ID
+  vatNumber      String // VAT/Tax ID (unique among live rows; see #13 partial index)
   registrationNo String? // Company registration number
 
   // Address
@@ -257,7 +257,7 @@ model Company {
 
 model Client {
   id         String  @id @default(cuid())
-  clientCode String  @unique // Internal client code
+  clientCode String // Internal client code (unique among live rows; see #13 partial index)
   companyId  String? // Optional link to company
 
   // Basic Information
@@ -335,7 +335,7 @@ model ClientContact {
 
 model Supplier {
   id           String  @id @default(cuid())
-  supplierCode String  @unique // Internal supplier code
+  supplierCode String // Internal supplier code (unique among live rows; see #13 partial index)
   companyId    String? // Optional link to company
 
   // Basic Information
