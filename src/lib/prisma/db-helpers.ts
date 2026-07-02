@@ -135,15 +135,22 @@ export async function createAuditLog({
  */
 export async function bumpUserTokenVersion(
   userId: string,
-  // Typed structurally against the single method used (review !15 pattern):
-  // the app's $extends-ed singleton is neither PrismaClient nor
-  // Prisma.TransactionClient, but it does expose user.update.
-  client: { user: { update: PrismaClient['user']['update'] } } = prisma
+  // Typed structurally against a raw-query capability (review !15 pattern):
+  // model-delegate types differ between the base client, the transaction
+  // client, and the $extends-ed singleton (their generic `update` signatures
+  // are mutually incompatible under exactOptionalPropertyTypes), but
+  // $executeRaw is shared by all three - the same shape numbering.ts uses
+  // for $queryRaw, proven against this compiler configuration.
+  client: Pick<PrismaClient, '$executeRaw'> = prisma
 ): Promise<void> {
-  await client.user.update({
-    where: { id: userId },
-    data: { tokenVersion: { increment: 1 } },
-  });
+  // Atomic increment on users.tokenVersion (names verified against migration
+  // 20260701000007). updatedAt is touched to preserve the semantics of the
+  // Prisma update() this replaces (@updatedAt is client-side only).
+  await client.$executeRaw`
+    UPDATE "users"
+    SET "tokenVersion" = "tokenVersion" + 1, "updatedAt" = now()
+    WHERE "id" = ${userId}
+  `;
 }
 
 /**
