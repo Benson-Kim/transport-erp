@@ -528,7 +528,7 @@ This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and rend
 
 The helper divides by 100 and `Intl` percent style multiplies back — net identity for percent-point inputs. Re-adjudicated in `StatsCard`:
 
-- **`formatPercentage(stats.averageMargin)`** — `averageMargin` is `_avg.marginPercentage` from the DB (already a percentage, e.g. `18.5`) → renders **`1,850%`**. Wrong.
+- **`formatPercentage(stats.averageMargin)`** — `averageMargin` is percent-points from the DB (`18.5`) → renders **`18.5%`**. Correct; do not change.
 - **`formatPercentage(stats.completedServices / stats.totalServices)`** — this is a _fraction_ (e.g. `0.6`) → renders **`60%`**. Correct.
 - **`formatPercentage(stats.activeServicesChange)`** / `totalRevenueChange` / `averageMarginChange` — these come from `calculatePercentageChange` which returns a percentage (e.g. `12.5`) → renders **`1,250%`**. Wrong.
 
