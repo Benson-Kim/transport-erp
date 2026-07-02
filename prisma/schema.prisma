@@ -785,7 +785,10 @@ model DocumentCounter {
   value BigInt @default(0)
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // @default(now()) mirrors the DB DEFAULT CURRENT_TIMESTAMP in the migration:
+  // the counter backfill INSERT relies on that default, and drift-check
+  // requires schema and migrations to agree on it.
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("document_counters")
 }
