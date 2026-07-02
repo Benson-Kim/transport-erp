@@ -12,6 +12,13 @@ import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
 import type { Action } from '@/lib/permissions';
+import {
+  computeServicePricing,
+  decimalToNumber,
+  effectiveServiceAmounts,
+  round2,
+  toDecimal,
+} from '@/lib/pricing';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
@@ -55,13 +62,15 @@ export async function getService(serviceId: string) {
     return null;
   }
 
+  // Booked (original) figures: this feeds the edit form, which must always
+  // show the stored amounts - including for CANCELLED services (#28).
   return {
     ...service,
     date: service.date.toISOString(),
-    costAmount: Number(service.costAmount),
-    saleAmount: Number(service.saleAmount || 0),
-    margin: Number(service.margin || 0),
-    marginPercentage: Number(service.marginPercentage || 0),
+    costAmount: decimalToNumber(service.costAmount),
+    saleAmount: decimalToNumber(service.saleAmount),
+    margin: decimalToNumber(service.margin),
+    marginPercentage: decimalToNumber(service.marginPercentage),
   };
 }
 
@@ -174,27 +183,40 @@ export async function getServices(filters: ServiceFiltersAPI) {
     prisma.service.count({ where }),
   ]);
 
-  // Format services for frontend
-  const formattedServices = services.map((service) => ({
-    id: service.id,
-    serviceNumber: service.serviceNumber,
-    date: service.date.toISOString(),
-    clientId: service.clientId,
-    clientName: service.client.name,
-    clientCode: service.client.clientCode,
-    supplierId: service.supplierId,
-    supplierName: service.supplier.name,
-    supplierCode: service.supplier.supplierCode,
-    driverName: service.driverName,
-    vehiclePlate: service.vehiclePlate,
-    origin: service.origin,
-    destination: service.destination,
-    costAmount: Number(service.costAmount),
-    saleAmount: Number(service.saleAmount),
-    margin: Number(service.margin),
-    marginPercentage: Number(service.marginPercentage),
-    status: service.status,
-  }));
+  // Format services for frontend. Effective amounts (#25/#28): a CANCELLED
+  // service lists as €0 derived from its status; the stored figures stay
+  // intact so cancellation is reversible.
+  const formattedServices = services.map((service) => {
+    const amounts = effectiveServiceAmounts(service.status === ServiceStatus.CANCELLED, {
+      costAmount: toDecimal(service.costAmount),
+      saleAmount: toDecimal(service.saleAmount),
+      margin: toDecimal(service.margin),
+      marginPercentage: toDecimal(service.marginPercentage),
+      costVatAmount: toDecimal(service.costVatAmount),
+      saleVatAmount: toDecimal(service.saleVatAmount),
+    });
+
+    return {
+      id: service.id,
+      serviceNumber: service.serviceNumber,
+      date: service.date.toISOString(),
+      clientId: service.clientId,
+      clientName: service.client.name,
+      clientCode: service.client.clientCode,
+      supplierId: service.supplierId,
+      supplierName: service.supplier.name,
+      supplierCode: service.supplier.supplierCode,
+      driverName: service.driverName,
+      vehiclePlate: service.vehiclePlate,
+      origin: service.origin,
+      destination: service.destination,
+      costAmount: decimalToNumber(amounts.costAmount),
+      saleAmount: decimalToNumber(amounts.saleAmount),
+      margin: decimalToNumber(amounts.margin),
+      marginPercentage: decimalToNumber(amounts.marginPercentage),
+      status: service.status,
+    };
+  });
 
   return {
     services: formattedServices,
@@ -241,18 +263,8 @@ export async function createService(data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  // Calculate margin and VAT amounts
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
-  const marginPercentage =
-    validatedData.saleAmount > 0
-      ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
-      : 0;
-
-  const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
-  const costVatAmount = Number((validatedData.costAmount * (costVatRate / 100)).toFixed(2));
+  // Canonical pricing (#25): all money arithmetic in Decimal via pricing.ts.
+  const pricing = computeServicePricing(validatedData);
 
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...saveData } =
     validatedData;
@@ -282,10 +294,12 @@ export async function createService(data: ServiceFormData) {
           Object.entries(saveData).filter(([_, v]) => v !== undefined)
         ) as any),
         serviceNumber,
-        margin,
-        marginPercentage,
-        costVatAmount,
-        saleVatAmount,
+        costAmount: round2(saveData.costAmount),
+        saleAmount: round2(saveData.saleAmount),
+        margin: pricing.margin,
+        marginPercentage: pricing.marginPercentage,
+        costVatAmount: pricing.costVatAmount,
+        saleVatAmount: pricing.saleVatAmount,
         status: serviceStatus,
         createdById: session.user.id,
       },
@@ -322,19 +336,22 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     await requirePermission('services', 'edit_completed');
   }
 
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  let { costAmount } = validatedData;
-  let { saleAmount } = validatedData;
-  let margin = saleAmount - costAmount;
-  let marginPercentage = saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
-  let saleVatAmount = saleAmount * (saleVatRate / 100);
-  let costVatAmount = costAmount * (costVatRate / 100);
+  // Canonical pricing (#25): all money arithmetic in Decimal via pricing.ts.
+  let { costAmount, saleAmount } = validatedData;
 
   if (validatedData.cancelled) {
-    costVatAmount = saleVatAmount = costAmount = saleAmount = margin = marginPercentage = 0;
+    // Destructive zeroing retained for now - removed by #28, which keeps the
+    // booked amounts and derives the €0 presentation from the status.
+    costAmount = 0;
+    saleAmount = 0;
   }
+
+  const pricing = computeServicePricing({
+    costAmount,
+    saleAmount,
+    costVatRate: validatedData.costVatRate,
+    saleVatRate: validatedData.saleVatRate,
+  });
 
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
     validatedData;
@@ -363,12 +380,12 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   const updateData = {
     ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
-    costAmount,
-    saleAmount,
-    margin: Number(margin.toFixed(2)),
-    marginPercentage: Number(marginPercentage.toFixed(2)),
-    costVatAmount: Number(costVatAmount.toFixed(2)),
-    saleVatAmount: Number(saleVatAmount.toFixed(2)),
+    costAmount: round2(costAmount),
+    saleAmount: round2(saleAmount),
+    margin: pricing.margin,
+    marginPercentage: pricing.marginPercentage,
+    costVatAmount: pricing.costVatAmount,
+    saleVatAmount: pricing.saleVatAmount,
     status: serviceStatus,
     ...timestamps,
   };
