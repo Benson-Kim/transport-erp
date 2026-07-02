@@ -52,16 +52,6 @@ export function formatPercentPoints(points: number, locale: string = DEFAULT_LOC
 }
 
 /**
- * @deprecated Ambiguous scale (#26). Every existing call site passes percent
- * POINTS; this delegates to formatPercentPoints and renders identically.
- * Use formatPercent (fractions) or formatPercentPoints (points). Removed
- * once the remaining call sites are migrated (same MR).
- */
-export function formatPercentage(points: number, locale: string = DEFAULT_LOCALE): string {
-  return formatPercentPoints(points, locale);
-}
-
-/**
  * Format number
  */
 export function formatNumber(value: number, locale: string = DEFAULT_LOCALE): string {
