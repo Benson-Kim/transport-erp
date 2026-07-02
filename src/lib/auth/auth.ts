@@ -89,6 +89,7 @@ export function revalidateTokenFields(
  */
 export const authConfig = {
   // Adapter for database persistence
+  secret: authSecret,
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
     strategy: 'jwt' as const,
