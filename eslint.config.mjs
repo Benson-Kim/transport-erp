@@ -40,9 +40,9 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
-      ecmaFeatures: { jsx: true },
       parser: tseslint.parser,
       parserOptions: {
+        ecmaFeatures: { jsx: true },
         project: ['./tsconfig.json'],
         tsconfigRootDir: __dirname,
       },
@@ -166,7 +166,6 @@ export default defineConfig([
   {
     files: ['**/*.{js,jsx,mjs,cjs}'],
     languageOptions: {
-      parser: 'espree',
       globals: {
         ...globals.browser,
         ...globals.node,
