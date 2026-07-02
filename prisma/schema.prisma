@@ -767,3 +767,15 @@ model SystemSetting {
   @@index([key])
   @@map("system_settings")
 }
+
+/// Race-free business-number allocation. One row per prefix+year scope
+/// (e.g. "SRV-2026"). See generateDocumentNumber() and migration #12.
+model DocumentCounter {
+  scope String @id // e.g. "SRV-2026", "INV-2026", "PAY-2026", "LO-2026"
+  value BigInt @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("document_counters")
+}
