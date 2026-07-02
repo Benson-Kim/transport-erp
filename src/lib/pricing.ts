@@ -16,7 +16,15 @@
  * Decimal(10,2) database columns.
  */
 
-import { Decimal } from '@/app/generated/prisma/runtime/library';
+// Browser-safe runtime entry (build requirement): this module is bundled
+// into CLIENT components (PricingCalculator, ServiceForm), and
+// runtime/library is the server runtime - it drags Node built-ins
+// (child_process, async_hooks) into the client bundle and breaks
+// `next build`. runtime/index-browser exports the same decimal.js Decimal
+// with no Node dependencies. Interop with server-side Prisma Decimals is
+// safe: decimal.js >= 10.1 constructors and isDecimal are cross-realm
+// aware, and Prisma inputs accept DecimalJsLike structurally.
+import { Decimal } from '@/app/generated/prisma/runtime/index-browser';
 
 export type MoneyInput = Decimal | number | string;
 
