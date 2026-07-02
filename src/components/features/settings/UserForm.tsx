@@ -22,6 +22,7 @@ import { useForm } from 'react-hook-form';
 import { createUser, updateUser } from '@/actions/user-actions';
 import { UserRole } from '@/app/generated/prisma';
 import { Button, Card, Input, Select, FormField, Switch } from '@/components/ui';
+import { generateSecurePassword } from '@/lib/security/password';
 import { toast } from '@/lib/toast';
 import type {
   CreateUser,
