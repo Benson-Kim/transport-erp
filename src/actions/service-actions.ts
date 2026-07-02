@@ -722,6 +722,7 @@ export async function bulkDeleteServices(serviceIds: string[]) {
  * Generate bulk loading orders
  */
 export async function generateBulkLoadingOrders(serviceIds: string[]) {
+  await requireAuth();
   await requirePermission('documents', 'create');
 
   // TODO: Implementation for generating loading orders
