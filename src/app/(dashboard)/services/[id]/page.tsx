@@ -2,7 +2,6 @@
 import { notFound, redirect } from 'next/navigation';
 
 
-import { getServiceWithDetails } from '@/actions/service-actions';
 import {
   ServiceDetail,
   ServiceHeader,
@@ -11,7 +10,7 @@ import {
 } from '@/components/features/services';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { auth } from '@/lib/auth';
-import { hasPermission } from '@/lib/permissions';
+import { getServiceWithDetails } from '@/lib/data/service-data';
 
 import type { Metadata } from 'next';
 
@@ -21,28 +20,36 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const service = await getServiceWithDetails(id);
 
-  return {
-    title: service ? `Service ${service.serviceNumber}` : 'Service Not Found',
-    description: service ? `Details for service ${service.serviceNumber}` : '',
-  };
+  // getServiceWithDetails is gated (auth + ownership, #16). Never leak
+  // service data via <title> to callers who cannot access it: fall back to
+  // a generic title. The cache() wrapper shares this fetch with the page.
+  try {
+    const service = await getServiceWithDetails(id);
+    return {
+      title: service ? `Service ${service.serviceNumber}` : 'Service Not Found',
+      description: service ? `Details for service ${service.serviceNumber}` : '',
+    };
+  } catch {
+    return { title: 'Service' };
+  }
 }
 
 export default async function ServiceDetailPage({
   params,
 }: Readonly<{ params: Promise<{ id: string }> }>) {
-  const session = await auth();
-  if (!session) redirect('/login');
-
   const { id } = await params;
-  const service = await getServiceWithDetails(id);
 
-  if (!service) notFound();
-
-  // Check permissions
-  const canView = hasPermission(session.user.role, 'services', 'view');
-  if (!canView) {
+  // getServiceWithDetails enforces auth + services:view + ownership and
+  // throws when access is denied. Render a scoped access-denied state
+  // instead of leaking whether the service exists. (#16)
+  let service: Awaited<ReturnType<typeof getServiceWithDetails>>;
+  try {
+    service = await getServiceWithDetails(id);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      redirect('/login');
+    }
     return (
       <ErrorState
         variant="full"
@@ -51,6 +58,11 @@ export default async function ServiceDetailPage({
       />
     );
   }
+
+  if (!service) notFound();
+
+  const session = await auth();
+  if (!session) redirect('/login');
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 print:px-0">

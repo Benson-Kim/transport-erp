@@ -119,6 +119,37 @@ export async function checkResourceOwnership(
 }
 
 /**
+ * Require auth + a services permission, and enforce object-level ownership
+ * for OPERATOR (who may only touch services they created or are assigned to).
+ * ADMIN / MANAGER / SUPER_ADMIN are not ownership-scoped per the matrix.
+ *
+ * Throws 'Unauthorized' when unauthenticated or revoked (#15), 'Forbidden'
+ * otherwise. Centralizes the IDOR guard so every service action enforces it
+ * uniformly. (#16)
+ */
+export async function requireServiceAccess(action: Action, serviceId: string): Promise<void> {
+  const session = await getServerAuth();
+
+  if (!session?.user || session.user.isActive === false) {
+    throw new Error('Unauthorized');
+  }
+
+  if (!hasPermission(session.user.role, 'services', action)) {
+    throw new Error(`Insufficient permissions: services:${action} required`);
+  }
+
+  // Only OPERATOR is ownership-scoped.
+  if (session.user.role !== UserRole.OPERATOR) {
+    return;
+  }
+
+  const owns = await checkResourceOwnership('services', serviceId, session.user.id);
+  if (!owns) {
+    throw new Error('Forbidden: you do not have access to this service');
+  }
+}
+
+/**
  * Check if user can perform action on specific resource
  */
 export async function checkResourcePermission(

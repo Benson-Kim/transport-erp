@@ -10,10 +10,11 @@ import { revalidatePath } from 'next/cache';
 import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
+import { getServiceWithDetails } from '@/lib/data/service-data';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
-import { requirePermission } from '@/lib/rbac';
+import { requirePermission, requireServiceAccess } from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -22,7 +23,7 @@ import type { ServiceFiltersAPI } from '@/types/service';
  * Get a single service by ID
  */
 export async function getService(serviceId: string) {
-  await requirePermission('services', 'view');
+  await requireServiceAccess('view', serviceId);
 
   const service = await prisma.service.findFirst({
     where: { id: serviceId, deletedAt: null },

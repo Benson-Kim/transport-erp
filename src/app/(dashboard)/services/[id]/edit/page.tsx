@@ -33,15 +33,31 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
     redirect('/services');
   }
 
-  // Fetch service and related data
-  const [service, { clients, suppliers }] = await Promise.all([
-    getService(id),
-    getClientsAndSuppliers(),
-  ]);
+  // getService enforces auth + services:view + ownership and throws on
+  // denial (e.g. an OPERATOR editing a service they don't own, #16).
+  // Redirect rather than crashing the route. A nullable holder is used
+  // because redirect() (never) in catch is not treated by TS flow analysis
+  // as completing the try.
+  let data: {
+    service: Awaited<ReturnType<typeof getService>>;
+    clients: Awaited<ReturnType<typeof getClientsAndSuppliers>>['clients'];
+    suppliers: Awaited<ReturnType<typeof getClientsAndSuppliers>>['suppliers'];
+  } | null = null;
+  try {
+    const [service, related] = await Promise.all([getService(id), getClientsAndSuppliers()]);
+    data = { service, clients: related.clients, suppliers: related.suppliers };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      redirect('/login');
+    }
+    redirect('/services');
+  }
 
-  if (!service) {
+  if (!data?.service) {
     notFound();
   }
+
+  const { service, clients, suppliers } = data;
 
   // Check if completed service can be edited
   const isCompleted = service.status === ServiceStatus.COMPLETED;
