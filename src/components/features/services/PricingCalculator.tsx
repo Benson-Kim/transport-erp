@@ -4,8 +4,14 @@ import { Calculator, Info, TrendingUp, TrendingDown, DollarSign } from 'lucide-r
 import { Controller } from 'react-hook-form';
 
 import { Input, Select, FormField, Tooltip } from '@/components/ui';
+import {
+  computeServicePricing,
+  markupPercentage,
+  roi,
+  saleForTargetMarginPercentage,
+} from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
-import { formatPercentage } from '@/lib/utils/formatting';
+import { formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import type { Option } from '@/types/ui';
 
@@ -52,6 +58,10 @@ const getCurrencySymbol = (currency: string) => {
   return curr?.icon ?? '€';
 };
 
+// Live keystrokes can yield NaN (Number('') from an emptied input); treat as
+// 0 for preview purposes only - validation still rejects missing amounts.
+const safeAmount = (value: number) => (Number.isFinite(value) ? value : 0);
+
 export function PricingCalculator({
   form,
   margin,
@@ -81,11 +91,13 @@ export function PricingCalculator({
   const costCurrencySymbol = getCurrencySymbol(costCurrency);
   const saleCurrencySymbol = getCurrencySymbol(saleCurrency);
 
-  // Calculate VAT amounts
-  const costVatAmount = costAmount * (costVatRate / 100);
-  const costTotalWithVat = costAmount + costVatAmount;
-  const saleVatAmount = saleAmount * (saleVatRate / 100);
-  const saleTotalWithVat = saleAmount + saleVatAmount;
+  // Canonical pricing (#25): identical Decimal math to the server actions.
+  const pricing = computeServicePricing({
+    costAmount: safeAmount(costAmount),
+    saleAmount: safeAmount(saleAmount),
+    costVatRate,
+    saleVatRate,
+  });
 
   // Auto-calculate cost from legacy fields if they exist
   const isAutoCalculated = !!(kilometers && pricePerKm);
@@ -265,11 +277,11 @@ export function PricingCalculator({
             </span>
             <span>
               + VAT ({costVatRate}%): {costCurrencySymbol}
-              {costVatAmount.toFixed(2)}
+              {pricing.costVatAmount.toFixed(2)}
             </span>
             <span className="font-medium text-neutral-900">
               = Total: {costCurrencySymbol}
-              {costTotalWithVat.toFixed(2)}
+              {pricing.costTotalWithVat.toFixed(2)}
             </span>
           </div>
         </div>
@@ -348,11 +360,11 @@ export function PricingCalculator({
             </span>
             <span>
               + VAT ({saleVatRate}%): {saleCurrencySymbol}
-              {saleVatAmount.toFixed(2)}
+              {pricing.saleVatAmount.toFixed(2)}
             </span>
             <span className="font-medium text-neutral-900">
               = Total: {saleCurrencySymbol}
-              {saleTotalWithVat.toFixed(2)}
+              {pricing.saleTotalWithVat.toFixed(2)}
             </span>
           </div>
         </div>
@@ -410,7 +422,7 @@ export function PricingCalculator({
                   : 'text-red-600 border-red-200'
               )}
             >
-              {formatPercentage(marginPercent)}
+              {formatPercentPoints(marginPercent)}
             </div>
           </div>
 
@@ -423,7 +435,7 @@ export function PricingCalculator({
               </Tooltip>
             </label>
             <div className="px-3 py-2 border rounded-lg bg-white text-center">
-              {costAmount > 0 ? ((margin / costAmount) * 100).toFixed(2) : '0.00'}%
+              {markupPercentage(safeAmount(saleAmount), safeAmount(costAmount)).toFixed(2)}%
             </div>
           </div>
 
@@ -442,7 +454,7 @@ export function PricingCalculator({
                 margin < 0 ? 'text-red-600' : ''
               )}
             >
-              {costAmount > 0 ? (margin / costAmount).toFixed(2) : '0.00'}x
+              {roi(safeAmount(saleAmount), safeAmount(costAmount)).toFixed(2)}x
             </div>
           </div>
         </div>
@@ -459,21 +471,21 @@ export function PricingCalculator({
                 <span className="text-yellow-600">20% margin:</span>
                 <span className="font-medium ml-1">
                   {saleCurrencySymbol}
-                  {(costAmount / 0.8).toFixed(2)}
+                  {saleForTargetMarginPercentage(safeAmount(costAmount), 20).toFixed(2)}
                 </span>
               </div>
               <div>
                 <span className="text-yellow-600">30% margin:</span>
                 <span className="font-medium ml-1">
                   {saleCurrencySymbol}
-                  {(costAmount / 0.7).toFixed(2)}
+                  {saleForTargetMarginPercentage(safeAmount(costAmount), 30).toFixed(2)}
                 </span>
               </div>
               <div>
                 <span className="text-yellow-600">40% margin:</span>
                 <span className="font-medium ml-1">
                   {saleCurrencySymbol}
-                  {(costAmount / 0.6).toFixed(2)}
+                  {saleForTargetMarginPercentage(safeAmount(costAmount), 40).toFixed(2)}
                 </span>
               </div>
             </div>

@@ -82,31 +82,51 @@ export function createPaginatedResponse<T>(
 }
 
 /**
- * Audit Log Creator
- * Creates audit log entries for database changes
+ * Audit Log Creator (#27)
+ * Creates audit log entries for database changes.
+ *
+ * Pass the surrounding transaction client as `client` so the audit row
+ * commits - or rolls back - atomically with the mutation it records.
+ * Without it a failed audit insert leaves a committed mutation with no
+ * audit trail (silent audit gap).
+ *
+ * Typed structurally (method shorthand for parameter bivariance): model
+ * delegate generics differ between the base client, an interactive
+ * transaction client, and the $extends-ed singleton under
+ * exactOptionalPropertyTypes - the same pattern as bumpUserTokenVersion
+ * and numbering.ts, proven against this compiler configuration.
  */
-export async function createAuditLog({
-  userId,
-  action,
-  tableName,
-  recordId,
-  oldValues,
-  newValues,
-  ipAddress,
-  userAgent,
-  metadata,
-}: {
-  userId?: string | undefined;
-  action: AuditAction;
-  tableName: string;
-  recordId: string;
-  oldValues?: any;
-  newValues?: any;
-  ipAddress?: string | undefined;
-  userAgent?: string | undefined;
-  metadata?: Record<string, any> | undefined;
-}) {
-  return prisma.auditLog.create({
+export type AuditLogWriter = {
+  auditLog: {
+    create(args: { data: Record<string, unknown> }): Promise<unknown>;
+  };
+};
+
+export async function createAuditLog(
+  {
+    userId,
+    action,
+    tableName,
+    recordId,
+    oldValues,
+    newValues,
+    ipAddress,
+    userAgent,
+    metadata,
+  }: {
+    userId?: string | undefined;
+    action: AuditAction;
+    tableName: string;
+    recordId: string;
+    oldValues?: any;
+    newValues?: any;
+    ipAddress?: string | undefined;
+    userAgent?: string | undefined;
+    metadata?: Record<string, any> | undefined;
+  },
+  client: AuditLogWriter = prisma
+) {
+  return client.auditLog.create({
     data: {
       userId: userId ?? null,
       action,
@@ -174,29 +194,72 @@ export async function processBatch<T, R>(
 }
 
 /**
- * Transaction Helper
- * Wrapper for Prisma transactions with error handling
+ * Transaction Helper (#27)
+ *
+ * Defaults to ReadCommitted; money-critical paths opt into Serializable.
+ * Serialization failures (Postgres 40001, surfaced by Prisma as P2034) are
+ * retried with exponential backoff and jitter - the whole callback re-runs,
+ * so keep side effects inside the transaction idempotent. Other errors
+ * propagate immediately.
  */
 type IsolationLevel = 'ReadUncommitted' | 'ReadCommitted' | 'RepeatableRead' | 'Serializable';
 
+export interface WithTransactionOptions {
+  isolationLevel?: IsolationLevel;
+  /** Retries for serialization failures only. */
+  maxRetries?: number;
+  maxWait?: number;
+  timeout?: number;
+}
+
+/** Postgres serialization_failure (40001); Prisma reports it as P2034. */
+function isSerializationFailure(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+  const candidate = error as { code?: unknown; meta?: { code?: unknown } };
+  return (
+    candidate.code === 'P2034' || candidate.code === '40001' || candidate.meta?.code === '40001'
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 export async function withTransaction<T>(
-  fn: (tx: typeof prisma) => Promise<T>
+  fn: (tx: typeof prisma) => Promise<T>,
+  options: WithTransactionOptions = {}
 ): Promise<T> {
-  return prisma.$transaction(
-    async (tx) => {
-      try {
-        return await fn(tx as typeof prisma);
-      } catch (error) {
+  const {
+    isolationLevel = 'ReadCommitted',
+    maxRetries = 3,
+    maxWait = 5000,
+    timeout = 10000,
+  } = options;
+
+  let attempt = 0;
+  for (;;) {
+    try {
+      // eslint-disable-next-line no-await-in-loop -- retry loop is sequential by design
+      const result = await prisma.$transaction(async (tx) => fn(tx as typeof prisma), {
+        maxWait,
+        timeout,
+        isolationLevel,
+      });
+      return result;
+    } catch (error) {
+      if (!isSerializationFailure(error) || attempt >= maxRetries) {
         console.error('Transaction failed:', error);
         throw error;
       }
-    },
-    {
-      maxWait: 5000,
-      timeout: 10000,
-      isolationLevel: 'Serializable' as IsolationLevel,
+      attempt += 1;
+      // eslint-disable-next-line no-await-in-loop -- backoff before the retry
+      await sleep(2 ** attempt * 25 + Math.floor(Math.random() * 25));
     }
-  );
+  }
 }
 
 /**

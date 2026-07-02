@@ -27,8 +27,9 @@ import {
   Skeleton,
   Alert,
 } from '@/components/ui';
+import { decimalToNumber, marginPercentage } from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceData } from '@/types/service';
 
 import { BulkActions } from './BulkActions';
@@ -92,7 +93,8 @@ export function ServicesTable({
     const totalCost = visibleServices.reduce((sum, s) => sum + s.costAmount, 0);
     const totalSale = visibleServices.reduce((sum, s) => sum + s.saleAmount, 0);
     const totalMargin = totalSale - totalCost;
-    const avgMarginPercent = totalSale > 0 ? (totalMargin / totalSale) * 100 : 0;
+    // Canonical margin % (#25).
+    const avgMarginPercent = decimalToNumber(marginPercentage(totalSale, totalCost));
 
     return {
       totalCost,
@@ -268,7 +270,7 @@ export function ServicesTable({
                   stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600'
                 )}
               >
-                {formatPercentage(stats.avgMarginPercent)}
+                {formatPercentPoints(stats.avgMarginPercent)}
               </span>
             </div>
           </Tooltip>

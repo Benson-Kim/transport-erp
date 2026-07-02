@@ -12,7 +12,14 @@ import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
 import type { Action } from '@/lib/permissions';
-import { createAuditLog } from '@/lib/prisma/db-helpers';
+import {
+  computeServicePricing,
+  decimalToNumber,
+  effectiveServiceAmounts,
+  round2,
+  toDecimal,
+} from '@/lib/pricing';
+import { createAuditLog, withTransaction } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import {
@@ -21,6 +28,7 @@ import {
   requirePermission,
   requireServiceAccess,
 } from '@/lib/rbac';
+import { assertTransition, legalSourceStatuses } from '@/lib/service-status';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -55,13 +63,15 @@ export async function getService(serviceId: string) {
     return null;
   }
 
+  // Booked (original) figures: this feeds the edit form, which must always
+  // show the stored amounts - including for CANCELLED services (#28).
   return {
     ...service,
     date: service.date.toISOString(),
-    costAmount: Number(service.costAmount),
-    saleAmount: Number(service.saleAmount || 0),
-    margin: Number(service.margin || 0),
-    marginPercentage: Number(service.marginPercentage || 0),
+    costAmount: decimalToNumber(service.costAmount),
+    saleAmount: decimalToNumber(service.saleAmount),
+    margin: decimalToNumber(service.margin),
+    marginPercentage: decimalToNumber(service.marginPercentage),
   };
 }
 
@@ -174,27 +184,40 @@ export async function getServices(filters: ServiceFiltersAPI) {
     prisma.service.count({ where }),
   ]);
 
-  // Format services for frontend
-  const formattedServices = services.map((service) => ({
-    id: service.id,
-    serviceNumber: service.serviceNumber,
-    date: service.date.toISOString(),
-    clientId: service.clientId,
-    clientName: service.client.name,
-    clientCode: service.client.clientCode,
-    supplierId: service.supplierId,
-    supplierName: service.supplier.name,
-    supplierCode: service.supplier.supplierCode,
-    driverName: service.driverName,
-    vehiclePlate: service.vehiclePlate,
-    origin: service.origin,
-    destination: service.destination,
-    costAmount: Number(service.costAmount),
-    saleAmount: Number(service.saleAmount),
-    margin: Number(service.margin),
-    marginPercentage: Number(service.marginPercentage),
-    status: service.status,
-  }));
+  // Format services for frontend. Effective amounts (#25/#28): a CANCELLED
+  // service lists as €0 derived from its status; the stored figures stay
+  // intact so cancellation is reversible.
+  const formattedServices = services.map((service) => {
+    const amounts = effectiveServiceAmounts(service.status === ServiceStatus.CANCELLED, {
+      costAmount: toDecimal(service.costAmount),
+      saleAmount: toDecimal(service.saleAmount),
+      margin: toDecimal(service.margin),
+      marginPercentage: toDecimal(service.marginPercentage),
+      costVatAmount: toDecimal(service.costVatAmount),
+      saleVatAmount: toDecimal(service.saleVatAmount),
+    });
+
+    return {
+      id: service.id,
+      serviceNumber: service.serviceNumber,
+      date: service.date.toISOString(),
+      clientId: service.clientId,
+      clientName: service.client.name,
+      clientCode: service.client.clientCode,
+      supplierId: service.supplierId,
+      supplierName: service.supplier.name,
+      supplierCode: service.supplier.supplierCode,
+      driverName: service.driverName,
+      vehiclePlate: service.vehiclePlate,
+      origin: service.origin,
+      destination: service.destination,
+      costAmount: decimalToNumber(amounts.costAmount),
+      saleAmount: decimalToNumber(amounts.saleAmount),
+      margin: decimalToNumber(amounts.margin),
+      marginPercentage: decimalToNumber(amounts.marginPercentage),
+      status: service.status,
+    };
+  });
 
   return {
     services: formattedServices,
@@ -241,18 +264,8 @@ export async function createService(data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  // Calculate margin and VAT amounts
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  const margin = Number((validatedData.saleAmount - validatedData.costAmount).toFixed(2));
-  const marginPercentage =
-    validatedData.saleAmount > 0
-      ? Number(((margin / validatedData.saleAmount) * 100).toFixed(2))
-      : 0;
-
-  const saleVatAmount = Number((validatedData.saleAmount * (saleVatRate / 100)).toFixed(2));
-  const costVatAmount = Number((validatedData.costAmount * (costVatRate / 100)).toFixed(2));
+  // Canonical pricing (#25): all money arithmetic in Decimal via pricing.ts.
+  const pricing = computeServicePricing(validatedData);
 
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...saveData } =
     validatedData;
@@ -271,35 +284,57 @@ export async function createService(data: ServiceFormData) {
   // not reach via the dedicated action (review !16 R2-2).
   await requireElevatedStatusTransition(serviceStatus);
 
-  // Allocate the service number and insert in one transaction so the counter
-  // bump and the row insert commit together (race-free, no P2002).
-  const service = await prisma.$transaction(async (tx) => {
-    const serviceNumber = await generateDocumentNumber(tx, 'SRV');
+  // Money-critical mutation (#27): number allocation, insert, initial status
+  // history and the audit row commit - or roll back - together (race-free
+  // numbering per #12; Serializable + retry-on-40001 from withTransaction).
+  const service = await withTransaction(
+    async (tx) => {
+      const serviceNumber = await generateDocumentNumber(tx, 'SRV');
 
-    return tx.service.create({
-      data: {
-        ...(Object.fromEntries(
-          Object.entries(saveData).filter(([_, v]) => v !== undefined)
-        ) as any),
-        serviceNumber,
-        margin,
-        marginPercentage,
-        costVatAmount,
-        saleVatAmount,
-        status: serviceStatus,
-        createdById: session.user.id,
-      },
-    });
-  });
+      const created = await tx.service.create({
+        data: {
+          ...(Object.fromEntries(
+            Object.entries(saveData).filter(([_, v]) => v !== undefined)
+          ) as any),
+          serviceNumber,
+          costAmount: round2(saveData.costAmount),
+          saleAmount: round2(saveData.saleAmount),
+          margin: pricing.margin,
+          marginPercentage: pricing.marginPercentage,
+          costVatAmount: pricing.costVatAmount,
+          saleVatAmount: pricing.saleVatAmount,
+          status: serviceStatus,
+          createdById: session.user.id,
+        },
+      });
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'CREATE',
-    tableName: 'services',
-    recordId: service.id,
-    newValues: service,
-  });
+      // Services born into a non-default status record an initial history row.
+      if (serviceStatus !== ServiceStatus.DRAFT) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId: created.id,
+            fromStatus: null,
+            toStatus: serviceStatus,
+            changedBy: session.user.id,
+          },
+        });
+      }
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'CREATE',
+          tableName: 'services',
+          recordId: created.id,
+          newValues: created,
+        },
+        tx
+      );
+
+      return created;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath('/services');
 
@@ -315,77 +350,140 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  const currentService = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!currentService) throw new Error('Service not found');
+  // Permission facts are precomputed OUTSIDE the transaction (they depend
+  // only on the caller, not on the row). The row itself is read INSIDE the
+  // transaction below: asserting permissions or the state machine against a
+  // read taken outside it is a stale snapshot under concurrency
+  // (review !17 blocker 2).
+  const canEditCompleted = await checkPermission('services', 'edit_completed');
 
-  if (currentService.status === ServiceStatus.COMPLETED) {
-    await requirePermission('services', 'edit_completed');
-  }
+  // Canonical pricing (#25) + non-destructive cancel (#28): the booked
+  // cost/sale figures are ALWAYS stored and margins computed from them. The
+  // €0 presentation for a CANCELLED service is derived from its status at
+  // display boundaries (effectiveServiceAmounts), so reverting a
+  // cancellation restores the original figures - nothing is destroyed.
+  const { costAmount, saleAmount } = validatedData;
 
-  const costVatRate = validatedData.costVatRate ?? 21;
-  const saleVatRate = validatedData.saleVatRate ?? 21;
-
-  let { costAmount } = validatedData;
-  let { saleAmount } = validatedData;
-  let margin = saleAmount - costAmount;
-  let marginPercentage = saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
-  let saleVatAmount = saleAmount * (saleVatRate / 100);
-  let costVatAmount = costAmount * (costVatRate / 100);
-
-  if (validatedData.cancelled) {
-    costVatAmount = saleVatAmount = costAmount = saleAmount = margin = marginPercentage = 0;
-  }
+  const pricing = computeServicePricing({
+    costAmount,
+    saleAmount,
+    costVatRate: validatedData.costVatRate,
+    saleVatRate: validatedData.saleVatRate,
+  });
 
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
     validatedData;
 
-  let serviceStatus: ServiceStatus;
+  // The explicitly requested destination status (undefined = keep current).
+  let requestedStatus: ServiceStatus | undefined;
   if (cancelled) {
-    serviceStatus = ServiceStatus.CANCELLED;
+    requestedStatus = ServiceStatus.CANCELLED;
   } else if (completed) {
-    serviceStatus = ServiceStatus.COMPLETED;
+    requestedStatus = ServiceStatus.COMPLETED;
   } else {
-    serviceStatus = dataToStore.status || currentService.status;
+    requestedStatus = dataToStore.status;
   }
 
   // The generic edit path may not perform an elevated transition the
-  // dedicated action (markServiceComplete, archiveService, ...) would deny.
-  // This closes a pre-existing hole: serviceSchema accepts any ServiceStatus
-  // and the completed/cancelled flags, so services:edit alone could reach
-  // COMPLETED/INVOICED/CANCELLED/ARCHIVED here. (review !16 R2-2)
-  if (serviceStatus !== currentService.status) {
-    await requireElevatedStatusTransition(serviceStatus);
-  }
+  // dedicated action (markServiceComplete, archiveService, ...) would deny
+  // (review !16 R2-2). The permission FACT depends only on the caller and is
+  // precomputed here; whether a transition actually happens is decided
+  // inside the transaction against the fresh row.
+  const requestedElevatedAction = requestedStatus
+    ? ELEVATED_STATUS_TRANSITIONS[requestedStatus]
+    : undefined;
+  const requestedElevatedGranted = requestedElevatedAction
+    ? await checkPermission('services', requestedElevatedAction)
+    : true;
 
-  const timestamps: { completedAt?: Date; cancelledAt?: Date } = {};
-  if (completed) timestamps.completedAt = new Date();
-  if (cancelled) timestamps.cancelledAt = new Date();
+  // Money-critical mutation (#27): the row is READ, the state machine
+  // asserted, and the update + status-history + audit rows written inside
+  // one Serializable transaction. A concurrent status change surfaces as a
+  // serialization failure and retries the whole callback against fresh data
+  // (review !17 blocker 2) - the stale-read race that made
+  // INVOICED -> DRAFT reachable is closed at the database.
+  const service = await withTransaction(
+    async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
 
-  const updateData = {
-    ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
-    costAmount,
-    saleAmount,
-    margin: Number(margin.toFixed(2)),
-    marginPercentage: Number(marginPercentage.toFixed(2)),
-    costVatAmount: Number(costVatAmount.toFixed(2)),
-    saleVatAmount: Number(saleVatAmount.toFixed(2)),
-    status: serviceStatus,
-    ...timestamps,
-  };
+      if (currentService.status === ServiceStatus.COMPLETED && !canEditCompleted) {
+        throw new ForbiddenError('Insufficient permissions: services:edit_completed required');
+      }
 
-  const service = await prisma.service.update({
-    where: { id: serviceId },
-    data: updateData,
-  });
+      const serviceStatus = requestedStatus ?? currentService.status;
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'UPDATE',
-    tableName: 'services',
-    recordId: serviceId,
-    oldValues: currentService,
-    newValues: service,
-  });
+      if (serviceStatus !== currentService.status) {
+        if (requestedElevatedAction && !requestedElevatedGranted) {
+          throw new ForbiddenError(
+            `Insufficient permissions: services:${requestedElevatedAction} required`
+          );
+        }
+        // Lifecycle state machine (#27): reject illegal moves before any
+        // write (e.g. CANCELLED -> IN_PROGRESS, INVOICED -> DRAFT), against
+        // the freshly read status.
+        assertTransition(currentService.status, serviceStatus);
+      }
+
+      const timestamps: { completedAt?: Date; cancelledAt?: Date | null } = {};
+      if (completed) timestamps.completedAt = new Date();
+      if (cancelled) timestamps.cancelledAt = new Date();
+      // Reactivating a cancelled service clears the cancellation timestamp -
+      // cancel is a reversible state, not a destructive event (#28).
+      if (
+        !cancelled &&
+        currentService.status === ServiceStatus.CANCELLED &&
+        serviceStatus !== ServiceStatus.CANCELLED
+      ) {
+        timestamps.cancelledAt = null;
+      }
+
+      const updateData = {
+        ...(Object.fromEntries(
+          Object.entries(dataToStore).filter(([_, v]) => v !== undefined)
+        ) as any),
+        costAmount: round2(costAmount),
+        saleAmount: round2(saleAmount),
+        margin: pricing.margin,
+        marginPercentage: pricing.marginPercentage,
+        costVatAmount: pricing.costVatAmount,
+        saleVatAmount: pricing.saleVatAmount,
+        status: serviceStatus,
+        ...timestamps,
+      };
+
+      const updated = await tx.service.update({
+        where: { id: serviceId },
+        data: updateData,
+      });
+
+      if (serviceStatus !== currentService.status) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId,
+            fromStatus: currentService.status,
+            toStatus: serviceStatus,
+            changedBy: session.user.id,
+          },
+        });
+      }
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'UPDATE',
+          tableName: 'services',
+          recordId: serviceId,
+          oldValues: currentService,
+          newValues: updated,
+        },
+        tx
+      );
+
+      return updated;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath('/services');
   revalidatePath(`/services/${serviceId}`);
@@ -400,17 +498,22 @@ export async function deleteService(serviceId: string) {
   const session = await requireAuth();
   await requireServiceAccess('delete', serviceId);
 
-  await prisma.service.update({
-    where: { id: serviceId },
-    data: { deletedAt: new Date() },
-  });
+  // Soft delete and its audit row commit together (#27).
+  await withTransaction(async (tx) => {
+    await tx.service.update({
+      where: { id: serviceId },
+      data: { deletedAt: new Date() },
+    });
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'DELETE',
-    tableName: 'services',
-    recordId: serviceId,
+    await createAuditLog(
+      {
+        userId: session.user.id,
+        action: 'DELETE',
+        tableName: 'services',
+        recordId: serviceId,
+      },
+      tx
+    );
   });
 
   revalidatePath('/services');
@@ -552,21 +655,51 @@ export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
   await requireServiceAccess('mark_completed', serviceId);
 
-  const service = await prisma.service.update({
-    where: { id: serviceId },
-    data: {
-      status: ServiceStatus.COMPLETED,
-      completedAt: new Date(),
-    },
-  });
+  // Read + state machine + write + history + audit in ONE Serializable
+  // transaction (review !17 blocker 2): asserting the transition against a
+  // row read outside the transaction is a stale snapshot under concurrency.
+  const service = await withTransaction(
+    async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'COMPLETE',
-    tableName: 'services',
-    recordId: serviceId,
-    newValues: { status: ServiceStatus.COMPLETED },
-  });
+      // Lifecycle state machine (#27), asserted against the fresh row.
+      assertTransition(currentService.status, ServiceStatus.COMPLETED);
+
+      const updated = await tx.service.update({
+        where: { id: serviceId },
+        data: {
+          status: ServiceStatus.COMPLETED,
+          completedAt: new Date(),
+        },
+      });
+
+      if (currentService.status !== ServiceStatus.COMPLETED) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId,
+            fromStatus: currentService.status,
+            toStatus: ServiceStatus.COMPLETED,
+            changedBy: session.user.id,
+          },
+        });
+      }
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'COMPLETE',
+          tableName: 'services',
+          recordId: serviceId,
+          newValues: { status: ServiceStatus.COMPLETED },
+        },
+        tx
+      );
+
+      return updated;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath(`/services/${serviceId}`);
 
@@ -580,20 +713,50 @@ export async function archiveService(serviceId: string) {
   const session = await requireAuth();
   await requireServiceAccess('archive', serviceId);
 
-  const service = await prisma.service.update({
-    where: { id: serviceId },
-    data: {
-      status: ServiceStatus.ARCHIVED,
-      archivedAt: new Date(),
-    },
-  });
+  // Read + state machine + write + history + audit in ONE Serializable
+  // transaction (review !17 blocker 2): asserting the transition against a
+  // row read outside the transaction is a stale snapshot under concurrency.
+  const service = await withTransaction(
+    async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'ARCHIVE',
-    tableName: 'services',
-    recordId: serviceId,
-  });
+      // Lifecycle state machine (#27), asserted against the fresh row.
+      assertTransition(currentService.status, ServiceStatus.ARCHIVED);
+
+      const updated = await tx.service.update({
+        where: { id: serviceId },
+        data: {
+          status: ServiceStatus.ARCHIVED,
+          archivedAt: new Date(),
+        },
+      });
+
+      if (currentService.status !== ServiceStatus.ARCHIVED) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId,
+            fromStatus: currentService.status,
+            toStatus: ServiceStatus.ARCHIVED,
+            changedBy: session.user.id,
+          },
+        });
+      }
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'ARCHIVE',
+          tableName: 'services',
+          recordId: serviceId,
+        },
+        tx
+      );
+
+      return updated;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath(`/services/${serviceId}`);
 
@@ -620,27 +783,34 @@ export async function generateLoadingOrder(serviceId: string) {
   const pdfPath = `/documents/loading-orders/${serviceId}.pdf`;
   const fileName = `LoadingOrder_${service.serviceNumber}.pdf`;
 
-  // Save document reference
-  const document = await prisma.document.create({
-    data: {
-      documentType: DocumentType.LOADING_ORDER,
-      documentNumber: `LO-${service.serviceNumber}`,
-      serviceId,
-      fileName,
-      filePath: pdfPath,
-      fileSize: 0, // TODO: Get actual file size
-      mimeType: 'application/pdf',
-      description: `Loading order for service ${service.serviceNumber}`,
-      uploadedBy: session.user.id,
-    },
-  });
+  // Document row and its audit row commit together (#27).
+  const document = await withTransaction(async (tx) => {
+    const created = await tx.document.create({
+      data: {
+        documentType: DocumentType.LOADING_ORDER,
+        documentNumber: `LO-${service.serviceNumber}`,
+        serviceId,
+        fileName,
+        filePath: pdfPath,
+        fileSize: 0, // TODO: Get actual file size
+        mimeType: 'application/pdf',
+        description: `Loading order for service ${service.serviceNumber}`,
+        uploadedBy: session.user.id,
+      },
+    });
 
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'GENERATE_DOCUMENT',
-    tableName: 'services',
-    recordId: serviceId,
-    metadata: { documentType: 'LOADING_ORDER' },
+    await createAuditLog(
+      {
+        userId: session.user.id,
+        action: 'GENERATE_DOCUMENT',
+        tableName: 'services',
+        recordId: serviceId,
+        metadata: { documentType: 'LOADING_ORDER' },
+      },
+      tx
+    );
+
+    return created;
   });
 
   revalidatePath(`/services/${serviceId}`);
@@ -802,19 +972,82 @@ export async function bulkUpdateServices(
     return { success: true, count: 0 };
   }
 
-  const result = await prisma.service.updateMany({
-    where: { id: { in: targetIds }, ...invariantWhere },
-    data: updates,
-  });
+  const nextStatus = updates.status;
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'UPDATE',
-    tableName: 'services',
-    recordId: targetIds.join(','),
-    metadata: { bulk: true, updates, count: result.count },
-  });
+  // Bulk mutation, history and audit in one Serializable tx (#27). Rows are
+  // re-read inside the transaction with the invariant WHERE so the history
+  // rows describe exactly what the UPDATE touches, and lifecycle legality is
+  // asserted per row - bulk = fold of single applies to the state machine
+  // too.
+  const result = await withTransaction(
+    async (tx) => {
+      const rows = await tx.service.findMany({
+        where: { id: { in: targetIds }, ...invariantWhere },
+        select: { id: true, status: true },
+      });
+
+      if (nextStatus) {
+        for (const row of rows) {
+          assertTransition(row.status, nextStatus);
+        }
+      }
+
+      // The invariants and the state machine are re-asserted INSIDE the
+      // UPDATE's WHERE (review !17 blocker 1 - the #20 TOCTOU guarantee): a
+      // row that is soft-deleted, reassigned, or transitioned to a
+      // protected/illegal source status between the read and the write is
+      // excluded by the database itself. AND-composed so the two status
+      // conditions cannot clobber each other.
+      const updateResult = await tx.service.updateMany({
+        where: {
+          AND: [
+            { id: { in: rows.map((row) => row.id) } },
+            invariantWhere,
+            ...(nextStatus ? [{ status: { in: legalSourceStatuses(nextStatus) } }] : []),
+          ],
+        },
+        data: updates,
+      });
+
+      // Honest history: the rows read (which feed ServiceStatusHistory) must
+      // be exactly the rows updated. Under Serializable a divergence
+      // surfaces as a retried serialization failure; this guard rolls the
+      // transaction back should any path ever let them diverge.
+      if (updateResult.count !== rows.length) {
+        throw new Error(
+          `Bulk update aborted: read ${rows.length} rows but updated ${updateResult.count}`
+        );
+      }
+
+      if (nextStatus) {
+        const changed = rows.filter((row) => row.status !== nextStatus);
+        if (changed.length > 0) {
+          await tx.serviceStatusHistory.createMany({
+            data: changed.map((row) => ({
+              serviceId: row.id,
+              fromStatus: row.status,
+              toStatus: nextStatus,
+              changedBy: session.user.id,
+            })),
+          });
+        }
+      }
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'UPDATE',
+          tableName: 'services',
+          recordId: targetIds.join(','),
+          metadata: { bulk: true, updates, count: updateResult.count },
+        },
+        tx
+      );
+
+      return updateResult;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath('/services');
 
@@ -841,18 +1074,25 @@ export async function bulkDeleteServices(serviceIds: string[]) {
     return { success: true, count: 0 };
   }
 
-  const result = await prisma.service.updateMany({
-    where: { id: { in: targetIds }, ...invariantWhere },
-    data: { deletedAt: new Date() },
-  });
+  // Bulk soft delete and its audit row commit together (#27).
+  const result = await withTransaction(async (tx) => {
+    const deleteResult = await tx.service.updateMany({
+      where: { id: { in: targetIds }, ...invariantWhere },
+      data: { deletedAt: new Date() },
+    });
 
-  // Create audit log
-  await createAuditLog({
-    userId: session.user.id,
-    action: 'DELETE',
-    tableName: 'services',
-    recordId: targetIds.join(','),
-    metadata: { bulk: true, count: result.count },
+    await createAuditLog(
+      {
+        userId: session.user.id,
+        action: 'DELETE',
+        tableName: 'services',
+        recordId: targetIds.join(','),
+        metadata: { bulk: true, count: deleteResult.count },
+      },
+      tx
+    );
+
+    return deleteResult;
   });
 
   revalidatePath('/services');

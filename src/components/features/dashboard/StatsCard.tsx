@@ -24,7 +24,12 @@ import {
 
 import { Card, Tooltip, Button } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatPercentage, formatNumber } from '@/lib/utils/formatting';
+import {
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  formatPercentPoints,
+} from '@/lib/utils/formatting';
 import { StatsCardsProps, StatsData } from '@/types/dashboard';
 
 export function StatsCards({
@@ -51,7 +56,7 @@ export function StatsCards({
           description: 'Services currently in progress or confirmed',
           details: [
             `${stats.activeServices} services active`,
-            `${stats.activeServicesChange >= 0 ? '+' : ''}${formatPercentage(stats.activeServicesChange)} from last period`,
+            `${stats.activeServicesChange >= 0 ? '+' : ''}${formatPercentPoints(stats.activeServicesChange)} from last period`,
           ],
         },
       },
@@ -70,7 +75,8 @@ export function StatsCards({
           details: [
             `${stats.completedServices} services completed`,
             stats.totalServices > 0
-              ? `${formatPercentage(stats.completedServices / stats.totalServices)} completion rate`
+              ? // FRACTION input (#26): completed/total is 0-1, so formatPercent.
+                `${formatPercent(stats.completedServices / stats.totalServices)} completion rate`
               : 'No services yet',
           ],
         },
@@ -89,7 +95,7 @@ export function StatsCards({
           description: 'Total income generated in the period',
           details: [
             `Revenue: ${formatCurrency(stats.totalRevenue)}`,
-            `Growth: ${stats.totalRevenueChange >= 0 ? '+' : ''}${formatPercentage(stats.totalRevenueChange)}`,
+            `Growth: ${stats.totalRevenueChange >= 0 ? '+' : ''}${formatPercentPoints(stats.totalRevenueChange)}`,
             stats.totalServices > 0
               ? `Avg per service: ${formatCurrency(stats.totalRevenue / stats.totalServices)}`
               : null,
@@ -99,7 +105,7 @@ export function StatsCards({
       {
         id: 'average-margin',
         label: 'Average Margin',
-        value: formatPercentage(stats.averageMargin),
+        value: formatPercentPoints(stats.averageMargin),
         subValue: formatCurrency(stats.averageMarginAmount),
         change: stats.averageMarginChange,
         icon: Percent,
@@ -110,9 +116,9 @@ export function StatsCards({
           title: 'Average Margin',
           description: 'Average profit margin across all services',
           details: [
-            `Margin rate: ${formatPercentage(stats.averageMargin)}`,
+            `Margin rate: ${formatPercentPoints(stats.averageMargin)}`,
             `Margin amount: ${formatCurrency(stats.averageMarginAmount)}`,
-            `Change: ${stats.averageMarginChange >= 0 ? '+' : ''}${formatPercentage(stats.averageMarginChange)}`,
+            `Change: ${stats.averageMarginChange >= 0 ? '+' : ''}${formatPercentPoints(stats.averageMarginChange)}`,
           ],
         },
       },
@@ -244,7 +250,9 @@ export function StatsCards({
                       ) : (
                         <TrendingDown className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
                       )}
-                      <span className="font-medium">{formatPercentage(Math.abs(card.change))}</span>
+                      <span className="font-medium">
+                        {formatPercentPoints(Math.abs(card.change))}
+                      </span>
                     </div>
                     <span className="text-muted-foreground">vs last period</span>
                   </div>
@@ -278,7 +286,7 @@ export function MiniStats({ stats }: Readonly<{ stats: StatsData }>) {
     },
     {
       label: 'Margin',
-      value: formatPercentage(stats.averageMargin),
+      value: formatPercentPoints(stats.averageMargin),
       change: stats.averageMarginChange,
     },
   ];

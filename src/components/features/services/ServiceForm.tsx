@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { useAutoSave, useUnsavedChanges } from '@/hooks';
 import { hasPermission } from '@/lib/permissions';
+import { decimalToNumber, margin as computeMargin, marginPercentage } from '@/lib/pricing';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
@@ -200,9 +201,16 @@ export function ServiceForm({
     }
   }, [kilometers, pricePerKm, extras, setValue]);
 
-  // Calculate margin using the correct fields
-  const margin = saleAmount && costAmount ? saleAmount - costAmount : 0;
-  const marginPercent = saleAmount && saleAmount > 0 ? (margin / saleAmount) * 100 : 0;
+  // Canonical pricing (#25/#28): the falsy-cost guard treated cost === 0 as
+  // "no margin" and showed 0 while the server stored margin = saleAmount.
+  // cost 0 is a valid amount; both sides now use the same pricing module.
+  // Live keystrokes can yield NaN (Number('') from an emptied input).
+  const safeAmount = (value: number | undefined) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  const margin = decimalToNumber(computeMargin(safeAmount(saleAmount), safeAmount(costAmount)));
+  const marginPercent = decimalToNumber(
+    marginPercentage(safeAmount(saleAmount), safeAmount(costAmount))
+  );
 
   // Handle form submission
   const onSubmit = async (data: ServiceFormData) => {
@@ -622,19 +630,32 @@ export function ServiceForm({
                           onCheckedChange={(checked) => {
                             if (
                               checked &&
-                              !confirm('Cancel this service? All prices will be set to €0.')
+                              !confirm(
+                                'Cancel this service? Booked cost and sale figures are ' +
+                                  'preserved and restored if the service is reactivated.'
+                              )
                             ) {
                               return;
                             }
+                            // Non-destructive cancel (#28): never zero the
+                            // amount fields. A reverted mis-click must leave
+                            // the original figures untouched on save; the €0
+                            // presentation is derived server-side from the
+                            // CANCELLED status, reversibly.
                             if (checked) {
-                              setValue('costAmount', 0);
-                              setValue('saleAmount', 0);
                               setValue('status', 'CANCELLED');
+                            } else {
+                              setValue(
+                                'status',
+                                service?.status && service.status !== 'CANCELLED'
+                                  ? service.status
+                                  : 'DRAFT'
+                              );
                             }
                             field.onChange(checked);
                           }}
                           label="Cancelled"
-                          description="Set all prices to €0"
+                          description="Prices are preserved and shown as €0 while cancelled"
                         />
                       )}
                     />

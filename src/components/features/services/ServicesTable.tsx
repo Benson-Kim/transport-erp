@@ -28,10 +28,11 @@ import { ServiceStatus, type UserRole } from '@/app/generated/prisma';
 import { Button, Tooltip, Card, DropdownMenu, Amount } from '@/components/ui';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { hasPermission } from '@/lib/permissions';
+import { decimalToNumber, marginPercentage } from '@/lib/pricing';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceData } from '@/types/service';
 
 import { BulkActions } from './BulkActions';
@@ -72,7 +73,8 @@ export function ServicesTable({
     const totalCost = services.reduce((sum, s) => sum + s.costAmount, 0);
     const totalSale = services.reduce((sum, s) => sum + s.saleAmount, 0);
     const totalMargin = totalSale - totalCost;
-    const avgMarginPercent = totalSale > 0 ? (totalMargin / totalSale) * 100 : 0;
+    // Canonical margin % (#25).
+    const avgMarginPercent = decimalToNumber(marginPercentage(totalSale, totalCost));
     return { totalCost, totalSale, totalMargin, avgMarginPercent };
   }, [services]);
 
@@ -214,7 +216,7 @@ export function ServicesTable({
                   stats.avgMarginPercent >= 0 ? 'text-green-600' : 'text-red-600'
                 )}
               >
-                {formatPercentage(stats.avgMarginPercent)}
+                {formatPercentPoints(stats.avgMarginPercent)}
               </span>
             </div>
           </Tooltip>
@@ -397,8 +399,10 @@ const getServiceColumns = (): Column<ServiceData>[] => [
     align: 'right',
     width: '120px',
     accessor: (service) => {
-      const marginPercent =
-        service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
+      // Canonical margin % (#25).
+      const marginPercent = decimalToNumber(
+        marginPercentage(service.saleAmount, service.costAmount)
+      );
       return (
         <div className="flex flex-col items-end gap-0.5">
           <Amount value={service.margin} />
@@ -408,7 +412,7 @@ const getServiceColumns = (): Column<ServiceData>[] => [
               marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70'
             )}
           >
-            {formatPercentage(marginPercent)}
+            {formatPercentPoints(marginPercent)}
           </span>
         </div>
       );
