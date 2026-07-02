@@ -119,9 +119,11 @@ class B2StorageClient {
   }
 
   /**
-   * Test connection to B2
+   * Test connection to B2 (reserved for future health-check use, see issue #49).
+   * @internal
    */
-  private async testConnection(): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private async _testConnection(): Promise<void> {
     if (!this.client) {
       throw new StorageConfigError('Client not initialized');
     }
@@ -213,8 +215,7 @@ class B2StorageClient {
       // Create client
       this.client = this.createClient();
 
-      // Test the connection
-      // await this.testConnection();
+      // Connection test is deferred to first real operation (issue #49).
 
       this.initialized = true;
       console.log('B2 client initialized successfully');

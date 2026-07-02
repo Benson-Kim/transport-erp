@@ -310,7 +310,7 @@ class EmailService {
       to,
       subject: 'Verify your email address',
       html,
-      tags: ['verification'],
+      tags: [{ name: 'category', value: 'verification' }],
       metadata: { userId: data.email },
       priority: 'high',
     });
@@ -329,7 +329,7 @@ class EmailService {
       to,
       subject: 'Reset your password',
       html,
-      tags: ['password-reset'],
+      tags: [{ name: 'category', value: 'password-reset' }],
       metadata: { userId: data.email },
       priority: 'high',
     });
@@ -348,7 +348,7 @@ class EmailService {
       to,
       subject: 'Welcome to Enterprise Dashboard!',
       html,
-      tags: ['welcome'],
+      tags: [{ name: 'category', value: 'welcome' }],
       metadata: { userId: data.email },
     });
   }
@@ -368,7 +368,7 @@ class EmailService {
       subject: `Invoice ${data.invoiceNumber} - ${data.totalAmount} ${data.currency}`,
       html,
       attachments,
-      tags: ['invoice'],
+      tags: [{ name: 'category', value: 'invoice' }],
       metadata: {
         invoiceNumber: data.invoiceNumber,
         recipientEmail: data.recipientEmail,
@@ -391,7 +391,7 @@ class EmailService {
       subject: `Loading Order ${data.orderNumber}`,
       html,
       attachments,
-      tags: ['loading-order'],
+      tags: [{ name: 'category', value: 'loading-order' }],
       metadata: {
         orderNumber: data.orderNumber,
         recipientEmail: data.recipientEmail,
@@ -412,7 +412,10 @@ class EmailService {
       to,
       subject: data.title,
       html,
-      tags: ['notification', data.type],
+      tags: [
+        { name: 'category', value: 'notification' },
+        { name: 'type', value: data.type },
+      ],
       priority: data.type === 'error' ? 'high' : 'normal',
     });
   }
