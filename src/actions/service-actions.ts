@@ -667,32 +667,59 @@ export async function sendServiceEmail(serviceId: string) {
 const PROTECTED_STATUSES: ServiceStatus[] = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
 
 /**
- * Enforce, for a set of non-deleted services, that the caller may mutate them.
- * Returns the ids that actually exist and are not soft-deleted. Throws if the
- * selection includes COMPLETED/INVOICED services and the caller lacks the
- * elevated permission - exactly like the single-op path refuses them.
+ * Bulk = fold of single (#16/#20): a bulk operation must enforce every guard
+ * of the single-op path - auth, permission, OPERATOR ownership, the
+ * completed/invoiced elevation, and the soft-delete filter.
+ *
+ * Returns the ids that exist and are not soft-deleted, plus an invariantWhere
+ * fragment that re-asserts the guards inside the UPDATE itself (TOCTOU: a
+ * service transitioning to COMPLETED/INVOICED - or being reassigned - between
+ * the read and the write is excluded by the database, and the returned count
+ * stays honest).
+ *
+ * Throws when the selection includes services the caller may not touch,
+ * exactly like the single-op path refuses them.
  */
 async function assertBulkServiceInvariants(
   serviceIds: string[],
-  elevatedAction: 'edit_completed' | 'delete_completed'
-): Promise<string[]> {
+  elevatedAction: 'edit_completed' | 'delete_completed',
+  user: { id: string; role: UserRole }
+): Promise<{ targetIds: string[]; invariantWhere: Prisma.ServiceWhereInput }> {
   const services = await prisma.service.findMany({
     where: { id: { in: serviceIds }, deletedAt: null },
-    select: { id: true, status: true },
+    select: { id: true, status: true, createdById: true, assignedToId: true },
   });
 
-  const hasProtected = services.some((s) => PROTECTED_STATUSES.includes(s.status));
-  if (hasProtected) {
-    const allowed = await checkPermission('services', elevatedAction);
-    if (!allowed) {
-      throw new Error(
-        'Selection includes completed or invoiced services. ' +
-          'You do not have permission to modify them.'
-      );
+  // OPERATOR is ownership-scoped exactly like requireServiceAccess (#16):
+  // reject rather than silently filter, so the UI cannot lie about scope.
+  if (user.role === UserRole.OPERATOR) {
+    const notOwned = services.filter(
+      (s) => s.createdById !== user.id && s.assignedToId !== user.id
+    );
+    if (notOwned.length > 0) {
+      throw new Error('Forbidden: selection includes services you do not have access to');
     }
   }
 
-  return services.map((s) => s.id);
+  const elevated = await checkPermission('services', elevatedAction);
+  const hasProtected = services.some((s) => PROTECTED_STATUSES.includes(s.status));
+  if (hasProtected && !elevated) {
+    throw new Error(
+      'Selection includes completed or invoiced services. ' +
+        'You do not have permission to modify them.'
+    );
+  }
+
+  // Re-asserted inside the mutation's WHERE (TOCTOU guard).
+  const invariantWhere: Prisma.ServiceWhereInput = {
+    deletedAt: null,
+    ...(elevated ? {} : { status: { notIn: PROTECTED_STATUSES } }),
+    ...(user.role === UserRole.OPERATOR
+      ? { OR: [{ createdById: user.id }, { assignedToId: user.id }] }
+      : {}),
+  };
+
+  return { targetIds: services.map((s) => s.id), invariantWhere };
 }
 
 /**
@@ -705,19 +732,20 @@ export async function bulkUpdateServices(
   const session = await requireAuth();
   await requirePermission('services', 'edit');
 
-  // Enforce the same completed/invoiced guard and deletedAt filter as the
-  // single-op path; only operate on the ids that pass. (#20)
-  const targetIds = await assertBulkServiceInvariants(serviceIds, 'edit_completed');
+  // Enforce the same guards as the single-op path - including OPERATOR
+  // ownership - and only operate on the ids that pass. (#16/#20)
+  const { targetIds, invariantWhere } = await assertBulkServiceInvariants(
+    serviceIds,
+    'edit_completed',
+    session.user
+  );
 
   if (targetIds.length === 0) {
     return { success: true, count: 0 };
   }
 
   const result = await prisma.service.updateMany({
-    where: {
-      id: { in: targetIds },
-      deletedAt: null,
-    },
+    where: { id: { in: targetIds }, ...invariantWhere },
     data: updates,
   });
 
@@ -742,20 +770,21 @@ export async function bulkDeleteServices(serviceIds: string[]) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
 
-  // Same invariants as single delete: never re-stamp already-deleted rows
-  // (deletedAt: null filter) and refuse completed/invoiced services unless
-  // the caller holds delete_completed. (#20)
-  const targetIds = await assertBulkServiceInvariants(serviceIds, 'delete_completed');
+  // Same invariants as single delete: OPERATOR ownership, never re-stamp
+  // already-deleted rows, and refuse completed/invoiced services unless the
+  // caller holds delete_completed. (#16/#20)
+  const { targetIds, invariantWhere } = await assertBulkServiceInvariants(
+    serviceIds,
+    'delete_completed',
+    session.user
+  );
 
   if (targetIds.length === 0) {
     return { success: true, count: 0 };
   }
 
   const result = await prisma.service.updateMany({
-    where: {
-      id: { in: targetIds },
-      deletedAt: null,
-    },
+    where: { id: { in: targetIds }, ...invariantWhere },
     data: { deletedAt: new Date() },
   });
 
@@ -780,8 +809,12 @@ export async function generateBulkLoadingOrders(serviceIds: string[]) {
   await requireAuth();
   await requirePermission('documents', 'create');
 
-  // TODO: Implementation for generating loading orders
-  // This would group services and create loading order documents
+  // TODO: Implementation for generating loading orders.
+  // MANDATORY when implemented (#16): every id must pass
+  // requireServiceAccess('view', id) - per-service ownership - exactly like
+  // generateLoadingOrder does on the single-service path. Do not ship an
+  // implementation without that guard.
+  // This would group services and create loading order documents.
 
   return { success: true, count: serviceIds.length };
 }
