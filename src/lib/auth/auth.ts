@@ -93,9 +93,12 @@ export function revalidateTokenFields(
  * NextAuth configuration
  */
 export const authConfig = {
-  // Sign JWTs with AUTH_SECRET (v5); undefined in dev lets NextAuth derive a
-  // dev-only secret, while production is guarded by the boot check above. (#24)
-  secret: authSecret,
+  // Sign JWTs with AUTH_SECRET (v5). v5 does NOT auto-derive a dev secret
+  // (that was v4); it throws MissingSecret when none is resolvable, so dev
+  // needs AUTH_SECRET in .env too. Spread the key only when defined so the
+  // property is absent (not `undefined`) under exactOptionalPropertyTypes;
+  // production is additionally guarded by the boot check above. (#24)
+  ...(authSecret ? { secret: authSecret } : {}),
 
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,

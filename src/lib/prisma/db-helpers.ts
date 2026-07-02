@@ -135,7 +135,10 @@ export async function createAuditLog({
  */
 export async function bumpUserTokenVersion(
   userId: string,
-  client: Pick<PrismaClient, 'user'> | Prisma.TransactionClient = prisma
+  // Typed structurally against the single method used (review !15 pattern):
+  // the app's $extends-ed singleton is neither PrismaClient nor
+  // Prisma.TransactionClient, but it does expose user.update.
+  client: { user: { update: PrismaClient['user']['update'] } } = prisma
 ): Promise<void> {
   await client.user.update({
     where: { id: userId },

@@ -80,23 +80,23 @@ describe('saveEmailSettings write-only secrets (#19)', () => {
     const result = await saveEmailSettings({ ...storedSmtp, apiKey: '', password: '' });
 
     expect(result.success).toBe(true);
-    expect(upsertedValue().password).toBe('stored-password');
-    expect(upsertedValue().apiKey).toBe('stored-key');
+    expect(upsertedValue()['password']).toBe('stored-password');
+    expect(upsertedValue()['apiKey']).toBe('stored-key');
   });
 
   it('clearPassword: true persists an empty password; the other secret is untouched', async () => {
     const result = await saveEmailSettings({ ...storedSmtp, password: '', clearPassword: true });
 
     expect(result.success).toBe(true);
-    expect(upsertedValue().password).toBe('');
-    expect(upsertedValue().apiKey).toBe('stored-key');
+    expect(upsertedValue()['password']).toBe('');
+    expect(upsertedValue()['apiKey']).toBe('stored-key');
   });
 
   it('clearApiKey: true persists an empty key when the provider does not require one (smtp)', async () => {
     const result = await saveEmailSettings({ ...storedSmtp, apiKey: '', clearApiKey: true });
 
     expect(result.success).toBe(true);
-    expect(upsertedValue().apiKey).toBe('');
+    expect(upsertedValue()['apiKey']).toBe('');
   });
 
   it('clearing the key out from under an API-key provider fails validation with no partial write', async () => {
