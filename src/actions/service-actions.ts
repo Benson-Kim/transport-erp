@@ -587,6 +587,7 @@ export async function archiveService(serviceId: string) {
 export async function generateLoadingOrder(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('documents', 'create');
+  await requireServiceAccess('view', serviceId);
 
   // Get service details
   const service = await getServiceWithDetails(serviceId);
