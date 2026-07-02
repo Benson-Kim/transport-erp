@@ -11,10 +11,16 @@ import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
+import type { Action } from '@/lib/permissions';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
-import { checkPermission, requirePermission, requireServiceAccess } from '@/lib/rbac';
+import {
+  checkPermission,
+  ForbiddenError,
+  requirePermission,
+  requireServiceAccess,
+} from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -261,6 +267,10 @@ export async function createService(data: ServiceFormData) {
     serviceStatus = saveData.status || ServiceStatus.DRAFT;
   }
 
+  // A new service may not be born into an elevated status the caller could
+  // not reach via the dedicated action (review !16 R2-2).
+  await requireElevatedStatusTransition(serviceStatus);
+
   // Allocate the service number and insert in one transaction so the counter
   // bump and the row insert commit together (race-free, no P2002).
   const service = await prisma.$transaction(async (tx) => {
@@ -336,6 +346,15 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     serviceStatus = ServiceStatus.COMPLETED;
   } else {
     serviceStatus = dataToStore.status || currentService.status;
+  }
+
+  // The generic edit path may not perform an elevated transition the
+  // dedicated action (markServiceComplete, archiveService, ...) would deny.
+  // This closes a pre-existing hole: serviceSchema accepts any ServiceStatus
+  // and the completed/cancelled flags, so services:edit alone could reach
+  // COMPLETED/INVOICED/CANCELLED/ARCHIVED here. (review !16 R2-2)
+  if (serviceStatus !== currentService.status) {
+    await requireElevatedStatusTransition(serviceStatus);
   }
 
   const timestamps: { completedAt?: Date; cancelledAt?: Date } = {};
@@ -659,6 +678,38 @@ export async function sendServiceEmail(serviceId: string) {
 }
 
 /**
+ * Elevated status DESTINATIONS and the dedicated permission each requires
+ * (review !16 R2-2). Mirrors the single-purpose actions and the
+ * PERMISSION_MATRIX (markServiceComplete -> services:mark_completed,
+ * INVOICED -> services:mark_billed, archiveService -> services:archive,
+ * CANCELLED -> services:cancel), so no generic create/edit/bulk path can
+ * perform a transition whose dedicated action would be denied.
+ * "Bulk = fold of single" applies to the transition, not only the origin
+ * state.
+ */
+const ELEVATED_STATUS_TRANSITIONS: Partial<Record<ServiceStatus, Action>> = {
+  [ServiceStatus.COMPLETED]: 'mark_completed',
+  [ServiceStatus.INVOICED]: 'mark_billed',
+  [ServiceStatus.CANCELLED]: 'cancel',
+  [ServiceStatus.ARCHIVED]: 'archive',
+};
+
+/**
+ * No-op for undefined or non-elevated destinations; throws ForbiddenError
+ * (via requirePermission) when the caller lacks the dedicated permission for
+ * an elevated destination.
+ */
+async function requireElevatedStatusTransition(
+  target: ServiceStatus | undefined
+): Promise<void> {
+  if (!target) return;
+  const requiredAction = ELEVATED_STATUS_TRANSITIONS[target];
+  if (requiredAction) {
+    await requirePermission('services', requiredAction);
+  }
+}
+
+/**
  * Statuses that are locked for edit/delete unless the caller holds the
  * elevated edit_completed / delete_completed permission. Mirrors the
  * single-op guard in updateService (which requires edit_completed for a
@@ -697,14 +748,16 @@ async function assertBulkServiceInvariants(
       (s) => s.createdById !== user.id && s.assignedToId !== user.id
     );
     if (notOwned.length > 0) {
-      throw new Error('Forbidden: selection includes services you do not have access to');
+      // Typed per the authz contract (review !16 R2-1): pages catch by
+      // instanceof and must render access-denied, not crash to the boundary.
+      throw new ForbiddenError('Forbidden: selection includes services you do not have access to');
     }
   }
 
   const elevated = await checkPermission('services', elevatedAction);
   const hasProtected = services.some((s) => PROTECTED_STATUSES.includes(s.status));
   if (hasProtected && !elevated) {
-    throw new Error(
+    throw new ForbiddenError(
       'Selection includes completed or invoiced services. ' +
         'You do not have permission to modify them.'
     );
@@ -731,6 +784,11 @@ export async function bulkUpdateServices(
 ) {
   const session = await requireAuth();
   await requirePermission('services', 'edit');
+
+  // Bulk = fold of single applies to the TRANSITION too (review !16 R2-2):
+  // setting an elevated status in bulk demands the same dedicated permission
+  // as the single-op action would - checked before touching any data.
+  await requireElevatedStatusTransition(updates.status);
 
   // Enforce the same guards as the single-op path - including OPERATOR
   // ownership - and only operate on the ids that pass. (#16/#20)
@@ -816,5 +874,11 @@ export async function generateBulkLoadingOrders(serviceIds: string[]) {
   // implementation without that guard.
   // This would group services and create loading order documents.
 
-  return { success: true, count: serviceIds.length };
+  // Honest counts (review !16 R2-3): a stub must not claim success for work
+  // it did not do - the UI would confidently lie on its behalf.
+  return {
+    success: false as const,
+    error: 'Bulk loading-order generation is not implemented yet',
+    count: 0,
+  };
 }
