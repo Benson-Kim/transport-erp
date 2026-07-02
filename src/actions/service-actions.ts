@@ -634,7 +634,7 @@ export async function generateLoadingOrder(serviceId: string) {
  */
 export async function sendServiceEmail(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
