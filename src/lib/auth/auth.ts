@@ -26,6 +26,11 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
  * NextAuth v5 signs JWTs with AUTH_SECRET. Support NEXTAUTH_SECRET as a
  * transitional fallback (the old v4 name) but require a secret in production
  * so tokens are never signed with an undefined/insecure key. (#24)
+ *
+ * NOTE: v5 does NOT auto-derive a dev secret (that was v4 behavior); it
+ * throws MissingSecret in every environment. Dev therefore needs AUTH_SECRET
+ * in .env as well - this boot guard just fails faster in production with an
+ * actionable message. (review !16 finding 8)
  */
 const authSecret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
 if (!authSecret && process.env.NODE_ENV === 'production') {
