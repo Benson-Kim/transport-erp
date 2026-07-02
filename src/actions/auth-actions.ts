@@ -51,6 +51,7 @@ export async function getClientInfo() {
 }
 
 const AUTH_ERROR_MAP: Record<string, string> = {
+  'Invalid email or password': 'Invalid email or password',
   CredentialsSignin: 'Invalid email or password',
   'Read more at': 'Invalid email or password',
   'Account is disabled': 'Account is disabled. Please contact support.',
