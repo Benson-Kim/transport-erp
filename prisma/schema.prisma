@@ -175,6 +175,11 @@ model User {
   twoFactorEnabled Boolean @default(false)
   twoFactorSecret  String?
 
+  // Session revocation (#15): incremented on security events (deactivation,
+  // role change, credential reset). JWTs carrying an older version are
+  // rejected by the jwt callback's DB re-check.
+  tokenVersion Int @default(0)
+
   // Metadata
   lastLoginAt       DateTime?
   lastLoginIp       String?

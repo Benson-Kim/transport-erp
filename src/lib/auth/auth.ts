@@ -23,6 +23,56 @@ import { EmailTemplate } from '@/types/mail';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
+ * How long (ms) a JWT may trust its cached isActive/role before the jwt
+ * callback re-queries the DB. Small enough that revocation is effective
+ * within seconds; large enough to avoid a DB read on every request. (#15)
+ */
+export const TOKEN_REVALIDATE_MS = 60 * 1000;
+
+/**
+ * Pure decision: should the token re-validate isActive/role from the DB?
+ * Exported for unit testing.
+ */
+export function shouldRevalidateToken(
+  checkedAt: number | undefined,
+  now: number = Date.now()
+): boolean {
+  if (typeof checkedAt !== 'number') return true;
+  return now - checkedAt >= TOKEN_REVALIDATE_MS;
+}
+
+/** Minimal user state used to re-validate a token against the DB. */
+export interface TokenRevalidationUser {
+  role: UserRole;
+  isActive: boolean;
+  deletedAt: Date | null;
+  tokenVersion: number;
+}
+
+/**
+ * Pure token revalidation: given the current DB user state (or null when the
+ * user is missing), return the isActive/role values the token should carry.
+ * The token is revoked (isActive: false) when the user is missing,
+ * soft-deleted, deactivated, or when the DB tokenVersion is newer than the
+ * version carried by the token (a security event bumped it).
+ * Exported for unit testing.
+ */
+export function revalidateTokenFields(
+  dbUser: TokenRevalidationUser | null,
+  currentRole: UserRole | undefined,
+  tokenVersion: number | undefined
+): { role: UserRole; isActive: boolean } {
+  if (!dbUser || dbUser.deletedAt || !dbUser.isActive) {
+    return { role: dbUser?.role ?? currentRole ?? UserRole.VIEWER, isActive: false };
+  }
+  // A newer DB version means the token predates a security event: revoke.
+  if (dbUser.tokenVersion !== (tokenVersion ?? 0)) {
+    return { role: dbUser.role, isActive: false };
+  }
+  return { role: dbUser.role, isActive: true };
+}
+
+/**
  * NextAuth configuration
  */
 export const authConfig = {
