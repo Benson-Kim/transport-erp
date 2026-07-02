@@ -28,6 +28,7 @@ import {
   verifyEmailToken,
   regenerateVerificationToken,
 } from '@/lib/auth';
+import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma/prisma';
@@ -83,7 +84,7 @@ export async function signInWithCredentials(data: LoginFormData) {
     const { email, password, rememberMe } = loginSchema.parse(data);
     const { ipAddress, userAgent } = await getClientInfo();
 
-    await signIn('credentials', {
+    const result = await signIn('credentials', {
       email,
       password,
       rememberMe: String(rememberMe ?? false),
@@ -92,20 +93,22 @@ export async function signInWithCredentials(data: LoginFormData) {
       redirect: false,
     });
 
-    if (result?.error) {
-      switch (result.error) {
-        case 'CredentialsSignin':
-          return { success: false, error: 'Invalid email or password' };
-        case 'AccessDenied':
-          return { success: false, error: 'Access denied' };
-        default:
-          return { success: false, error: result.error || 'Authentication failed' };
-      }
+    // With redirect: false, signIn resolves with the callback URL on success.
+    if (!result) {
+      return { success: false, error: 'Authentication failed. Please try again.' };
     }
 
     revalidatePath('/dashboard');
     return { success: true };
   } catch (error) {
+    // NextAuth v5 wraps authorize() failures in an AuthError whose cause
+    // carries the real error thrown by the credentials provider.
+    if (error instanceof AuthError) {
+      const cause = error.cause?.err;
+      const message = getAuthErrorMessage(cause instanceof Error ? cause.message : error.type);
+      return message === null ? { success: true } : { success: false, error: message };
+    }
+
     if (!(error instanceof Error)) {
       return { success: false, error: 'An unexpected error occurred' };
     }
