@@ -1,6 +1,6 @@
 # ADR 0001: Invoice billing direction — one model, direction discriminator
 
-- Status: **Proposed** (ratify before any #30/#31 implementation commit)
+- Status: **Accepted** (ratified 2026-07-02 via !18; implemented by migration `20260702000001_invoice_billing_direction`)
 - Date: 2026-07-02
 - Work items: #30 (invoices), #31 (payments), #33 (revenue reports), #11 (money CHECKs)
 - Deciders: transport-erp maintainers
