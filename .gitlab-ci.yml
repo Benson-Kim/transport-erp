@@ -95,14 +95,15 @@ drift-check:
       --from-migrations prisma/migrations
       --to-schema-datamodel prisma/schema.prisma
       --shadow-database-url "postgresql://postgres:postgres@postgres:5432/drift_shadow"
-      --script > drift.sql || true
+      --script > drift.sql
     - cat drift.sql
-    # Binary signal (review !15 item 4): strip EXACTLY the two documented
-    # SQL-managed objects Prisma cannot declare - #13 partial/partial-unique
-    # indexes (*_active_key / *_active_idx) and the #14 generated column
-    # (billingCountry) - then fail hard on ANYTHING left. No allow_failure:
-    # a permanently-red advisory job carries no signal.
-    - grep -viE '_active_key|_active_idx|billingcountry|empty migration|^[[:space:]]*$|^--' drift.sql > unexpected.sql || true
+    # Binary signal (review !15 item 4) with an EXACT-NAME allowlist (round 2):
+    # substring patterns like *_active_* would swallow future unintended
+    # indexes that follow this MR's own naming convention. Enumerate the seven
+    # known SQL-managed index names (#13) and the generated column (#14);
+    # anything else - including any NEW *_active_* object - fails the job.
+    # (grep exits 1 when nothing remains: that is the good case, hence || true.)
+    - grep -vE '"clients_clientCode_active_key"|"suppliers_supplierCode_active_key"|"companies_code_active_key"|"companies_vatNumber_active_key"|"services_status_date_active_idx"|"services_clientId_date_active_idx"|"services_supplierId_date_active_idx"|"billingCountry"|^[[:space:]]*$|^--|empty migration' drift.sql > unexpected.sql || true
     - |
       if [ -s unexpected.sql ]; then
         echo 'Unintended schema drift detected:'
@@ -119,5 +120,7 @@ test-db:
   extends: .database-job
   script:
     - npx prisma migrate deploy
-    - npm install --no-save ts-jest@^29.2.5
+    # >=29.4.0: Jest 30 support landed in ts-jest 29.4.0 (review !15 round 2).
+    # Contract recorded in #59 (move to a locked devDependency).
+    - npm install --no-save ts-jest@^29.4.0
     - npm run test:db
