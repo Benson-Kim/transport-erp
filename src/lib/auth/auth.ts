@@ -23,6 +23,18 @@ import { EmailTemplate } from '@/types/mail';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
+ * NextAuth v5 signs JWTs with AUTH_SECRET. Support NEXTAUTH_SECRET as a
+ * transitional fallback (the old v4 name) but require a secret in production
+ * so tokens are never signed with an undefined/insecure key. (#24)
+ */
+const authSecret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
+if (!authSecret && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'AUTH_SECRET is required in production. Set AUTH_SECRET to a 32+ character random value.'
+  );
+}
+
+/**
  * How long (ms) a JWT may trust its cached isActive/role before the jwt
  * callback re-queries the DB. Small enough that revocation is effective
  * within seconds; large enough to avoid a DB read on every request. (#15)
