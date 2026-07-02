@@ -141,6 +141,7 @@ export const authConfig = {
               emailVerified: true,
               twoFactorEnabled: true,
               isActive: true,
+              tokenVersion: true,
               department: true,
               avatar: true,
             },
