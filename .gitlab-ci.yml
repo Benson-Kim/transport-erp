@@ -69,9 +69,13 @@ migrate-fresh:
   extends: .database-job
   script:
     - npx prisma migrate deploy
-    # Idempotency / seeded-DB: re-running deploy is a no-op, then seed applies.
-    - npx prisma migrate deploy
     - npx prisma db seed
+    # Idempotency (review !15 item 3): `migrate deploy` skips recorded
+    # migrations, so re-running it re-executes zero SQL and proves nothing.
+    # Re-apply the raw SQL of the Phase 1 migrations against the migrated AND
+    # seeded DB so every IF NOT EXISTS / DROP-IF-EXISTS / ON CONFLICT guard is
+    # genuinely exercised.
+    - for f in prisma/migrations/2026*/migration.sql; do echo "Re-applying $f"; npx prisma db execute --file "$f" || exit 1; done
 
 # Surface schema/migration drift. Two objects are intentionally SQL-managed
 # because Prisma cannot express them declaratively:
@@ -82,7 +86,6 @@ migrate-fresh:
 # those two exceptions must be reconciled.
 drift-check:
   extends: .database-job
-  allow_failure: true
   script:
     - npx prisma migrate deploy
     # The shadow DB must be EMPTY so the migration replay can succeed.
@@ -92,7 +95,21 @@ drift-check:
       --from-migrations prisma/migrations
       --to-schema-datamodel prisma/schema.prisma
       --shadow-database-url "postgresql://postgres:postgres@postgres:5432/drift_shadow"
-      --exit-code
+      --script > drift.sql || true
+    - cat drift.sql
+    # Binary signal (review !15 item 4): strip EXACTLY the two documented
+    # SQL-managed objects Prisma cannot declare - #13 partial/partial-unique
+    # indexes (*_active_key / *_active_idx) and the #14 generated column
+    # (billingCountry) - then fail hard on ANYTHING left. No allow_failure:
+    # a permanently-red advisory job carries no signal.
+    - grep -viE '_active_key|_active_idx|billingcountry|empty migration|^[[:space:]]*$|^--' drift.sql > unexpected.sql || true
+    - |
+      if [ -s unexpected.sql ]; then
+        echo 'Unintended schema drift detected:'
+        cat unexpected.sql
+        exit 1
+      fi
+      echo 'No unintended drift (allowlisted: #13 partial indexes, #14 generated column).'
 
 # DB integration tests: constraints, enum reconciliation, race-free numbering,
 # soft-delete code reuse. ts-jest is installed --no-save because
