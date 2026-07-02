@@ -200,7 +200,9 @@ export const authConfig = {
             },
           });
 
-          // Return the public user object for NextAuth
+          // Return the public user object for NextAuth. tokenVersion must be
+          // carried into the initial token so the first DB re-check does not
+          // wrongly revoke a fresh session (#15).
           return {
             id: user.id,
             email: user.email,
@@ -209,6 +211,7 @@ export const authConfig = {
             emailVerified: user.emailVerified,
             twoFactorEnabled: user.twoFactorEnabled ?? false,
             isActive: user.isActive,
+            tokenVersion: user.tokenVersion,
             department: user.department,
             avatar: user.avatar,
           };

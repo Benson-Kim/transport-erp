@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/app/generated/prisma';
 import { requireRole } from '@/lib/auth';
 import { hashPassword } from '@/lib/auth/auth-helpers';
-import { createAuditLog } from '@/lib/prisma/db-helpers';
+import { bumpUserTokenVersion, createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { withPermission } from '@/lib/rbac';
 import { createUserSchema, updateUserSchema } from '@/lib/validations/settings-schema';
