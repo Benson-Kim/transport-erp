@@ -1,13 +1,19 @@
 /**
- * Next.js Middleware
- * Protects routes based on authentication and permissions
+ * Next.js Middleware (edge runtime)
+ * Protects routes based on authentication.
+ *
+ * IMPORTANT: this file must stay edge-safe. It builds its own NextAuth
+ * instance from the edge-safe auth.config.ts (no Prisma client, bcryptjs,
+ * or email imports). Role/permission gating is enforced server-side in
+ * layouts, pages, and server actions (requireRole / withPermission).
  */
 
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
-import { auth } from '@/lib/auth';
-import { canAccessRoute } from '@/lib/permissions';
+import { authConfig } from '@/lib/auth/auth.config';
+
+const { auth } = NextAuth(authConfig);
 
 /**
  * Public routes that don't require authentication
@@ -18,6 +24,8 @@ const PUBLIC_ROUTES = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
+  '/resend-verification',
+  '/check-email',
   '/auth-error',
 ];
 
@@ -26,7 +34,7 @@ const PUBLIC_ROUTES = [
  */
 const API_ROUTES = ['/api/auth'];
 
-export default async function proxy(request: NextRequest) {
+export default auth((request) => {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
@@ -39,8 +47,7 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get session
-  const session = await auth();
+  const session = request.auth;
 
   // Redirect to login if not authenticated
   if (!session?.user) {
@@ -49,34 +56,19 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Check route permissions for dashboard routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) {
-    const hasAccess = canAccessRoute(session.user.role, pathname);
-
-    if (!hasAccess) {
-      // Log unauthorized access attempt
-      console.warn(`Unauthorized access attempt by ${session.user.email} to ${pathname}`);
-
-      // Redirect to dashboard with error
-      const url = new URL('/dashboard', request.url);
-      url.searchParams.set('error', 'unauthorized');
-      return NextResponse.redirect(url);
-    }
-  }
-
   // Add user info to headers for server components
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', session.user.id);
   requestHeaders.set('x-user-role', session.user.role);
-  requestHeaders.set('x-user-email', session.user.email);
-  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+  requestHeaders.set('x-user-email', session.user.email ?? '');
+  requestHeaders.set('x-pathname', pathname);
 
   return NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
-}
+});
 
 export const config = {
   matcher: [
