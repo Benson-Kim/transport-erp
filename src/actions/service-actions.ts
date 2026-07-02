@@ -301,7 +301,7 @@ export async function createService(data: ServiceFormData) {
  */
 export async function updateService(serviceId: string, data: ServiceFormData) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const validatedData = serviceSchema.parse(data);
 
