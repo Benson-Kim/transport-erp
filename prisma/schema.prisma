@@ -573,7 +573,8 @@ model Invoice {
 
   // Supplier's own invoice number on PURCHASE invoices: we REGISTER received
   // invoices (invoiceNumber is our internal RINV series), we do not issue
-  // their numbers. Always null on SALES invoices.
+  // their numbers. Always null on SALES invoices - enforced by the
+  // invoices_party_matches_direction CHECK, not just documented.
   externalReference String?
 
   // Relations (exactly one of clientId/supplierId per direction - see CHECK)

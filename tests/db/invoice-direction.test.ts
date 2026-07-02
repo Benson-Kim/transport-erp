@@ -79,7 +79,7 @@ it('rejects a SALES invoice pointing at a supplier (party/direction CHECK, #30)'
         supplierId: supplier.id,
       },
     })
-  ).rejects.toThrow();
+  ).rejects.toThrow(/invoices_party_matches_direction/);
 });
 
 it('rejects an invoice with BOTH parties set (party/direction CHECK, #30)', async () => {
@@ -98,7 +98,7 @@ it('rejects an invoice with BOTH parties set (party/direction CHECK, #30)', asyn
         supplierId: supplier.id,
       },
     })
-  ).rejects.toThrow();
+  ).rejects.toThrow(/invoices_party_matches_direction/);
 });
 
 it('rejects an invoice with NO party set (party/direction CHECK, #30)', async () => {
@@ -111,5 +111,39 @@ it('rejects an invoice with NO party set (party/direction CHECK, #30)', async ()
         direction: InvoiceDirection.PURCHASE,
       },
     })
-  ).rejects.toThrow();
+  ).rejects.toThrow(/invoices_party_matches_direction/);
+});
+
+it('rejects a SALES invoice carrying an externalReference (we issue, never receive, sales numbers - #30)', async () => {
+  const [user, client] = await Promise.all([createUserFixture(), createClientFixture()]);
+
+  await expect(
+    prisma.invoice.create({
+      data: {
+        ...baseInvoiceData(user.id),
+        direction: InvoiceDirection.SALES,
+        clientId: client.id,
+        externalReference: `SUP-INV-${uid()}`,
+      },
+    })
+  ).rejects.toThrow(/invoices_party_matches_direction/);
+});
+
+it('rejects flipping direction on UPDATE without swapping the party FK (#30)', async () => {
+  const [user, supplier] = await Promise.all([createUserFixture(), createSupplierFixture()]);
+
+  const invoice = await prisma.invoice.create({
+    data: {
+      ...baseInvoiceData(user.id),
+      direction: InvoiceDirection.PURCHASE,
+      supplierId: supplier.id,
+    },
+  });
+
+  await expect(
+    prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { direction: InvoiceDirection.SALES },
+    })
+  ).rejects.toThrow(/invoices_party_matches_direction/);
 });

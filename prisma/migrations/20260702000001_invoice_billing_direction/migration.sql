@@ -37,11 +37,14 @@ CREATE INDEX IF NOT EXISTS "invoices_clientId_idx" ON "invoices"("clientId");
 CREATE INDEX IF NOT EXISTS "invoices_direction_idx" ON "invoices"("direction");
 
 -- 6. XOR party constraint (ADR 0001; #11 CHECK family): exactly the party
---    matching the direction - never both, never neither.
-DO $$ BEGIN
-  ALTER TABLE "invoices" ADD CONSTRAINT "invoices_party_matches_direction" CHECK (
-    ("direction" = 'SALES'    AND "clientId" IS NOT NULL AND "supplierId" IS NULL) OR
-    ("direction" = 'PURCHASE' AND "supplierId" IS NOT NULL AND "clientId" IS NULL)
-  );
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+--    matching the direction - never both, never neither - and
+--    externalReference (the supplier's own invoice number) only on PURCHASE:
+--    we ISSUE sales invoice numbers, we never receive them (review !19 item 1).
+--    DROP IF EXISTS + ADD (not exception-swallowing): re-runs converge on the
+--    current definition instead of silently keeping an older one.
+ALTER TABLE "invoices" DROP CONSTRAINT IF EXISTS "invoices_party_matches_direction";
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_party_matches_direction" CHECK (
+  ("direction" = 'SALES'    AND "clientId" IS NOT NULL AND "supplierId" IS NULL
+                            AND "externalReference" IS NULL) OR
+  ("direction" = 'PURCHASE' AND "supplierId" IS NOT NULL AND "clientId" IS NULL)
+);
