@@ -320,17 +320,18 @@ export const toggleUserStatus = withPermission('users', 'edit', async (userId: s
     throw new Error('User not found');
   }
 
-  // Toggle status
+  // Toggle status. When deactivating, bump tokenVersion in the same update
+  // to revoke existing JWTs (#15).
   const updatedUser = await prisma.user.update({
     where: { id: userId },
-    data: { isActive: !user.isActive },
+    data: {
+      isActive: !user.isActive,
+      ...(user.isActive ? { tokenVersion: { increment: 1 } } : {}),
+    },
   });
 
-  // Invalidate sessions if deactivated
   if (!updatedUser.isActive) {
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
+    await prisma.session.deleteMany({ where: { userId } });
   }
 
   // Create audit log
