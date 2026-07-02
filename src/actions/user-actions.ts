@@ -71,7 +71,7 @@ export const getUsers = withPermission('users', 'view', async () => {
 export const getUser = withPermission('users', 'view', async (userId: string) => {
   await requireRole([UserRole.SUPER_ADMIN, UserRole.ADMIN]);
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
     include: {
       _count: {

@@ -162,8 +162,12 @@ export const authConfig = {
             avatar: user.avatar,
           };
         } catch (error) {
-          console.error(error);
-          return null;
+          // Propagate the real failure reason so the sign-in server action
+          // can map it to a user-facing message (NextAuth wraps thrown
+          // errors in AuthError.cause). Returning null here would collapse
+          // every failure into a generic CredentialsSignin.
+          console.error('Credentials authorize error:', error);
+          throw error instanceof Error ? error : new Error('Authentication failed');
         }
       },
     }),

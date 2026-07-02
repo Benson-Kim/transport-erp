@@ -15,11 +15,11 @@ export function excludeDeleted<
   Model extends keyof PrismaClient, // e.g. "user" | "post"
 >(
   where?: Prisma.Args<PrismaClient[Model], 'findMany'>['where']
-): Prisma.Args<PrismaClient[Model], 'findMany'>['where'] {
+): NonNullable<Prisma.Args<PrismaClient[Model], 'findMany'>['where']> {
   return {
     ...where,
     deletedAt: null,
-  } as Prisma.Args<PrismaClient[Model], 'findMany'>['where'];
+  } as NonNullable<Prisma.Args<PrismaClient[Model], 'findMany'>['where']>;
 }
 
 /**
@@ -95,15 +95,15 @@ export async function createAuditLog({
   userAgent,
   metadata,
 }: {
-  userId?: string;
+  userId?: string | undefined;
   action: AuditAction;
   tableName: string;
   recordId: string;
   oldValues?: any;
   newValues?: any;
-  ipAddress?: string;
-  userAgent?: string;
-  metadata?: Record<string, any>;
+  ipAddress?: string | undefined;
+  userAgent?: string | undefined;
+  metadata?: Record<string, any> | undefined;
 }) {
   return prisma.auditLog.create({
     data: {

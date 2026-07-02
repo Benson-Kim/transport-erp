@@ -53,7 +53,13 @@ export default function SequenceSettings() {
     [formats, TEST_NUMBERS]
   );
 
-  const formatConfig = [
+  const formatConfig: {
+    name: 'serviceFormat' | 'invoiceFormat' | 'loadingOrderFormat' | 'paymentNumberFormat';
+    label: string;
+    placeholder: string;
+    preview: string;
+    testNumber: number;
+  }[] = [
     {
       name: 'serviceFormat',
       label: 'Service Number Format',
@@ -98,7 +104,7 @@ export default function SequenceSettings() {
           <Controller
             key={config.name}
             control={control}
-            name={`numberSequences.${config.name}` as any}
+            name={`numberSequences.${config.name}` as const}
             rules={{
               validate: (value) => {
                 const result = validateNumberFormat(value);
@@ -114,10 +120,7 @@ export default function SequenceSettings() {
                 <FormField
                   label={config.label}
                   required
-                  error={
-                    errors.numberSequences?.[config.name as keyof typeof errors.numberSequences]
-                      ?.message ?? ''
-                  }
+                  error={errors.numberSequences?.[config.name]?.message ?? ''}
                 >
                   <Input {...field} placeholder={config.placeholder} />
 
