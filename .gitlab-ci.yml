@@ -74,8 +74,9 @@ migrate-fresh:
     # migrations, so re-running it re-executes zero SQL and proves nothing.
     # Re-apply the raw SQL of the Phase 1 migrations against the migrated AND
     # seeded DB so every IF NOT EXISTS / DROP-IF-EXISTS / ON CONFLICT guard is
-    # genuinely exercised.
-    - for f in prisma/migrations/2026*/migration.sql; do echo "Re-applying $f"; npx prisma db execute --file "$f" || exit 1; done
+    # genuinely exercised. --url is required because prisma.config.ts makes
+    # the CLI skip env loading (same reason drift-check passes --url).
+    - for f in prisma/migrations/2026*/migration.sql; do echo "Re-applying $f"; npx prisma db execute --file "$f" --url "$DATABASE_URL" || exit 1; done
 
 # Surface schema/migration drift. Two objects are intentionally SQL-managed
 # because Prisma cannot express them declaratively:
