@@ -13,6 +13,8 @@ import { Logo } from '@/components/ui/Logo';
 import { Button } from '@/components/ui';
 import { AuthFormFooter } from '@/components/features/auth';
 
+import type { Metadata } from 'next';
+
 export const metadata: Metadata = {
   title: 'Verify Email | Enterprise Dashboard',
   description: 'Verify your email address to activate your account',
