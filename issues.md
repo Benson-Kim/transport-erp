@@ -386,7 +386,7 @@ The `formatting.ts` defects I flagged in the lib pass are consumed directly by t
 
 Every serious component finding traces to one of these roots:
 
-1. **The `formatting.ts` money/percent bugs** surface on every list, card, and calculator → whole-euro rounding + 100× percentages. Single highest-value UI fix.
+1. **The `formatting.ts` money bug** surfaces on every list, card, and calculator → whole-euro rounding (`formatCurrency`). CORRECTED: the 100× percentage claim is retracted — `formatPercentage` percent-point call sites render correctly.
 2. **Duplicated logic drifting** — margin math (client `PricingCalculator` vs server action), `cn.ts` (×2 files), sort/search (DataTable internal vs URL/server), two `ErrorState`s. Same pattern as lib.
 3. **Stale JWT permissions** make all client-side `PermissionGuard`/menu gating advisory only; ties to the auth P0.
 4. **Controlled/uncontrolled `Input`** is a base-component defect that quietly breaks every edit form and the pricing auto-calc.
@@ -517,7 +517,7 @@ This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and rend
 2. **Secrets to the client** (`EmailConfig` apiKey/password hydration, `UserForm` password in toast/clipboard, `Math.random` passwords) — security P1 cluster.
 3. **Dead/broken navigation & document links** across `navigation-config`, `Sidebar`, `ServicesTable`, `RelatedDocuments` — three different non-existent URL schemes; unfiltered RBAC nav.
 4. **Storage access via raw `filePath`** (`RelatedDocuments`) — broken + IDOR-shaped; needs presigned-URL server action.
-5. **The margin-percent/`formatCurrency` split** now proven inconsistent _on the same dashboard_ (RevenueChart correct, ServicesTable wrong).
+5. CORRECTED: RevenueChart and ServicesTable margin percentages agree. The remaining dashboard-wide display defect is `formatCurrency` whole-euro rounding.
 6. **Bulk actions bypass invariants** (server-side) while the UI confidently gates them.
 7. **SSR/hydration + stale-closure** issues in `MainLayout` and filters.
 8. **Phantom + literally-malformed CSS classes** (`ps-9)]`, `icon-sm)]`) — `src/styles/` remains the critical unread dependency.
@@ -575,7 +575,7 @@ So on the **main dashboard cards**, only the completion-rate detail (fraction in
 
 ### New/confirmed patterns this batch
 
-1. **`formatPercentage` is now proven wrong across the entire analytics/detail surface** — dashboard cards, mini-stats, services table, service detail (incl. **VAT rates shown as thousands of percent**). This is arguably the single highest-visibility bug in the product and stems from one ambiguous helper. Top priority.
+1. **CORRECTED — `formatPercentage` is NOT broken across the analytics/detail surface.** Percent-point call sites (cards, tables, VAT rates) render correctly; only `StatsCard`'s fraction input and `ClientDetail`'s stray literal `%` are wrong. The ambiguous fraction-vs-points contract remains a footgun worth a typed split, but this is no longer a top-priority display bug.
 2. **"Dead feature" theater is systemic and now includes data-safety:** automatic backups (no scheduler), backup restore (commented out), storage-location field (ignored), number-sequence formats (ignored, v3), multi-provider email (ignored by sender), archive/send-email service actions (commented but toast success), loading-order generation (stub opening a 404). Users are shown capabilities that silently don't work — worst-case being backups.
 3. **State-key drift bugs** (`saving === 'backup-manual'` vs `'backup'`, `'email-test'`) cause loading indicators to never show or the wrong control to disable — small, repeated, and confusing.
 4. **Test-vs-runtime divergence for email** is a specific operability landmine: the test path and send path use different config sources.
@@ -797,7 +797,7 @@ Notable: `services/Header.tsx` is actually **`DashboardClientComponents`** (misn
 
 **New P0s this batch:** (1) `RecentServices` imports `useRouter` from `next/router` (Pages Router) in an App Router app → crash/no-op on the dashboard. (2) `ServiceChart` `HeaderAction` uses interpolated Tailwind color classes → purged in prod → colorless trend badge (build-time class-detection failure).
 
-**Confirmed patterns:** four+ inline CSV export implementations now (client-actions server CSV, `export.ts`, `RevenueChart`, `ServiceChart`); `bg-background`/`text-foreground`/`text-muted-foreground` undefined across all dashboard components; `formatCurrency` rounding everywhere; charts correctly avoid `formatPercentage` (computing inline) while cards/tables/detail misuse it — so even the percentage-handling is inconsistent between chart and non-chart components.
+**Confirmed patterns:** four+ inline CSV export implementations now (client-actions server CSV, `export.ts`, `RevenueChart`, `ServiceChart`); `bg-background`/`text-foreground`/`text-muted-foreground` undefined across all dashboard components; `formatCurrency` rounding everywhere; charts compute percentages inline while cards/tables/detail use `formatPercentage` — CORRECTED: both output correctly; the inconsistency is stylistic, not a correctness bug.
 
 ## Auth components (batch 12): reset-password, oauth-buttons, forgot-password
 
