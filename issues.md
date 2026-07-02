@@ -462,9 +462,9 @@ This settings form writes `email.provider ∈ {resend,sendgrid,ses,smtp}` plus `
 1. It won't open (relative key resolves against the app origin → 404), so document view/download is **non-functional**.
 2. If the bucket were public and `filePath` were a URL, this bypasses the presigned-URL/authorization layer entirely — anyone with a key opens the file. The correct path is a server action returning `storageService.getPresignedDownloadUrl(key)` scoped to the caller's permission (ties to the storage-authz P1 from the lib pass). Also `generateLoadingOrder` (v1) creates `Document` rows with `fileSize: 0` and a fake path, so this component will render phantom, unopenable documents.
 
-### P1 — `RevenueChart.tsx`: confirms the margin-percent convention is inconsistent _within the dashboard_
+### CORRECTED — `RevenueChart.tsx` and `ServicesTable` actually agree
 
-This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and renders it with **`.toFixed(1)}%`** directly (correct: shows `18.5%`). But `ServicesTable` renders the _same_ concept via `formatPercentage(avgMarginPercent)` which divides by 100 → `1,850%`. So the dashboard chart is right and the services table is wrong, side by side. This nails down that `formatPercentage`'s consumers are split: some pre-scaled + raw `.toFixed`, some pre-scaled + `formatPercentage` (double). One helper, one convention, enforced by types. (Also `RevenueChart` correctly uses `formatCurrency` for tooltips — but that still whole-euro-rounds per the `formatting.ts` bug.)
+This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and renders it with **`.toFixed(1)}%`** directly (correct: shows `18.5%`). `ServicesTable` renders the _same_ concept via `formatPercentage(avgMarginPercent)`, which divides by 100 and re-multiplies via `Intl` percent style — also `18.5%`. RETRACTED: both are correct; the mixed conventions (raw `.toFixed` vs helper) are worth unifying for maintainability, not correctness. (Also `RevenueChart` correctly uses `formatCurrency` for tooltips — but that still whole-euro-rounds per the `formatting.ts` bug.)
 
 - **P2 — `RevenueChart` has its own inline CSV export** (`Blob`/`a.click()`) duplicating `exportToCsv` from `lib/utils/export`. Third CSV implementation in the repo (client-actions server CSV, `export.ts`, and here). Consolidate.
 
