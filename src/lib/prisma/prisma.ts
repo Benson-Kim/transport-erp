@@ -5,12 +5,21 @@
 
 import { withAccelerate } from '@prisma/extension-accelerate';
 
+import { PrismaClient } from '@/app/generated/prisma';
+
 const globalForPrisma = global as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined;
 };
 
 /**
- * Create Prisma client with extensions
+ * Create Prisma client with extensions.
+ *
+ * The client is always generated WITH an engine (see the prisma:generate
+ * scripts in package.json): a direct postgres:// DATABASE_URL uses the local
+ * engine, while a prisma:// or prisma+postgres:// URL routes through
+ * Accelerate via the extension below (extension-accelerate v2 is a
+ * pass-through for direct connections), so engine mode matches DATABASE_URL
+ * in every environment.
  */
 function createPrismaClient() {
   return new PrismaClient({
