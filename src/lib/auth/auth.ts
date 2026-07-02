@@ -23,9 +23,83 @@ import { EmailTemplate } from '@/types/mail';
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
+ * NextAuth v5 signs JWTs with AUTH_SECRET. Support NEXTAUTH_SECRET as a
+ * transitional fallback (the old v4 name) but require a secret in production
+ * so tokens are never signed with an undefined/insecure key. (#24)
+ *
+ * NOTE: v5 does NOT auto-derive a dev secret (that was v4 behavior); it
+ * throws MissingSecret in every environment. Dev therefore needs AUTH_SECRET
+ * in .env as well - this boot guard just fails faster in production with an
+ * actionable message. (review !16 finding 8)
+ */
+const authSecret = process.env['AUTH_SECRET'] ?? process.env['NEXTAUTH_SECRET'];
+if (!authSecret && process.env.NODE_ENV === 'production') {
+  throw new Error(
+    'AUTH_SECRET is required in production. Set AUTH_SECRET to a 32+ character random value.'
+  );
+}
+
+/**
+ * How long (ms) a JWT may trust its cached isActive/role before the jwt
+ * callback re-queries the DB. Small enough that revocation is effective
+ * within seconds; large enough to avoid a DB read on every request. (#15)
+ */
+export const TOKEN_REVALIDATE_MS = 60 * 1000;
+
+/**
+ * Pure decision: should the token re-validate isActive/role from the DB?
+ * Exported for unit testing.
+ */
+export function shouldRevalidateToken(
+  checkedAt: number | undefined,
+  now: number = Date.now()
+): boolean {
+  if (typeof checkedAt !== 'number') return true;
+  return now - checkedAt >= TOKEN_REVALIDATE_MS;
+}
+
+/** Minimal user state used to re-validate a token against the DB. */
+export interface TokenRevalidationUser {
+  role: UserRole;
+  isActive: boolean;
+  deletedAt: Date | null;
+  tokenVersion: number;
+}
+
+/**
+ * Pure token revalidation: given the current DB user state (or null when the
+ * user is missing), return the isActive/role values the token should carry.
+ * The token is revoked (isActive: false) when the user is missing,
+ * soft-deleted, deactivated, or when the DB tokenVersion is newer than the
+ * version carried by the token (a security event bumped it).
+ * Exported for unit testing.
+ */
+export function revalidateTokenFields(
+  dbUser: TokenRevalidationUser | null,
+  currentRole: UserRole | undefined,
+  tokenVersion: number | undefined
+): { role: UserRole; isActive: boolean } {
+  if (!dbUser || dbUser.deletedAt || !dbUser.isActive) {
+    return { role: dbUser?.role ?? currentRole ?? UserRole.VIEWER, isActive: false };
+  }
+  // A newer DB version means the token predates a security event: revoke.
+  if (dbUser.tokenVersion !== (tokenVersion ?? 0)) {
+    return { role: dbUser.role, isActive: false };
+  }
+  return { role: dbUser.role, isActive: true };
+}
+
+/**
  * NextAuth configuration
  */
 export const authConfig = {
+  // Sign JWTs with AUTH_SECRET (v5). v5 does NOT auto-derive a dev secret
+  // (that was v4); it throws MissingSecret when none is resolvable, so dev
+  // needs AUTH_SECRET in .env too. Spread the key only when defined so the
+  // property is absent (not `undefined`) under exactOptionalPropertyTypes;
+  // production is additionally guarded by the boot check above. (#24)
+  ...(authSecret ? { secret: authSecret } : {}),
+
   // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
@@ -91,6 +165,7 @@ export const authConfig = {
               emailVerified: true,
               twoFactorEnabled: true,
               isActive: true,
+              tokenVersion: true,
               department: true,
               avatar: true,
             },
@@ -149,7 +224,9 @@ export const authConfig = {
             },
           });
 
-          // Return the public user object for NextAuth
+          // Return the public user object for NextAuth. tokenVersion must be
+          // carried into the initial token so the first DB re-check does not
+          // wrongly revoke a fresh session (#15).
           return {
             id: user.id,
             email: user.email,
@@ -158,6 +235,7 @@ export const authConfig = {
             emailVerified: user.emailVerified,
             twoFactorEnabled: user.twoFactorEnabled ?? false,
             isActive: user.isActive,
+            tokenVersion: user.tokenVersion,
             department: user.department,
             avatar: user.avatar,
           };
@@ -193,6 +271,7 @@ export const authConfig = {
           role: UserRole.VIEWER, // Default role for OAuth users
           twoFactorEnabled: false,
           isActive: true,
+          tokenVersion: 0,
           department: null,
         };
       },
@@ -243,8 +322,11 @@ export const authConfig = {
         token['role'] = user.role;
         token['emailVerified'] = user.emailVerified;
         token['twoFactorEnabled'] = user.twoFactorEnabled;
+        token['isActive'] = user.isActive ?? true;
+        token['tokenVersion'] = user.tokenVersion ?? 0;
         token['department'] = user.department;
         token['avatar'] = user.avatar;
+        token['checkedAt'] = Date.now();
       }
 
       if (trigger === 'update' && session) {
@@ -258,6 +340,29 @@ export const authConfig = {
         }
       }
 
+      // Re-validate isActive/role/tokenVersion from the DB on a short cache:
+      // deactivating a user or changing their role takes effect within AT
+      // MOST TOKEN_REVALIDATE_MS (60s) per server instance - not immediately
+      // - instead of waiting up to the 30-day token maxAge. session.deleteMany
+      // is inert under the JWT strategy, so this DB re-check is the actual
+      // revocation mechanism. (#15)
+      const userId = token['id'] as string | undefined;
+      if (userId && shouldRevalidateToken(token['checkedAt'] as number | undefined)) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true, isActive: true, deletedAt: true, tokenVersion: true },
+        });
+
+        const revalidated = revalidateTokenFields(
+          dbUser,
+          token['role'] as UserRole | undefined,
+          token['tokenVersion'] as number | undefined
+        );
+        token['role'] = revalidated.role;
+        token['isActive'] = revalidated.isActive;
+        token['checkedAt'] = Date.now();
+      }
+
       return token;
     },
 
@@ -268,6 +373,7 @@ export const authConfig = {
         session.user.role = (token['role'] as UserRole) ?? UserRole.VIEWER;
         session.user.emailVerified = (token['emailVerified'] as Date | null) ?? null;
         session.user.twoFactorEnabled = Boolean(token['twoFactorEnabled']);
+        session.user.isActive = token['isActive'] !== false;
         session.user.department = (token['department'] as string | null) ?? null;
         session.user.avatar = (token['avatar'] as string | null) ?? null;
       }
@@ -354,6 +460,13 @@ export async function requireAuth() {
   const session = await getServerAuth();
 
   if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+
+  // A deactivated / removed user's JWT is still cryptographically valid, but
+  // the jwt callback re-check flags isActive:false. Reject here so every
+  // gated action and layout that calls requireAuth enforces revocation. (#15)
+  if (session.user.isActive === false) {
     throw new Error('Unauthorized');
   }
 

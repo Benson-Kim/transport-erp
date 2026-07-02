@@ -129,11 +129,11 @@ export function getBaseUrl(): string {
 // Get company details
 export function getCompanyDetails() {
   return {
-    name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'Road Freight ERP',
-    address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || '123 Business St • Madrid, Spain 28001',
-    taxId: process.env.NEXT_PUBLIC_COMPANY_TAX_ID || 'B12345678',
-    supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@roadfreight-erp.com',
-    billingEmail: process.env.NEXT_PUBLIC_BILLING_EMAIL || 'billing@roadfreight-erp.com',
+    name: process.env['NEXT_PUBLIC_COMPANY_NAME'] || 'Road Freight ERP',
+    address: process.env['NEXT_PUBLIC_COMPANY_ADDRESS'] || '123 Business St • Madrid, Spain 28001',
+    taxId: process.env['NEXT_PUBLIC_COMPANY_TAX_ID'] || 'B12345678',
+    supportEmail: process.env['NEXT_PUBLIC_SUPPORT_EMAIL'] || 'support@roadfreight-erp.com',
+    billingEmail: process.env['NEXT_PUBLIC_BILLING_EMAIL'] || 'billing@roadfreight-erp.com',
   };
 }
 

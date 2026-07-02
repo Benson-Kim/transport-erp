@@ -35,15 +35,15 @@ export function getEmailConfig(): EmailConfig {
         replyTo: process.env.EMAIL_REPLY_TO || 'support@transport-erp.com',
         baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         company: {
-            name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'Transport ERP',
+            name: process.env['NEXT_PUBLIC_COMPANY_NAME'] || 'Transport ERP',
             address:
-                process.env.NEXT_PUBLIC_COMPANY_ADDRESS ||
+                process.env['NEXT_PUBLIC_COMPANY_ADDRESS'] ||
                 '123 Business St, Madrid, Spain 28001',
-            taxId: process.env.NEXT_PUBLIC_COMPANY_TAX_ID || '',
+            taxId: process.env['NEXT_PUBLIC_COMPANY_TAX_ID'] || '',
             supportEmail:
-                process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@transport-erp.com',
+                process.env['NEXT_PUBLIC_SUPPORT_EMAIL'] || 'support@transport-erp.com',
             billingEmail:
-                process.env.NEXT_PUBLIC_BILLING_EMAIL || 'billing@transport-erp.com',
+                process.env['NEXT_PUBLIC_BILLING_EMAIL'] || 'billing@transport-erp.com',
         },
         sending: {
             enabled: false,

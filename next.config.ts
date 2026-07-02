@@ -1,18 +1,11 @@
 import type { NextConfig } from 'next';
 import createBundleAnalyzer from '@next/bundle-analyzer';
 
+import { securityHeaders } from './src/lib/security-headers';
+
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
 });
-
-const securityHeaders: { key: string; value: string }[] = [
-  { key: 'X-DNS-Prefetch-Control', value: 'on' },
-  { key: 'X-XSS-Protection', value: '1; mode=block' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-];
 
 type NextImageFormats = NonNullable<NonNullable<NextConfig['images']>['formats']>;
 const imageFormats: NextImageFormats = ['image/avif', 'image/webp'];

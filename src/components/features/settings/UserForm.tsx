@@ -22,6 +22,7 @@ import { useForm } from 'react-hook-form';
 import { createUser, updateUser } from '@/actions/user-actions';
 import { UserRole } from '@/app/generated/prisma';
 import { Button, Card, Input, Select, FormField, Switch } from '@/components/ui';
+import { generateSecurePassword } from '@/lib/security/password';
 import { toast } from '@/lib/toast';
 import type {
   CreateUser,
@@ -128,33 +129,11 @@ export function UserForm({
   }, [user, reset]);
 
   /**
-   * Generate secure password
+   * Generate a cryptographically secure password (crypto.getRandomValues,
+   * rejection-sampled - see src/lib/security/password.ts, #19).
    */
   const generatePassword = () => {
-    const upperCase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowerCase = 'abcdefghjkmnpqrstuvwxyz';
-    const numbers = '23456789';
-    const symbols = '!@#$%^&*';
-
-    // Ensure at least one of each type
-    let password = '';
-    password += upperCase[Math.floor(Math.random() * upperCase.length)];
-    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
-
-    // Fill remaining length
-    const allChars = upperCase + lowerCase + numbers + symbols;
-    for (let i = 4; i < 12; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
-    }
-
-    // Shuffle password
-    password = password
-      .split('')
-      .sort(() => Math.random() - 0.5)
-      .join('');
-
+    const password = generateSecurePassword(12);
     setGeneratedPassword(password);
     setValue('password', password, { shouldDirty: true });
     setValue('confirmPassword', password, { shouldDirty: true });
@@ -227,20 +206,12 @@ export function UserForm({
           isEditing ? 'User updated' : 'User created',
           isEditing
             ? 'User information has been updated successfully'
-            : generatedPassword
-              ? `User created successfully. Password: ${generatedPassword}`
-              : 'User has been created successfully'
+            : 'User has been created successfully. Share the password securely.'
         );
 
-        // Auto-copy password for new users
-        if (!isEditing && generatedPassword) {
-          try {
-            await navigator.clipboard.writeText(generatedPassword);
-            toast.info('Password copied', 'The generated password has been copied to clipboard');
-          } catch (error) {
-            // Silent fail for clipboard
-          }
-        }
+        // Do NOT auto-copy or surface the password in a toast - it may be
+        // captured by screen recording, logging, or shared-screen observers.
+        // The admin copies it manually from the visible password field. (#19)
 
         onSuccess();
       }

@@ -8,12 +8,19 @@
 import { revalidatePath } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
-import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
+import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
+import { getServiceWithDetails } from '@/lib/data/service-data';
+import type { Action } from '@/lib/permissions';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
-import { requirePermission } from '@/lib/rbac';
+import {
+  checkPermission,
+  ForbiddenError,
+  requirePermission,
+  requireServiceAccess,
+} from '@/lib/rbac';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -22,7 +29,7 @@ import type { ServiceFiltersAPI } from '@/types/service';
  * Get a single service by ID
  */
 export async function getService(serviceId: string) {
-  await requirePermission('services', 'view');
+  await requireServiceAccess('view', serviceId);
 
   const service = await prisma.service.findFirst({
     where: { id: serviceId, deletedAt: null },
@@ -260,6 +267,10 @@ export async function createService(data: ServiceFormData) {
     serviceStatus = saveData.status || ServiceStatus.DRAFT;
   }
 
+  // A new service may not be born into an elevated status the caller could
+  // not reach via the dedicated action (review !16 R2-2).
+  await requireElevatedStatusTransition(serviceStatus);
+
   // Allocate the service number and insert in one transaction so the counter
   // bump and the row insert commit together (race-free, no P2002).
   const service = await prisma.$transaction(async (tx) => {
@@ -300,7 +311,7 @@ export async function createService(data: ServiceFormData) {
  */
 export async function updateService(serviceId: string, data: ServiceFormData) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const validatedData = serviceSchema.parse(data);
 
@@ -335,6 +346,15 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     serviceStatus = ServiceStatus.COMPLETED;
   } else {
     serviceStatus = dataToStore.status || currentService.status;
+  }
+
+  // The generic edit path may not perform an elevated transition the
+  // dedicated action (markServiceComplete, archiveService, ...) would deny.
+  // This closes a pre-existing hole: serviceSchema accepts any ServiceStatus
+  // and the completed/cancelled flags, so services:edit alone could reach
+  // COMPLETED/INVOICED/CANCELLED/ARCHIVED here. (review !16 R2-2)
+  if (serviceStatus !== currentService.status) {
+    await requireElevatedStatusTransition(serviceStatus);
   }
 
   const timestamps: { completedAt?: Date; cancelledAt?: Date } = {};
@@ -378,7 +398,7 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
  */
 export async function deleteService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'delete');
+  await requireServiceAccess('delete', serviceId);
 
   await prisma.service.update({
     where: { id: serviceId },
@@ -402,7 +422,9 @@ export async function deleteService(serviceId: string) {
  * Duplicate service
  */
 export async function duplicateService(sourceServiceId: string) {
+  await requireAuth();
   await requirePermission('services', 'create');
+  // getService below enforces read access (incl. ownership) on the source.
 
   const sourceService = await getService(sourceServiceId);
 
@@ -423,63 +445,6 @@ export async function duplicateService(sourceServiceId: string) {
   };
 }
 
-/**
- * Get service with all details
- */
-export async function getServiceWithDetails(serviceId: string) {
-  const service = await prisma.service.findFirst({
-    where: {
-      id: serviceId,
-      deletedAt: null,
-    },
-    include: {
-      client: true,
-      supplier: true,
-      createdBy: true,
-      assignedTo: true,
-      invoiceItems: {
-        include: {
-          invoice: {
-            select: {
-              id: true,
-              invoiceNumber: true,
-              status: true,
-            },
-          },
-        },
-      },
-      documents: {
-        where: { deletedAt: null },
-        orderBy: { uploadedAt: 'desc' },
-      },
-      statusHistory: {
-        orderBy: { changedAt: 'desc' },
-        take: 10,
-      },
-    },
-  });
-
-  if (!service) return null;
-
-  const invoice = service.invoiceItems?.[0]?.invoice || null;
-
-  // Calculate edit count from audit logs
-  const editCount = await prisma.auditLog.count({
-    where: {
-      tableName: 'services',
-      recordId: serviceId,
-      action: 'UPDATE',
-    },
-  });
-
-  return {
-    ...service,
-    invoice,
-    invoiceId: invoice?.id,
-    editCount,
-  };
-}
-
 /** Full service payload returned by getServiceWithDetails (type-only export). */
 export type ServiceWithDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithDetails>>>;
 
@@ -490,6 +455,8 @@ export async function getServiceActivity(
   serviceId: string,
   options: { page?: number; limit?: number } = {}
 ) {
+  await requireServiceAccess('view', serviceId);
+
   const { page = 1, limit = 10 } = options;
   const offset = (page - 1) * limit;
 
@@ -583,7 +550,7 @@ export async function getServiceActivity(
  */
 export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'mark_completed');
+  await requireServiceAccess('mark_completed', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
@@ -611,7 +578,7 @@ export async function markServiceComplete(serviceId: string) {
  */
 export async function archiveService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'archive');
+  await requireServiceAccess('archive', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
@@ -639,6 +606,7 @@ export async function archiveService(serviceId: string) {
 export async function generateLoadingOrder(serviceId: string) {
   const session = await requireAuth();
   await requirePermission('documents', 'create');
+  await requireServiceAccess('view', serviceId);
 
   // Get service details
   const service = await getServiceWithDetails(serviceId);
@@ -685,7 +653,7 @@ export async function generateLoadingOrder(serviceId: string) {
  */
 export async function sendServiceEmail(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'edit');
+  await requireServiceAccess('edit', serviceId);
 
   const service = await getServiceWithDetails(serviceId);
   if (!service) throw new Error('Service not found');
@@ -710,6 +678,104 @@ export async function sendServiceEmail(serviceId: string) {
 }
 
 /**
+ * Elevated status DESTINATIONS and the dedicated permission each requires
+ * (review !16 R2-2). Mirrors the single-purpose actions and the
+ * PERMISSION_MATRIX (markServiceComplete -> services:mark_completed,
+ * INVOICED -> services:mark_billed, archiveService -> services:archive,
+ * CANCELLED -> services:cancel), so no generic create/edit/bulk path can
+ * perform a transition whose dedicated action would be denied.
+ * "Bulk = fold of single" applies to the transition, not only the origin
+ * state.
+ */
+const ELEVATED_STATUS_TRANSITIONS: Partial<Record<ServiceStatus, Action>> = {
+  [ServiceStatus.COMPLETED]: 'mark_completed',
+  [ServiceStatus.INVOICED]: 'mark_billed',
+  [ServiceStatus.CANCELLED]: 'cancel',
+  [ServiceStatus.ARCHIVED]: 'archive',
+};
+
+/**
+ * No-op for undefined or non-elevated destinations; throws ForbiddenError
+ * (via requirePermission) when the caller lacks the dedicated permission for
+ * an elevated destination.
+ */
+async function requireElevatedStatusTransition(
+  target: ServiceStatus | undefined
+): Promise<void> {
+  if (!target) return;
+  const requiredAction = ELEVATED_STATUS_TRANSITIONS[target];
+  if (requiredAction) {
+    await requirePermission('services', requiredAction);
+  }
+}
+
+/**
+ * Statuses that are locked for edit/delete unless the caller holds the
+ * elevated edit_completed / delete_completed permission. Mirrors the
+ * single-op guard in updateService (which requires edit_completed for a
+ * COMPLETED service) so bulk paths cannot bypass it. (#20)
+ */
+const PROTECTED_STATUSES: ServiceStatus[] = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
+
+/**
+ * Bulk = fold of single (#16/#20): a bulk operation must enforce every guard
+ * of the single-op path - auth, permission, OPERATOR ownership, the
+ * completed/invoiced elevation, and the soft-delete filter.
+ *
+ * Returns the ids that exist and are not soft-deleted, plus an invariantWhere
+ * fragment that re-asserts the guards inside the UPDATE itself (TOCTOU: a
+ * service transitioning to COMPLETED/INVOICED - or being reassigned - between
+ * the read and the write is excluded by the database, and the returned count
+ * stays honest).
+ *
+ * Throws when the selection includes services the caller may not touch,
+ * exactly like the single-op path refuses them.
+ */
+async function assertBulkServiceInvariants(
+  serviceIds: string[],
+  elevatedAction: 'edit_completed' | 'delete_completed',
+  user: { id: string; role: UserRole }
+): Promise<{ targetIds: string[]; invariantWhere: Prisma.ServiceWhereInput }> {
+  const services = await prisma.service.findMany({
+    where: { id: { in: serviceIds }, deletedAt: null },
+    select: { id: true, status: true, createdById: true, assignedToId: true },
+  });
+
+  // OPERATOR is ownership-scoped exactly like requireServiceAccess (#16):
+  // reject rather than silently filter, so the UI cannot lie about scope.
+  if (user.role === UserRole.OPERATOR) {
+    const notOwned = services.filter(
+      (s) => s.createdById !== user.id && s.assignedToId !== user.id
+    );
+    if (notOwned.length > 0) {
+      // Typed per the authz contract (review !16 R2-1): pages catch by
+      // instanceof and must render access-denied, not crash to the boundary.
+      throw new ForbiddenError('Forbidden: selection includes services you do not have access to');
+    }
+  }
+
+  const elevated = await checkPermission('services', elevatedAction);
+  const hasProtected = services.some((s) => PROTECTED_STATUSES.includes(s.status));
+  if (hasProtected && !elevated) {
+    throw new ForbiddenError(
+      'Selection includes completed or invoiced services. ' +
+        'You do not have permission to modify them.'
+    );
+  }
+
+  // Re-asserted inside the mutation's WHERE (TOCTOU guard).
+  const invariantWhere: Prisma.ServiceWhereInput = {
+    deletedAt: null,
+    ...(elevated ? {} : { status: { notIn: PROTECTED_STATUSES } }),
+    ...(user.role === UserRole.OPERATOR
+      ? { OR: [{ createdById: user.id }, { assignedToId: user.id }] }
+      : {}),
+  };
+
+  return { targetIds: services.map((s) => s.id), invariantWhere };
+}
+
+/**
  * Bulk update services
  */
 export async function bulkUpdateServices(
@@ -719,11 +785,25 @@ export async function bulkUpdateServices(
   const session = await requireAuth();
   await requirePermission('services', 'edit');
 
-  await prisma.service.updateMany({
-    where: {
-      id: { in: serviceIds },
-      deletedAt: null,
-    },
+  // Bulk = fold of single applies to the TRANSITION too (review !16 R2-2):
+  // setting an elevated status in bulk demands the same dedicated permission
+  // as the single-op action would - checked before touching any data.
+  await requireElevatedStatusTransition(updates.status);
+
+  // Enforce the same guards as the single-op path - including OPERATOR
+  // ownership - and only operate on the ids that pass. (#16/#20)
+  const { targetIds, invariantWhere } = await assertBulkServiceInvariants(
+    serviceIds,
+    'edit_completed',
+    session.user
+  );
+
+  if (targetIds.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const result = await prisma.service.updateMany({
+    where: { id: { in: targetIds }, ...invariantWhere },
     data: updates,
   });
 
@@ -732,13 +812,13 @@ export async function bulkUpdateServices(
     userId: session.user.id,
     action: 'UPDATE',
     tableName: 'services',
-    recordId: serviceIds.join(','),
-    metadata: { bulk: true, updates },
+    recordId: targetIds.join(','),
+    metadata: { bulk: true, updates, count: result.count },
   });
 
   revalidatePath('/services');
 
-  return { success: true };
+  return { success: true, count: result.count };
 }
 
 /**
@@ -748,10 +828,21 @@ export async function bulkDeleteServices(serviceIds: string[]) {
   const session = await requireAuth();
   await requirePermission('services', 'delete');
 
-  await prisma.service.updateMany({
-    where: {
-      id: { in: serviceIds },
-    },
+  // Same invariants as single delete: OPERATOR ownership, never re-stamp
+  // already-deleted rows, and refuse completed/invoiced services unless the
+  // caller holds delete_completed. (#16/#20)
+  const { targetIds, invariantWhere } = await assertBulkServiceInvariants(
+    serviceIds,
+    'delete_completed',
+    session.user
+  );
+
+  if (targetIds.length === 0) {
+    return { success: true, count: 0 };
+  }
+
+  const result = await prisma.service.updateMany({
+    where: { id: { in: targetIds }, ...invariantWhere },
     data: { deletedAt: new Date() },
   });
 
@@ -760,23 +851,34 @@ export async function bulkDeleteServices(serviceIds: string[]) {
     userId: session.user.id,
     action: 'DELETE',
     tableName: 'services',
-    recordId: serviceIds.join(','),
-    metadata: { bulk: true },
+    recordId: targetIds.join(','),
+    metadata: { bulk: true, count: result.count },
   });
 
   revalidatePath('/services');
 
-  return { success: true };
+  return { success: true, count: result.count };
 }
 
 /**
  * Generate bulk loading orders
  */
-export async function generateBulkLoadingOrders(serviceIds: string[]) {
+export async function generateBulkLoadingOrders(_serviceIds: string[]) {
+  await requireAuth();
   await requirePermission('documents', 'create');
 
-  // TODO: Implementation for generating loading orders
-  // This would group services and create loading order documents
+  // TODO: Implementation for generating loading orders.
+  // MANDATORY when implemented (#16): every id must pass
+  // requireServiceAccess('view', id) - per-service ownership - exactly like
+  // generateLoadingOrder does on the single-service path. Do not ship an
+  // implementation without that guard.
+  // This would group services and create loading order documents.
 
-  return { success: true, count: serviceIds.length };
+  // Honest counts (review !16 R2-3): a stub must not claim success for work
+  // it did not do - the UI would confidently lie on its behalf.
+  return {
+    success: false as const,
+    error: 'Bulk loading-order generation is not implemented yet',
+    count: 0,
+  };
 }

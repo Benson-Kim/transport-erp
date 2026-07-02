@@ -52,13 +52,13 @@ export default function EmailConfiguration() {
               label="API Key"
               error={errors.email?.apiKey?.message ?? ''}
               required
-              helperText="Found in your Resend dashboard"
+              helperText="Found in your Resend dashboard. Leave blank to keep the stored key."
             >
               <div className="relative">
                 <Input
                   {...field}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="re_..."
+                  placeholder="•••• (unchanged)"
                   autoComplete="off"
                   className="pr-10"
                 />

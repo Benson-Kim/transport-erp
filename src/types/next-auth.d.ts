@@ -13,6 +13,7 @@ declare module 'next-auth' {
       role: UserRole;
       emailVerified: Date | null;
       twoFactorEnabled: boolean;
+      isActive: boolean;
       department?: string | null;
       avatar?: string | null;
     }
@@ -29,6 +30,7 @@ declare module 'next-auth' {
     department?: string | null;
     avatar?: string | null;
     isActive: boolean;
+    tokenVersion?: number;
   }
 }
 
@@ -39,6 +41,11 @@ declare module 'next-auth/jwt' {
     role?: UserRole;
     emailVerified?: Date | null;
     twoFactorEnabled?: boolean;
+    isActive?: boolean;
+    /** User.tokenVersion at sign-in; a DB bump revokes stale tokens. */
+    tokenVersion?: number;
+    /** Epoch ms of the last DB re-validation of isActive/role/tokenVersion. */
+    checkedAt?: number;
     department?: string | null;
     avatar?: string | null;
   }

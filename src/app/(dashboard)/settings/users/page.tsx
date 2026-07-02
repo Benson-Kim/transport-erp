@@ -30,7 +30,8 @@ export default async function UsersPage() {
 
   // Check permission using centralized system
   if (!hasPermission(userRole, RESOURCES.USERS, ACTIONS.VIEW)) {
-    redirect('/settings/profile');
+    // /settings/profile does not exist; send under-privileged users home (#17).
+    redirect('/dashboard');
   }
 
   // Fetch all users with stats (excluding soft deleted)
