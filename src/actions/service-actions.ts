@@ -28,7 +28,7 @@ import {
   requirePermission,
   requireServiceAccess,
 } from '@/lib/rbac';
-import { assertTransition } from '@/lib/service-status';
+import { assertTransition, legalSourceStatuses } from '@/lib/service-status';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
@@ -350,12 +350,12 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   const validatedData = serviceSchema.parse(data);
 
-  const currentService = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!currentService) throw new Error('Service not found');
-
-  if (currentService.status === ServiceStatus.COMPLETED) {
-    await requirePermission('services', 'edit_completed');
-  }
+  // Permission facts are precomputed OUTSIDE the transaction (they depend
+  // only on the caller, not on the row). The row itself is read INSIDE the
+  // transaction below: asserting permissions or the state machine against a
+  // read taken outside it is a stale snapshot under concurrency
+  // (review !17 blocker 2).
+  const canEditCompleted = await checkPermission('services', 'edit_completed');
 
   // Canonical pricing (#25) + non-destructive cancel (#28): the booked
   // cost/sale figures are ALWAYS stored and margins computed from them. The
@@ -374,56 +374,84 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
   const { completed, cancelled, totalCost, sale, kilometers, pricePerKm, extras, ...dataToStore } =
     validatedData;
 
-  let serviceStatus: ServiceStatus;
+  // The explicitly requested destination status (undefined = keep current).
+  let requestedStatus: ServiceStatus | undefined;
   if (cancelled) {
-    serviceStatus = ServiceStatus.CANCELLED;
+    requestedStatus = ServiceStatus.CANCELLED;
   } else if (completed) {
-    serviceStatus = ServiceStatus.COMPLETED;
+    requestedStatus = ServiceStatus.COMPLETED;
   } else {
-    serviceStatus = dataToStore.status || currentService.status;
+    requestedStatus = dataToStore.status;
   }
 
   // The generic edit path may not perform an elevated transition the
-  // dedicated action (markServiceComplete, archiveService, ...) would deny.
-  // This closes a pre-existing hole: serviceSchema accepts any ServiceStatus
-  // and the completed/cancelled flags, so services:edit alone could reach
-  // COMPLETED/INVOICED/CANCELLED/ARCHIVED here. (review !16 R2-2)
-  if (serviceStatus !== currentService.status) {
-    await requireElevatedStatusTransition(serviceStatus);
-    // Lifecycle state machine (#27): reject illegal moves before any write
-    // (e.g. CANCELLED -> IN_PROGRESS, INVOICED -> DRAFT).
-    assertTransition(currentService.status, serviceStatus);
-  }
+  // dedicated action (markServiceComplete, archiveService, ...) would deny
+  // (review !16 R2-2). The permission FACT depends only on the caller and is
+  // precomputed here; whether a transition actually happens is decided
+  // inside the transaction against the fresh row.
+  const requestedElevatedAction = requestedStatus
+    ? ELEVATED_STATUS_TRANSITIONS[requestedStatus]
+    : undefined;
+  const requestedElevatedGranted = requestedElevatedAction
+    ? await checkPermission('services', requestedElevatedAction)
+    : true;
 
-  const timestamps: { completedAt?: Date; cancelledAt?: Date | null } = {};
-  if (completed) timestamps.completedAt = new Date();
-  if (cancelled) timestamps.cancelledAt = new Date();
-  // Reactivating a cancelled service clears the cancellation timestamp -
-  // cancel is a reversible state, not a destructive event (#28).
-  if (
-    !cancelled &&
-    currentService.status === ServiceStatus.CANCELLED &&
-    serviceStatus !== ServiceStatus.CANCELLED
-  ) {
-    timestamps.cancelledAt = null;
-  }
-
-  const updateData = {
-    ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
-    costAmount: round2(costAmount),
-    saleAmount: round2(saleAmount),
-    margin: pricing.margin,
-    marginPercentage: pricing.marginPercentage,
-    costVatAmount: pricing.costVatAmount,
-    saleVatAmount: pricing.saleVatAmount,
-    status: serviceStatus,
-    ...timestamps,
-  };
-
-  // Money-critical mutation (#27): the update, the status-history row and
-  // the audit row commit - or roll back - together.
+  // Money-critical mutation (#27): the row is READ, the state machine
+  // asserted, and the update + status-history + audit rows written inside
+  // one Serializable transaction. A concurrent status change surfaces as a
+  // serialization failure and retries the whole callback against fresh data
+  // (review !17 blocker 2) - the stale-read race that made
+  // INVOICED -> DRAFT reachable is closed at the database.
   const service = await withTransaction(
     async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
+
+      if (currentService.status === ServiceStatus.COMPLETED && !canEditCompleted) {
+        throw new ForbiddenError('Insufficient permissions: services:edit_completed required');
+      }
+
+      const serviceStatus = requestedStatus ?? currentService.status;
+
+      if (serviceStatus !== currentService.status) {
+        if (requestedElevatedAction && !requestedElevatedGranted) {
+          throw new ForbiddenError(
+            `Insufficient permissions: services:${requestedElevatedAction} required`
+          );
+        }
+        // Lifecycle state machine (#27): reject illegal moves before any
+        // write (e.g. CANCELLED -> IN_PROGRESS, INVOICED -> DRAFT), against
+        // the freshly read status.
+        assertTransition(currentService.status, serviceStatus);
+      }
+
+      const timestamps: { completedAt?: Date; cancelledAt?: Date | null } = {};
+      if (completed) timestamps.completedAt = new Date();
+      if (cancelled) timestamps.cancelledAt = new Date();
+      // Reactivating a cancelled service clears the cancellation timestamp -
+      // cancel is a reversible state, not a destructive event (#28).
+      if (
+        !cancelled &&
+        currentService.status === ServiceStatus.CANCELLED &&
+        serviceStatus !== ServiceStatus.CANCELLED
+      ) {
+        timestamps.cancelledAt = null;
+      }
+
+      const updateData = {
+        ...(Object.fromEntries(
+          Object.entries(dataToStore).filter(([_, v]) => v !== undefined)
+        ) as any),
+        costAmount: round2(costAmount),
+        saleAmount: round2(saleAmount),
+        margin: pricing.margin,
+        marginPercentage: pricing.marginPercentage,
+        costVatAmount: pricing.costVatAmount,
+        saleVatAmount: pricing.saleVatAmount,
+        status: serviceStatus,
+        ...timestamps,
+      };
+
       const updated = await tx.service.update({
         where: { id: serviceId },
         data: updateData,
@@ -627,45 +655,51 @@ export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
   await requireServiceAccess('mark_completed', serviceId);
 
-  const currentService = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!currentService) throw new Error('Service not found');
+  // Read + state machine + write + history + audit in ONE Serializable
+  // transaction (review !17 blocker 2): asserting the transition against a
+  // row read outside the transaction is a stale snapshot under concurrency.
+  const service = await withTransaction(
+    async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
 
-  // Lifecycle state machine (#27).
-  assertTransition(currentService.status, ServiceStatus.COMPLETED);
+      // Lifecycle state machine (#27), asserted against the fresh row.
+      assertTransition(currentService.status, ServiceStatus.COMPLETED);
 
-  const service = await withTransaction(async (tx) => {
-    const updated = await tx.service.update({
-      where: { id: serviceId },
-      data: {
-        status: ServiceStatus.COMPLETED,
-        completedAt: new Date(),
-      },
-    });
-
-    if (currentService.status !== ServiceStatus.COMPLETED) {
-      await tx.serviceStatusHistory.create({
+      const updated = await tx.service.update({
+        where: { id: serviceId },
         data: {
-          serviceId,
-          fromStatus: currentService.status,
-          toStatus: ServiceStatus.COMPLETED,
-          changedBy: session.user.id,
+          status: ServiceStatus.COMPLETED,
+          completedAt: new Date(),
         },
       });
-    }
 
-    await createAuditLog(
-      {
-        userId: session.user.id,
-        action: 'COMPLETE',
-        tableName: 'services',
-        recordId: serviceId,
-        newValues: { status: ServiceStatus.COMPLETED },
-      },
-      tx
-    );
+      if (currentService.status !== ServiceStatus.COMPLETED) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId,
+            fromStatus: currentService.status,
+            toStatus: ServiceStatus.COMPLETED,
+            changedBy: session.user.id,
+          },
+        });
+      }
 
-    return updated;
-  });
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'COMPLETE',
+          tableName: 'services',
+          recordId: serviceId,
+          newValues: { status: ServiceStatus.COMPLETED },
+        },
+        tx
+      );
+
+      return updated;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath(`/services/${serviceId}`);
 
@@ -679,44 +713,50 @@ export async function archiveService(serviceId: string) {
   const session = await requireAuth();
   await requireServiceAccess('archive', serviceId);
 
-  const currentService = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!currentService) throw new Error('Service not found');
+  // Read + state machine + write + history + audit in ONE Serializable
+  // transaction (review !17 blocker 2): asserting the transition against a
+  // row read outside the transaction is a stale snapshot under concurrency.
+  const service = await withTransaction(
+    async (tx) => {
+      const currentService = await tx.service.findUnique({ where: { id: serviceId } });
+      if (!currentService) throw new Error('Service not found');
 
-  // Lifecycle state machine (#27).
-  assertTransition(currentService.status, ServiceStatus.ARCHIVED);
+      // Lifecycle state machine (#27), asserted against the fresh row.
+      assertTransition(currentService.status, ServiceStatus.ARCHIVED);
 
-  const service = await withTransaction(async (tx) => {
-    const updated = await tx.service.update({
-      where: { id: serviceId },
-      data: {
-        status: ServiceStatus.ARCHIVED,
-        archivedAt: new Date(),
-      },
-    });
-
-    if (currentService.status !== ServiceStatus.ARCHIVED) {
-      await tx.serviceStatusHistory.create({
+      const updated = await tx.service.update({
+        where: { id: serviceId },
         data: {
-          serviceId,
-          fromStatus: currentService.status,
-          toStatus: ServiceStatus.ARCHIVED,
-          changedBy: session.user.id,
+          status: ServiceStatus.ARCHIVED,
+          archivedAt: new Date(),
         },
       });
-    }
 
-    await createAuditLog(
-      {
-        userId: session.user.id,
-        action: 'ARCHIVE',
-        tableName: 'services',
-        recordId: serviceId,
-      },
-      tx
-    );
+      if (currentService.status !== ServiceStatus.ARCHIVED) {
+        await tx.serviceStatusHistory.create({
+          data: {
+            serviceId,
+            fromStatus: currentService.status,
+            toStatus: ServiceStatus.ARCHIVED,
+            changedBy: session.user.id,
+          },
+        });
+      }
 
-    return updated;
-  });
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'ARCHIVE',
+          tableName: 'services',
+          recordId: serviceId,
+        },
+        tx
+      );
+
+      return updated;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath(`/services/${serviceId}`);
 
@@ -934,55 +974,80 @@ export async function bulkUpdateServices(
 
   const nextStatus = updates.status;
 
-  // Bulk mutation, history and audit in one tx (#27). Rows are re-read
-  // inside the transaction with the invariant WHERE so the history rows
-  // describe exactly what the UPDATE touches (TOCTOU-safe), and lifecycle
-  // legality is asserted per row - bulk = fold of single applies to the
-  // state machine too.
-  const result = await withTransaction(async (tx) => {
-    const rows = await tx.service.findMany({
-      where: { id: { in: targetIds }, ...invariantWhere },
-      select: { id: true, status: true },
-    });
+  // Bulk mutation, history and audit in one Serializable tx (#27). Rows are
+  // re-read inside the transaction with the invariant WHERE so the history
+  // rows describe exactly what the UPDATE touches, and lifecycle legality is
+  // asserted per row - bulk = fold of single applies to the state machine
+  // too.
+  const result = await withTransaction(
+    async (tx) => {
+      const rows = await tx.service.findMany({
+        where: { id: { in: targetIds }, ...invariantWhere },
+        select: { id: true, status: true },
+      });
 
-    if (nextStatus) {
-      for (const row of rows) {
-        assertTransition(row.status, nextStatus);
+      if (nextStatus) {
+        for (const row of rows) {
+          assertTransition(row.status, nextStatus);
+        }
       }
-    }
 
-    const updateResult = await tx.service.updateMany({
-      where: { id: { in: rows.map((row) => row.id) } },
-      data: updates,
-    });
+      // The invariants and the state machine are re-asserted INSIDE the
+      // UPDATE's WHERE (review !17 blocker 1 - the #20 TOCTOU guarantee): a
+      // row that is soft-deleted, reassigned, or transitioned to a
+      // protected/illegal source status between the read and the write is
+      // excluded by the database itself. AND-composed so the two status
+      // conditions cannot clobber each other.
+      const updateResult = await tx.service.updateMany({
+        where: {
+          AND: [
+            { id: { in: rows.map((row) => row.id) } },
+            invariantWhere,
+            ...(nextStatus ? [{ status: { in: legalSourceStatuses(nextStatus) } }] : []),
+          ],
+        },
+        data: updates,
+      });
 
-    if (nextStatus) {
-      const changed = rows.filter((row) => row.status !== nextStatus);
-      if (changed.length > 0) {
-        await tx.serviceStatusHistory.createMany({
-          data: changed.map((row) => ({
-            serviceId: row.id,
-            fromStatus: row.status,
-            toStatus: nextStatus,
-            changedBy: session.user.id,
-          })),
-        });
+      // Honest history: the rows read (which feed ServiceStatusHistory) must
+      // be exactly the rows updated. Under Serializable a divergence
+      // surfaces as a retried serialization failure; this guard rolls the
+      // transaction back should any path ever let them diverge.
+      if (updateResult.count !== rows.length) {
+        throw new Error(
+          `Bulk update aborted: read ${rows.length} rows but updated ${updateResult.count}`
+        );
       }
-    }
 
-    await createAuditLog(
-      {
-        userId: session.user.id,
-        action: 'UPDATE',
-        tableName: 'services',
-        recordId: targetIds.join(','),
-        metadata: { bulk: true, updates, count: updateResult.count },
-      },
-      tx
-    );
+      if (nextStatus) {
+        const changed = rows.filter((row) => row.status !== nextStatus);
+        if (changed.length > 0) {
+          await tx.serviceStatusHistory.createMany({
+            data: changed.map((row) => ({
+              serviceId: row.id,
+              fromStatus: row.status,
+              toStatus: nextStatus,
+              changedBy: session.user.id,
+            })),
+          });
+        }
+      }
 
-    return updateResult;
-  });
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'UPDATE',
+          tableName: 'services',
+          recordId: targetIds.join(','),
+          metadata: { bulk: true, updates, count: updateResult.count },
+        },
+        tx
+      );
+
+      return updateResult;
+    },
+    { isolationLevel: 'Serializable' }
+  );
 
   revalidatePath('/services');
 

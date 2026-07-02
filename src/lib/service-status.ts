@@ -77,3 +77,16 @@ export function assertTransition(from: ServiceStatus, to: ServiceStatus): void {
     throw new IllegalStatusTransitionError(from, to);
   }
 }
+
+/**
+ * All statuses from which `to` is legally reachable - including `to` itself
+ * (same-status writes are legal no-ops). Lets mutation paths re-assert the
+ * state machine INSIDE an UPDATE's WHERE clause, so a row whose status
+ * changed between read and write is excluded by the database itself
+ * (review !17 blocker 1).
+ */
+export function legalSourceStatuses(to: ServiceStatus): ServiceStatus[] {
+  return (Object.keys(ALLOWED_TRANSITIONS) as ServiceStatus[]).filter((from) =>
+    canTransition(from, to)
+  );
+}
