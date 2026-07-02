@@ -8,7 +8,7 @@
 import { revalidatePath } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
-import { ServiceStatus, DocumentType } from '@/app/generated/prisma';
+import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
