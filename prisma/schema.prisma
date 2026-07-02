@@ -270,7 +270,10 @@ model Client {
   shippingAddress Json? // Optional different shipping address
 
   // Normalized, indexable copy of billingAddress->>'country'. DB-generated
-  // (GENERATED ALWAYS ... STORED); never written by the app. See #14.
+  // (GENERATED ALWAYS ... STORED). Postgres rejects any write to it - proven
+  // by tests/db/billing-country.test.ts. Prisma's types still accept it in
+  // create/update inputs; a compile-level Omit guard on the action input
+  // types is deferred to the typed-DTO phase. See #14.
   billingCountry String?
 
   // Contacts
