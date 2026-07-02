@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, RefreshCw, Info, Plus, ArrowRight } from 'lucide-react';
 
 import { PageHeader, Alert, Button, Card, CardBody, EmptyState } from '@/components/ui';
-import { formatPercentage } from '@/lib/utils/formatting';
+import { formatPercentPoints } from '@/lib/utils/formatting';
 import { refreshDashboardData } from '@/actions/dashboard-actions';
 
 interface DashboardHeaderProps {
@@ -95,8 +95,9 @@ export function PerformanceTip({ averageMargin }: PerformanceTipProps) {
           <div className="space-y-1">
             <p className="text-sm font-medium">Performance Tip</p>
             <p className="text-xs text-muted-foreground">
-              Your average margin is {formatPercentage(averageMargin)}. Consider reviewing services
-              with margins below this threshold.
+              {/* averageMargin is percent POINTS (like StatsCard/MiniStats). */}
+              Your average margin is {formatPercentPoints(averageMargin)}. Consider reviewing
+              services with margins below this threshold.
             </p>
             <Button
               variant="ghost"

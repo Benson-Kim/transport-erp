@@ -103,12 +103,12 @@ describe('non-destructive cancel (#28)', () => {
     await updateService('s1', form({ cancelled: true }));
 
     const { data } = updateArgs();
-    // Booked money preserved - NOT zeroed.
-    expect(String(data.costAmount)).toBe('100');
-    expect(String(data.saleAmount)).toBe('150');
-    expect(String(data.margin)).toBe('50');
-    expect(data.status).toBe(ServiceStatus.CANCELLED);
-    expect(data.cancelledAt).toBeInstanceOf(Date);
+    // Booked money preserved - NOT zeroed. (Bracket access: index signature.)
+    expect(String(data['costAmount'])).toBe('100');
+    expect(String(data['saleAmount'])).toBe('150');
+    expect(String(data['margin'])).toBe('50');
+    expect(data['status']).toBe(ServiceStatus.CANCELLED);
+    expect(data['cancelledAt']).toBeInstanceOf(Date);
   });
 
   it('cancel -> uncancel round-trip restores figures and clears cancelledAt', async () => {
@@ -117,10 +117,10 @@ describe('non-destructive cancel (#28)', () => {
     await updateService('s1', form({ cancelled: false, status: ServiceStatus.DRAFT }));
 
     const { data } = updateArgs();
-    expect(String(data.costAmount)).toBe('100');
-    expect(String(data.saleAmount)).toBe('150');
-    expect(data.status).toBe(ServiceStatus.DRAFT);
-    expect(data.cancelledAt).toBeNull();
+    expect(String(data['costAmount'])).toBe('100');
+    expect(String(data['saleAmount'])).toBe('150');
+    expect(data['status']).toBe(ServiceStatus.DRAFT);
+    expect(data['cancelledAt']).toBeNull();
   });
 });
 
