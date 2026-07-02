@@ -15,6 +15,14 @@ import {
 } from 'lucide-react';
 
 import { Card, CardBody, Badge } from '@/components/ui';
+import {
+  decimalToNumber,
+  margin as computeMargin,
+  marginPercentage,
+  markupPercentage,
+  round2,
+  toDecimal,
+} from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
 import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
 import { formatDate } from '@/lib/utils/date-formats';
@@ -24,14 +32,17 @@ interface ServiceDetailProps {
 }
 
 export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
-  // Calculate totals with VAT
-  const costTotalWithVat = Number(service.costAmount) + Number(service.costVatAmount);
-  const saleTotalWithVat = Number(service.saleAmount) + Number(service.saleVatAmount);
-
-  // Calculate margins
-  const margin = Number(service.saleAmount) - Number(service.costAmount);
-  const marginPercent =
-    Number(service.saleAmount) > 0 ? (margin / Number(service.saleAmount)) * 100 : 0;
+  // Canonical pricing (#25): totals and margins in Decimal, not float math.
+  const costTotalWithVat = decimalToNumber(
+    round2(toDecimal(service.costAmount).plus(toDecimal(service.costVatAmount)))
+  );
+  const saleTotalWithVat = decimalToNumber(
+    round2(toDecimal(service.saleAmount).plus(toDecimal(service.saleVatAmount)))
+  );
+  const margin = decimalToNumber(computeMargin(service.saleAmount, service.costAmount));
+  const marginPercent = decimalToNumber(
+    marginPercentage(service.saleAmount, service.costAmount)
+  );
 
   return (
     <div className="space-y-6">
@@ -263,10 +274,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                 <div>
                   <dt className="text-xs text-muted-foreground">Markup %</dt>
                   <dd className="font-bold text-lg">
-                    {Number(service.costAmount) > 0
-                      ? ((margin / Number(service.costAmount)) * 100).toFixed(2)
-                      : '0.00'}
-                    %
+                    {markupPercentage(service.saleAmount, service.costAmount).toFixed(2)}%
                   </dd>
                 </div>
               </div>
