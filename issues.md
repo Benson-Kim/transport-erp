@@ -1172,7 +1172,7 @@ Confirmed `reports/revenue` is also a stub. And a compile-breaking prop mismatch
 2. `verify-email/page.tsx` and `reset-password/page.tsx` reference `Metadata` **without importing it** → **compile errors**.
 3. `settings/system/page.tsx` passes `initialSettings` to a **propless component** → wasted server fetch + likely compile error + double fetch.
 4. `services/[id]/edit` fetches via **`getService` (partial projection)** → **service edit silently blanks/overwrites all unfetched fields** (data loss).
-5. Root `/` = **Next.js starter template** (unprotected).
+5. Root `/` = **Next.js starter template** — CORRECTED: dead code only (next.config redirects `/` → `/dashboard`; the running proxy.ts protects it). Delete the scaffold.
 6. **5 route stubs**: `/suppliers`, `/reports`, `/reports/margins`, `/reports/revenue`, `/documents`, `/settings` — core Suppliers, Reports, and Documents/Invoicing verticals are unbuilt but heavily linked.
 
 **New/confirmed patterns:**
