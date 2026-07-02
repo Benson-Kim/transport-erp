@@ -195,6 +195,29 @@ const configs = defineConfig([
     },
   },
 
+  // Money paths (#25): never coerce money through JS Number(). Do the
+  // arithmetic in Decimal via src/lib/pricing.ts and use decimalToNumber()
+  // only at display/DTO boundaries.
+  {
+    name: 'project:money-paths',
+    files: [
+      'src/lib/pricing.ts',
+      'src/actions/service-actions.ts',
+      'src/lib/utils/dashboard-helpers.ts',
+    ],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.name='Number']",
+          message:
+            'Money paths must not coerce through Number(); use the Decimal helpers in ' +
+            'src/lib/pricing.ts and decimalToNumber() only at display/DTO boundaries.',
+        },
+      ],
+    },
+  },
+
   // Prettier
   eslintConfigPrettier,
 ]);
@@ -215,7 +238,9 @@ const configs = defineConfig([
  * RATCHET: when a phase eliminates all violations of a rule, add the rule
  * name to KEEP_AS_ERROR to make it blocking again. Never remove entries.
  */
-const KEEP_AS_ERROR = new Set([]);
+// 'no-restricted-syntax' guards the money paths (#25): those files are
+// violation-free, so the rule blocks.
+const KEEP_AS_ERROR = new Set(['no-restricted-syntax']);
 
 function downgradeSeverity(name, value) {
   if (KEEP_AS_ERROR.has(name)) {
