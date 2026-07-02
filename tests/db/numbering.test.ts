@@ -31,7 +31,12 @@ it('allocates distinct, contiguous numbers under concurrency (#12)', async () =>
   const unique = new Set(numbers);
   expect(unique.size).toBe(N);
 
-  // The sequential parts must be exactly 1..N (no gaps, no repeats).
+  // Contiguity note (review !15 item 9): 1..N holds here ONLY because these
+  // allocations auto-commit. Under the intended transactional usage, a
+  // rolled-back transaction burns its number and leaves a gap BY DESIGN
+  // (numbers are gap-tolerant). If this assertion ever fails after adding
+  // transactional allocations to this test, relax the assertion - do NOT
+  // "fix" the allocator to be gapless.
   const seqs = numbers.map((n) => Number(n.split('-').at(-1))).sort((a, b) => a - b);
   expect(seqs).toEqual(Array.from({ length: N }, (_, i) => i + 1));
 });

@@ -601,16 +601,24 @@ async function createSingleInvoice(
 ): Promise<Invoice> {
   console.log('Creating invoices and payments...');
 
-  // Calculate amounts. Round every component to 2 decimals BEFORE composing the
-  // total so it matches the stored Decimal(10,2) values exactly and satisfies
-  // invoices_total_composition_check (#11).
-  const round2 = (n: number) => Math.round(n * 100) / 100;
+  // Compose money in INTEGER CENTS (review !15 item 10): the invoice faces the
+  // exact-equality CHECK invoices_total_composition_check (#11), and
+  // per-component Math.round(n * 100) / 100 has binary-float edges (1.005).
+  // Integer-cent arithmetic makes total = subtotal + tax - irpf exact by
+  // construction. This is also the reference pattern for app code facing the
+  // same constraint.
+  const toCents = (n: number) => Math.round(n * 100);
 
-  const subtotal = round2(invoiceServices.reduce((sum, s) => sum + Number(s.costAmount), 0));
-  const taxAmount = round2(subtotal * 0.21);
+  const subtotalCents = invoiceServices.reduce((sum, s) => sum + toCents(Number(s.costAmount)), 0);
+  const taxCents = Math.round(subtotalCents * 0.21);
   const irpfRate = supplier.irpfRate ? Number(supplier.irpfRate) : 0;
-  const irpfAmount = irpfRate > 0 ? round2(subtotal * (irpfRate / 100)) : 0;
-  const totalAmount = round2(subtotal + taxAmount - irpfAmount);
+  const irpfCents = irpfRate > 0 ? Math.round((subtotalCents * irpfRate) / 100) : 0;
+  const totalCents = subtotalCents + taxCents - irpfCents;
+
+  const subtotal = subtotalCents / 100;
+  const taxAmount = taxCents / 100;
+  const irpfAmount = irpfCents / 100;
+  const totalAmount = totalCents / 100;
 
   const invoiceDate = subDays(currentDate, 45 - index * 3);
   const dueDate = addDays(invoiceDate, supplier.paymentTerms ?? 30);

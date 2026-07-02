@@ -299,6 +299,11 @@ export async function generateUniqueIdentifier(
   _model?: string,
   _field?: string
 ): Promise<string> {
+  console.warn(
+    'generateUniqueIdentifier is deprecated (#61): model/field arguments are ignored, and ' +
+      'allocating outside the create transaction burns a number if the subsequent insert fails. ' +
+      'Call generateDocumentNumber(tx, prefix) inside the create transaction instead.'
+  );
   return generateDocumentNumber(prisma, prefix);
 }
 

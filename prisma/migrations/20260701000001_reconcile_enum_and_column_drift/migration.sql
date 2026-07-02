@@ -8,6 +8,11 @@
 -- Note: `ALTER TYPE ... ADD VALUE` must be committed before the value can be
 -- used. Keeping these additions in a dedicated migration guarantees they land
 -- before the CHECK/sequence/index migrations that follow.
+--
+-- Postgres version assumption: PG >= 12 (CI runs postgres:16). Before PG 12,
+-- ALTER TYPE ... ADD VALUE cannot run inside a transaction block at all, and
+-- Prisma wraps each migration in a transaction - do not deploy this migration
+-- to an older server.
 
 -- ServiceStatus: add ARCHIVED
 ALTER TYPE "ServiceStatus" ADD VALUE IF NOT EXISTS 'ARCHIVED';
