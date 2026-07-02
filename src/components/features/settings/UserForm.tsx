@@ -129,33 +129,11 @@ export function UserForm({
   }, [user, reset]);
 
   /**
-   * Generate secure password
+   * Generate a cryptographically secure password (crypto.getRandomValues,
+   * rejection-sampled - see src/lib/security/password.ts, #19).
    */
   const generatePassword = () => {
-    const upperCase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lowerCase = 'abcdefghjkmnpqrstuvwxyz';
-    const numbers = '23456789';
-    const symbols = '!@#$%^&*';
-
-    // Ensure at least one of each type
-    let password = '';
-    password += upperCase[Math.floor(Math.random() * upperCase.length)];
-    password += lowerCase[Math.floor(Math.random() * lowerCase.length)];
-    password += numbers[Math.floor(Math.random() * numbers.length)];
-    password += symbols[Math.floor(Math.random() * symbols.length)];
-
-    // Fill remaining length
-    const allChars = upperCase + lowerCase + numbers + symbols;
-    for (let i = 4; i < 12; i++) {
-      password += allChars[Math.floor(Math.random() * allChars.length)];
-    }
-
-    // Shuffle password
-    password = password
-      .split('')
-      .sort(() => Math.random() - 0.5)
-      .join('');
-
+    const password = generateSecurePassword(12);
     setGeneratedPassword(password);
     setValue('password', password, { shouldDirty: true });
     setValue('confirmPassword', password, { shouldDirty: true });
