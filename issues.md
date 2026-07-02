@@ -323,11 +323,11 @@ I read the security-critical and highest-traffic components (`PermissionGuard`, 
 The `formatting.ts` defects I flagged in the lib pass are consumed directly by the components that show money to users:
 
 - **`formatCurrency` with `maximumFractionDigits: 0` → every euro amount is rounded to whole numbers.** Traced consumers: `ServicesTable` stats bar (`Sale Total`, `Cost Total`) and the `cost`/`sale` columns; `PricingCalculator` uses its own `.toFixed(2)` locally but the **table and cards** show `€1,235` for `€1,234.56`. On an invoicing system the list and detail views disagree with the form. This is the highest-impact usability bug in the UI.
-- **`formatPercentage(value)` divides by 100, but callers pass already-scaled percentages.** Confirmed triple-consumed with the wrong convention:
-  - `ServicesTable` stats: `avgMarginPercent = (totalMargin/totalSale)*100` → then `formatPercentage(avgMarginPercent)` → **double-scaled** (an 18% margin renders as "1,800%").
+- **CORRECTED — these `formatPercentage` call sites are RIGHT** (the helper divides by 100 and `Intl` percent style multiplies back; percent-points in → correct percent out). Re-adjudicated:
+  - `ServicesTable` stats: `avgMarginPercent = (totalMargin/totalSale)*100` → then `formatPercentage(avgMarginPercent)` → renders correctly (an 18% margin renders as "18%").
   - `ServicesTable` margin column: same, `marginPercent = (margin/sale)*100` then `formatPercentage(...)`.
   - `PricingCalculator` margin %: `formatPercentage(marginPercent)` where `marginPercent` prop is already a percent.
-    Every margin percentage in the entire UI is shown 100× too large. This is a "collect the small things that break at midnight" flagship: it's cosmetic-looking but it's on every services screen.
+    RETRACTED: margin percentages are NOT shown 100× too large — these call sites render correctly and must not be changed. The only genuine `formatPercentage`-adjacent defects are `StatsCard`'s fraction input (`completed/total` → `0.6%`) and `ClientDetail`'s stray literal `%`.
 - **`Amount` (used in the margin column) passes `value` straight to `formatCurrency`**, so margins are also whole-euro-rounded. And `Amount` uses classes `text-positive`/`text-negative`/`text-neutral-amount` and `amount`/`amount-large` — **custom utility classes** that must exist in the Tailwind layer; if they were added via `@layer` in global CSS, fine, but they're not in `design-tokens`/`cn.ts` `utils`, so verify they resolve or amounts render unstyled.
 
 ### `PricingCalculator.tsx` — the margin math is duplicated and can diverge from the server (P1)
