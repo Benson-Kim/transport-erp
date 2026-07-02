@@ -622,19 +622,32 @@ export function ServiceForm({
                           onCheckedChange={(checked) => {
                             if (
                               checked &&
-                              !confirm('Cancel this service? All prices will be set to €0.')
+                              !confirm(
+                                'Cancel this service? Booked cost and sale figures are ' +
+                                  'preserved and restored if the service is reactivated.'
+                              )
                             ) {
                               return;
                             }
+                            // Non-destructive cancel (#28): never zero the
+                            // amount fields. A reverted mis-click must leave
+                            // the original figures untouched on save; the €0
+                            // presentation is derived server-side from the
+                            // CANCELLED status, reversibly.
                             if (checked) {
-                              setValue('costAmount', 0);
-                              setValue('saleAmount', 0);
                               setValue('status', 'CANCELLED');
+                            } else {
+                              setValue(
+                                'status',
+                                service?.status && service.status !== 'CANCELLED'
+                                  ? service.status
+                                  : 'DRAFT'
+                              );
                             }
                             field.onChange(checked);
                           }}
                           label="Cancelled"
-                          description="Set all prices to €0"
+                          description="Prices are preserved and shown as €0 while cancelled"
                         />
                       )}
                     />

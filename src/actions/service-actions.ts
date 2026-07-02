@@ -357,15 +357,12 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     await requirePermission('services', 'edit_completed');
   }
 
-  // Canonical pricing (#25): all money arithmetic in Decimal via pricing.ts.
-  let { costAmount, saleAmount } = validatedData;
-
-  if (validatedData.cancelled) {
-    // Destructive zeroing retained for now - removed by #28, which keeps the
-    // booked amounts and derives the €0 presentation from the status.
-    costAmount = 0;
-    saleAmount = 0;
-  }
+  // Canonical pricing (#25) + non-destructive cancel (#28): the booked
+  // cost/sale figures are ALWAYS stored and margins computed from them. The
+  // €0 presentation for a CANCELLED service is derived from its status at
+  // display boundaries (effectiveServiceAmounts), so reverting a
+  // cancellation restores the original figures - nothing is destroyed.
+  const { costAmount, saleAmount } = validatedData;
 
   const pricing = computeServicePricing({
     costAmount,
@@ -398,9 +395,18 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
     assertTransition(currentService.status, serviceStatus);
   }
 
-  const timestamps: { completedAt?: Date; cancelledAt?: Date } = {};
+  const timestamps: { completedAt?: Date; cancelledAt?: Date | null } = {};
   if (completed) timestamps.completedAt = new Date();
   if (cancelled) timestamps.cancelledAt = new Date();
+  // Reactivating a cancelled service clears the cancellation timestamp -
+  // cancel is a reversible state, not a destructive event (#28).
+  if (
+    !cancelled &&
+    currentService.status === ServiceStatus.CANCELLED &&
+    serviceStatus !== ServiceStatus.CANCELLED
+  ) {
+    timestamps.cancelledAt = null;
+  }
 
   const updateData = {
     ...(Object.fromEntries(Object.entries(dataToStore).filter(([_, v]) => v !== undefined)) as any),
