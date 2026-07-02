@@ -32,6 +32,31 @@ phase0-gate:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH'
 
+# Pure unit tests (no DB). Phase 2 (#17) makes the RBAC matrix the single
+# security source of truth; its tests must run on every pipeline. ts-jest is
+# installed --no-save for the same reason as test-db (follow-up: #59).
+test-unit:
+  stage: verify
+  image: node:22
+  variables:
+    # prisma generate only; no DB connection is opened.
+    DATABASE_URL: 'postgresql://ci:ci@localhost:5432/ci'
+    NEXT_TELEMETRY_DISABLED: '1'
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npx prisma generate
+    - npm install --no-save ts-jest@^29.4.0
+    - npm run test:unit
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
 # ---------------------------------------------------------------------------
 # database stage (Phase 1, issues #10-#14): migrations, drift, and DB
 # integration tests run against a real Postgres so the schema/migrations are
