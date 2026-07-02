@@ -531,7 +531,7 @@ export async function getServiceActivity(
  */
 export async function markServiceComplete(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'mark_completed');
+  await requireServiceAccess('mark_completed', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
