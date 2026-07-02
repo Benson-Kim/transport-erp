@@ -601,12 +601,16 @@ async function createSingleInvoice(
 ): Promise<Invoice> {
   console.log('Creating invoices and payments...');
 
-  // calculate amounts
-  const subtotal = invoiceServices.reduce((sum, s) => sum + Number(s.costAmount), 0);
-  const taxAmount = Math.round(subtotal * 0.21 * 100) / 100;
+  // Calculate amounts. Round every component to 2 decimals BEFORE composing the
+  // total so it matches the stored Decimal(10,2) values exactly and satisfies
+  // invoices_total_composition_check (#11).
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  const subtotal = round2(invoiceServices.reduce((sum, s) => sum + Number(s.costAmount), 0));
+  const taxAmount = round2(subtotal * 0.21);
   const irpfRate = supplier.irpfRate ? Number(supplier.irpfRate) : 0;
-  const irpfAmount = irpfRate > 0 ? Math.round(subtotal * (irpfRate / 100) * 100) / 100 : 0;
-  const totalAmount = Math.round((subtotal + taxAmount - irpfAmount) * 100) / 100;
+  const irpfAmount = irpfRate > 0 ? round2(subtotal * (irpfRate / 100)) : 0;
+  const totalAmount = round2(subtotal + taxAmount - irpfAmount);
 
   const invoiceDate = subDays(currentDate, 45 - index * 3);
   const dueDate = addDays(invoiceDate, supplier.paymentTerms ?? 30);
