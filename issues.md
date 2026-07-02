@@ -946,7 +946,7 @@ The route map confirms which "dead routes" are truly absent. Present routes: `/d
 
 **`app/page.tsx` (P0 — the root route is the Next.js starter template):**
 
-- The `/` landing page is **the unmodified `create-next-app` boilerplate** — Next.js logo, "To get started, edit the page.tsx file," "Deploy Now"/Documentation links to Vercel. This ships to any unauthenticated visitor hitting the root. Since `proxy.ts`/middleware isn't running as `middleware.ts` (v1 P0), `/` is **not redirected to `/login`** — so the public face of the app is the scaffolding template. This is a P0 for a "deployed demo." _Confirms pattern: middleware not wired (proxy.ts) — the root isn't protected/redirected._ Uses `bg-foreground`/`text-background` (undefined theme classes) too.
+- The `/` landing page is **the unmodified `create-next-app` boilerplate** — Next.js logo, "To get started, edit the page.tsx file," "Deploy Now"/Documentation links to Vercel. CORRECTED: this is dead code, not an exposure — `next.config.ts` `redirects()` sends `/` → `/dashboard`, and `src/proxy.ts` (the running Next 16 middleware) redirects unauthenticated users to `/login`. Delete the scaffold page content as cleanup, not as a security fix. Uses `bg-foreground`/`text-background` (undefined theme classes) too.
 
 **`app/layout.tsx` (P1 — metadata + branding):**
 
