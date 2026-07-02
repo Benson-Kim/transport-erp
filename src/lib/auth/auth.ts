@@ -88,8 +88,11 @@ export function revalidateTokenFields(
  * NextAuth configuration
  */
 export const authConfig = {
-  // Adapter for database persistence
+  // Sign JWTs with AUTH_SECRET (v5); undefined in dev lets NextAuth derive a
+  // dev-only secret, while production is guarded by the boot check above. (#24)
   secret: authSecret,
+
+  // Adapter for database persistence
   adapter: PrismaAdapter(prisma) as Adapter,
   session: {
     strategy: 'jwt' as const,
