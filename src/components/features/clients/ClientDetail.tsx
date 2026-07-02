@@ -29,7 +29,7 @@ import {
 import { deleteClient } from '@/actions/client-actions';
 import { Alert, Badge, Button, Card, Modal, Skeleton, SkeletonGroup } from '@/components/ui';
 import { asAddress } from '@/lib/utils/address';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatPercentPoints } from '@/lib/utils/formatting';
 import type { ClientWithStats } from '@/types/client';
 
 import { ClientServices } from './ClientServices';
@@ -614,7 +614,8 @@ export function ClientDetail({ client, canEdit, canDelete }: Readonly<ClientDeta
               <div className="flex items-center justify-between">
                 <span className="text-sm text-neutral-500">Avg. Margin</span>
                 <span className="font-semibold">
-                  {formatPercentage(client.stats.averageMarginPercentage)}%
+                  {/* Stray literal '%' removed (#26): the formatter appends the sign. */}
+                  {formatPercentPoints(client.stats.averageMarginPercentage)}
                 </span>
               </div>
             </div>

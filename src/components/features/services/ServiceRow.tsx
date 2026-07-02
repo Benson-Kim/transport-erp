@@ -27,10 +27,11 @@ import type { UserRole } from '@/app/generated/prisma';
 import { ServiceStatus } from '@/app/generated/prisma';
 import { Button, DropdownMenu, Tooltip, Checkbox, Amount } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
+import { decimalToNumber, marginPercentage } from '@/lib/pricing';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/utils/cn';
 import { formatDate } from '@/lib/utils/date-formats';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceData } from '@/types/service';
 
 import { ServiceStatusBadge } from './ServiceStatusBadge';
@@ -72,8 +73,10 @@ export const ServiceRow = memo(
     const canGenerateInvoice = hasPermission(userRole, 'invoices', 'create');
     const canGenerateLoadingOrder = hasPermission(userRole, 'loading_orders', 'create');
 
-    // Calculations
-    const marginPercent = service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
+    // Canonical margin % (#25).
+    const marginPercent = decimalToNumber(
+      marginPercentage(service.saleAmount, service.costAmount)
+    );
 
     // Actions
     const handleRowClick = (e: React.MouseEvent) => {
@@ -300,7 +303,7 @@ export const ServiceRow = memo(
                   marginPercent >= 0 ? 'text-green-600/70' : 'text-red-600/70'
                 )}
               >
-                {formatPercentage(marginPercent)}
+                {formatPercentPoints(marginPercent)}
               </span>
             </div>
           </td>
@@ -369,7 +372,7 @@ export const ServiceRow = memo(
                             service.margin >= 0 ? 'text-green-600' : 'text-red-600'
                           )}
                         >
-                          ({formatPercentage(marginPercent)})
+                          ({formatPercentPoints(marginPercent)})
                         </span>
                       </dd>
                     </div>

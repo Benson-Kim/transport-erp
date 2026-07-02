@@ -7,6 +7,8 @@
 import { startOfMonth, subDays } from 'date-fns';
 
 import { ServiceStatus } from '@/app/generated/prisma';
+import type { Decimal } from '@/app/generated/prisma/runtime/library';
+import { decimalToNumber, toDecimal, ZERO, type MoneyInput } from '@/lib/pricing';
 
 import { formatDate, toDate } from './date-formats';
 
@@ -54,9 +56,9 @@ export function aggregateServicesByMonth(
   services: Array<{
     date: Date;
     status: ServiceStatus;
-    saleAmount?: any; // Add optional fields
-    costAmount?: any;
-    margin?: any;
+    saleAmount?: MoneyInput | null;
+    costAmount?: MoneyInput | null;
+    margin?: MoneyInput | null;
   }>
 ) {
   const monthlyData: Record<
@@ -116,17 +118,19 @@ export function aggregateRevenueByMonth(
   services: Array<{
     date: Date;
     status: ServiceStatus;
-    saleAmount: any;
-    costAmount: any;
-    margin: any;
+    saleAmount: MoneyInput | null;
+    costAmount: MoneyInput | null;
+    margin: MoneyInput | null;
   }>
 ) {
+  // Accumulate in Decimal (#25): Prisma Decimal amounts summed as floats
+  // lose precision. Convert once at the chart boundary.
   const monthlyData: Record<
     string,
     {
-      revenue: number;
-      cost: number;
-      margin: number;
+      revenue: Decimal;
+      cost: Decimal;
+      margin: Decimal;
     }
   > = {};
 
@@ -135,9 +139,9 @@ export function aggregateRevenueByMonth(
     const date = subDays(new Date(), i * 30);
     const monthKey = formatDate.monthYear(startOfMonth(date));
     monthlyData[monthKey] = {
-      revenue: 0,
-      cost: 0,
-      margin: 0,
+      revenue: ZERO,
+      cost: ZERO,
+      margin: ZERO,
     };
   }
 
@@ -149,16 +153,19 @@ export function aggregateRevenueByMonth(
       service.status === ServiceStatus.ARCHIVED
     ) {
       const monthKey = formatDate.monthYear(startOfMonth(service.date));
-      if (monthlyData[monthKey]) {
-        monthlyData[monthKey].revenue += Number(service.saleAmount ?? 0);
-        monthlyData[monthKey].cost += Number(service.costAmount ?? 0);
-        monthlyData[monthKey].margin += Number(service.margin ?? 0);
+      const bucket = monthlyData[monthKey];
+      if (bucket) {
+        bucket.revenue = bucket.revenue.plus(toDecimal(service.saleAmount ?? 0));
+        bucket.cost = bucket.cost.plus(toDecimal(service.costAmount ?? 0));
+        bucket.margin = bucket.margin.plus(toDecimal(service.margin ?? 0));
       }
     }
   });
 
   return Object.entries(monthlyData).map(([month, data]) => ({
     month,
-    ...data,
+    revenue: decimalToNumber(data.revenue),
+    cost: decimalToNumber(data.cost),
+    margin: decimalToNumber(data.margin),
   }));
 }

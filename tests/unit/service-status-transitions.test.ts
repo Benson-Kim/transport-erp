@@ -54,8 +54,11 @@ jest.mock('@/lib/rbac', () => {
 
 const mockFindMany = jest.fn<() => Promise<unknown>>();
 const mockFindUnique = jest.fn<() => Promise<unknown>>();
+const mockCreate = jest.fn<() => Promise<unknown>>();
 const mockUpdate = jest.fn<() => Promise<unknown>>();
 const mockUpdateMany = jest.fn<() => Promise<unknown>>();
+const mockHistoryCreate = jest.fn<() => Promise<unknown>>();
+const mockHistoryCreateMany = jest.fn<() => Promise<unknown>>();
 const mockTransaction = jest.fn<() => Promise<unknown>>();
 jest.mock('@/lib/prisma/prisma', () => ({
   __esModule: true,
@@ -63,15 +66,26 @@ jest.mock('@/lib/prisma/prisma', () => ({
     service: {
       findMany: (..._args: unknown[]) => mockFindMany(),
       findUnique: (..._args: unknown[]) => mockFindUnique(),
+      create: (..._args: unknown[]) => mockCreate(),
       update: (..._args: unknown[]) => mockUpdate(),
       updateMany: (..._args: unknown[]) => mockUpdateMany(),
+    },
+    serviceStatusHistory: {
+      create: (..._args: unknown[]) => mockHistoryCreate(),
+      createMany: (..._args: unknown[]) => mockHistoryCreateMany(),
     },
     $transaction: (..._args: unknown[]) => mockTransaction(),
   },
 }));
 
+// withTransaction (#27) hands the prisma mock back as the tx client so the
+// actions' tx.service.* / tx.serviceStatusHistory.* calls hit the same mocks.
 jest.mock('@/lib/prisma/db-helpers', () => ({
   createAuditLog: () => Promise.resolve(),
+  withTransaction: async (fn: (tx: unknown) => Promise<unknown>) => {
+    const prismaMock = jest.requireMock('@/lib/prisma/prisma') as { default: unknown };
+    return fn(prismaMock.default);
+  },
 }));
 jest.mock('@/lib/prisma/numbering', () => ({
   generateDocumentNumber: () => Promise.resolve('SRV-2026-00001'),
