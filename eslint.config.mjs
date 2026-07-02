@@ -28,6 +28,7 @@ export default defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    'src/app/generated/**',
     'next-env.d.ts',
     'eslint.config.mjs',
     'postcss.config.mjs',
@@ -177,6 +178,7 @@ export default defineConfig([
       import: importPlugin,
     },
     rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
       '@typescript-eslint/no-var-requires': 'off',
       'react/react-in-jsx-scope': 'off',
     },
