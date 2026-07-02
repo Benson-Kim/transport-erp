@@ -529,8 +529,8 @@ This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and rend
 The helper divides by 100 and `Intl` percent style multiplies back — net identity for percent-point inputs. Re-adjudicated in `StatsCard`:
 
 - **`formatPercentage(stats.averageMargin)`** — `averageMargin` is percent-points from the DB (`18.5`) → renders **`18.5%`**. Correct; do not change.
-- **`formatPercentage(stats.completedServices / stats.totalServices)`** — this is a _fraction_ (e.g. `0.6`) → renders **`60%`**. Correct.
-- **`formatPercentage(stats.activeServicesChange)`** / `totalRevenueChange` / `averageMarginChange` — these come from `calculatePercentageChange` which returns a percentage (e.g. `12.5`) → renders **`1,250%`**. Wrong.
+- **`formatPercentage(stats.completedServices / stats.totalServices)`** — a _fraction_ (`0.6`) → divided again → renders **`0.6%`** instead of `60%`. **This is the genuinely wrong call site**; pre-multiply by 100 (or add a fraction-aware helper).
+- **`formatPercentage(stats.activeServicesChange)`** / `totalRevenueChange` / `averageMarginChange` — percent-points from `calculatePercentageChange` (`12.5`) → renders **`12.5%`**. Correct; do not change.
 
 So on the **main dashboard cards**, the completion-rate detail is right while the headline margin and every trend indicator are 100× inflated. Same helper, same component, three call sites, two of them wrong. `MiniStats` compounds it: the tooltip does `${item.change}%` (raw, so `12.5%` — correct) while the card body uses `formatPercentage(Math.abs(card.change))` (wrong). The tooltip and the number it describes disagree. This single helper's ambiguous contract has now produced wrong output in `ServicesTable`, `StatsCard`, `MiniStats`, and `ServiceDetail` (below). It must be split into `formatPercent(fraction)` and `formatPercentPoints(number)` with distinct types.
 
