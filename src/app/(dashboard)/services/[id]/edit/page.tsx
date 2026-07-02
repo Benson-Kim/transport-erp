@@ -47,10 +47,15 @@ export default async function EditServicePage({ params }: EditServicePageProps) 
     const [service, related] = await Promise.all([getService(id), getClientsAndSuppliers()]);
     data = { service, clients: related.clients, suppliers: related.suppliers };
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof UnauthorizedError) {
       redirect('/login');
     }
-    redirect('/services');
+    if (error instanceof ForbiddenError) {
+      redirect('/services');
+    }
+    // Not an authorization decision (e.g. DB outage): surface it to the
+    // error boundary instead of masking it as access-denied. (review 5)
+    throw error;
   }
 
   if (!data?.service) {

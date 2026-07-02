@@ -11,6 +11,7 @@ import {
 import { ErrorState } from '@/components/ui/ErrorState';
 import { auth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
+import { ForbiddenError, UnauthorizedError } from '@/lib/rbac';
 
 import type { Metadata } from 'next';
 

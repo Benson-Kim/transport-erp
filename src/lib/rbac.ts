@@ -153,11 +153,11 @@ export async function requireServiceAccess(action: Action, serviceId: string): P
   const session = await getServerAuth();
 
   if (!session?.user || session.user.isActive === false) {
-    throw new Error('Unauthorized');
+    throw new UnauthorizedError();
   }
 
   if (!hasPermission(session.user.role, 'services', action)) {
-    throw new Error(`Insufficient permissions: services:${action} required`);
+    throw new ForbiddenError(`Insufficient permissions: services:${action} required`);
   }
 
   // Only OPERATOR is ownership-scoped.
@@ -167,7 +167,7 @@ export async function requireServiceAccess(action: Action, serviceId: string): P
 
   const owns = await checkResourceOwnership('services', serviceId, session.user.id);
   if (!owns) {
-    throw new Error('Forbidden: you do not have access to this service');
+    throw new ForbiddenError('Forbidden: you do not have access to this service');
   }
 }
 

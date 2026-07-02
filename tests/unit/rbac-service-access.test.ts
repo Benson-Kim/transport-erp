@@ -83,4 +83,17 @@ describe('requireServiceAccess', () => {
     await expect(requireServiceAccess('view', 'svc-1')).resolves.toBeUndefined();
     expect(mockServiceFindUnique).not.toHaveBeenCalled();
   });
+
+  it('throws typed errors so pages can catch by instanceof (review finding 5)', async () => {
+    mockGetServerAuth.mockResolvedValue(null);
+    await expect(requireServiceAccess('view', 'svc-1')).rejects.toMatchObject({
+      name: 'UnauthorizedError',
+    });
+
+    mockGetServerAuth.mockResolvedValue(session(UserRole.OPERATOR, 'userA'));
+    mockServiceFindUnique.mockResolvedValue({ createdById: 'userB', assignedToId: null });
+    await expect(requireServiceAccess('edit', 'svc-1')).rejects.toMatchObject({
+      name: 'ForbiddenError',
+    });
+  });
 });
