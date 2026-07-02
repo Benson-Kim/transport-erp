@@ -17,13 +17,18 @@
  * here is the single source of truth.
  */
 
-import type { Prisma, PrismaClient } from '@/app/generated/prisma';
+import type { PrismaClient } from '@/app/generated/prisma';
 
 /** Number of zero-padded digits in the sequential part. */
 const SEQUENCE_WIDTH = 5;
 
-/** A Prisma client or an interactive-transaction client. */
-type PrismaLike = PrismaClient | Prisma.TransactionClient;
+/**
+ * Anything that can run a raw query: the base client, an interactive
+ * $transaction client, or the app's $extends-ed singleton. Typed structurally
+ * (review !15 item 1) because an extended client is neither `PrismaClient`
+ * nor `Prisma.TransactionClient`.
+ */
+type PrismaLike = Pick<PrismaClient, '$queryRaw'>;
 
 interface CounterRow {
   value: bigint;
