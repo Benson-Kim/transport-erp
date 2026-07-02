@@ -416,6 +416,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
     data: {
       deletedAt: new Date(),
       isActive: false,
+      tokenVersion: { increment: 1 },
     },
   });
 
