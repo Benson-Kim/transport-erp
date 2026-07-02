@@ -11,7 +11,7 @@ import {
   saleForTargetMarginPercentage,
 } from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
-import { formatPercentage } from '@/lib/utils/formatting';
+import { formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 import type { Option } from '@/types/ui';
 
@@ -422,7 +422,7 @@ export function PricingCalculator({
                   : 'text-red-600 border-red-200'
               )}
             >
-              {formatPercentage(marginPercent)}
+              {formatPercentPoints(marginPercent)}
             </div>
           </div>
 

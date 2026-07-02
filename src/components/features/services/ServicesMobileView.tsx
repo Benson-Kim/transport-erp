@@ -17,8 +17,9 @@ import {
 
 import type { UserRole } from '@/app/generated/prisma';
 import { Card, CardBody, Button, Pagination, Checkbox } from '@/components/ui';
+import { decimalToNumber, marginPercentage } from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatPercentPoints } from '@/lib/utils/formatting';
 import type { ServiceData } from '@/types/service';
 
 import { BulkActions } from './BulkActions';
@@ -71,8 +72,10 @@ export function ServicesMobileView({
       {/* Service Cards */}
       <div className="space-y-3">
         {services.map((service) => {
-          const marginPercent =
-            service.saleAmount > 0 ? (service.margin / service.saleAmount) * 100 : 0;
+          // Canonical margin % (#25).
+          const marginPercent = decimalToNumber(
+            marginPercentage(service.saleAmount, service.costAmount)
+          );
 
           return (
             <Card
@@ -142,7 +145,7 @@ export function ServicesMobileView({
                         service.margin >= 0 ? 'text-green-600' : 'text-red-600'
                       )}
                     >
-                      {formatPercentage(marginPercent)} margin
+                      {formatPercentPoints(marginPercent)} margin
                     </span>
                   </div>
                 </div>

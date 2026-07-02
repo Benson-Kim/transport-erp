@@ -24,7 +24,7 @@ import {
   toDecimal,
 } from '@/lib/pricing';
 import { cn } from '@/lib/utils/cn';
-import { formatCurrency, formatDistance, formatPercentage } from '@/lib/utils/formatting';
+import { formatCurrency, formatDistance, formatPercentPoints } from '@/lib/utils/formatting';
 import { formatDate } from '@/lib/utils/date-formats';
 
 interface ServiceDetailProps {
@@ -194,7 +194,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                 </div>
                 <div className="flex justify-between text-sm">
                   <dt className="text-muted-foreground">
-                    VAT ({formatPercentage(service.costVatRate)})
+                    VAT ({formatPercentPoints(service.costVatRate)})
                   </dt>
                   <dd>{formatCurrency(service.costVatAmount, service.costCurrency)}</dd>
                 </div>
@@ -215,7 +215,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                 </div>
                 <div className="flex justify-between text-sm">
                   <dt className="text-muted-foreground">
-                    VAT ({formatPercentage(service.saleVatRate)})
+                    VAT ({formatPercentPoints(service.saleVatRate)})
                   </dt>
                   <dd>{formatCurrency(service.saleVatAmount, service.saleCurrency)}</dd>
                 </div>
@@ -243,7 +243,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                   <h3 className="font-medium">Margin Analysis</h3>
                 </div>
                 <Badge variant={margin >= 0 ? 'completed' : 'cancelled'} size="sm">
-                  {formatPercentage(marginPercent)}
+                  {formatPercentPoints(marginPercent)}
                 </Badge>
               </div>
 
@@ -268,7 +268,7 @@ export function ServiceDetail({ service }: Readonly<ServiceDetailProps>) {
                       marginPercent >= 10 ? 'text-yellow-600' : 'text-red-600'
                     )}
                   >
-                    {formatPercentage(marginPercent)}
+                    {formatPercentPoints(marginPercent)}
                   </dd>
                 </div>
                 <div>
