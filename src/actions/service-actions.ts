@@ -559,7 +559,7 @@ export async function markServiceComplete(serviceId: string) {
  */
 export async function archiveService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'archive');
+  await requireServiceAccess('archive', serviceId);
 
   const service = await prisma.service.update({
     where: { id: serviceId },
