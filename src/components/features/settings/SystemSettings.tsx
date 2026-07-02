@@ -1,15 +1,14 @@
 // /components/features/settings/SystemSettingsContent.tsx
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, FileText, Database, Hash, Settings, AlertCircle } from 'lucide-react';
+import { Mail, FileText, Database, Hash, Settings } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import {
-  getSystemSettings,
   runManualBackup,
   saveEmailSettings,
   testEmailConfiguration,
@@ -18,7 +17,8 @@ import {
   updateNumberSequences,
   updatePDF,
 } from '@/actions/settings-actions';
-import { Alert, Button, Card, PageHeader, Tabs } from '@/components/ui';
+import type { getSystemSettings } from '@/actions/settings-actions';
+import { Button, Card, PageHeader, Tabs } from '@/components/ui';
 import type { Tab } from '@/components/ui/Tabs';
 import { toast } from '@/lib/toast';
 import {
@@ -35,41 +35,28 @@ import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 
-export function SystemSettingsContent() {
-  const [loading, setLoading] = useState(true);
+interface SystemSettingsContentProps {
+  /** Settings fetched server-side in settings/system/page.tsx — no client refetch. */
+  initialSettings: Awaited<ReturnType<typeof getSystemSettings>>;
+}
+
+export function SystemSettingsContent({ initialSettings }: SystemSettingsContentProps) {
   const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('email');
 
   const methods = useForm<SystemSettings>({
     resolver: zodResolver(systemSettingsSchema),
-    defaultValues: DEFAULT_SYSTEM_SETTINGS,
+    defaultValues: {
+      email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
+      pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...initialSettings.pdf },
+      backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...initialSettings.backup },
+      numberSequences: {
+        ...DEFAULT_SYSTEM_SETTINGS.numberSequences,
+        ...initialSettings.numberSequences,
+      },
+      general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...initialSettings.general },
+    },
   });
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getSystemSettings();
-      const mergedData = {
-        email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...data.email },
-        pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...data.pdf },
-        backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...data.backup },
-        numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...data.numberSequences },
-        general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...data.general },
-      };
-      methods.reset(mergedData);
-    } catch (error) {
-      setError('Failed to load system settings. Please check your permissions.');
-      console.error('Load settings error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function handleSaveSection(section: SettingsSection) {
     setSaving(section);
@@ -246,25 +233,6 @@ export function SystemSettingsContent() {
     ],
     [saving, methods]
   );
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 bg-neutral-200 rounded w-1/4 animate-pulse" />
-        <div className="h-12 bg-neutral-100 rounded animate-pulse" />
-        <div className="h-96 bg-neutral-50 rounded animate-pulse" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="error">
-        <AlertCircle className="h-4 w-4" />
-        <span>{error}</span>
-      </Alert>
-    );
-  }
 
   return (
     <FormProvider {...methods}>
