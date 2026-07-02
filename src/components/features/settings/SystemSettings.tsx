@@ -24,6 +24,7 @@ import { toast } from '@/lib/toast';
 import {
   DEFAULT_SYSTEM_SETTINGS,
   type SystemSettings,
+  type SystemSettingsInput,
   systemSettingsSchema,
 } from '@/lib/validations/settings-schema';
 
@@ -44,7 +45,7 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
   const [saving, setSaving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('email');
 
-  const methods = useForm<SystemSettings>({
+  const methods = useForm<SystemSettingsInput>({
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
       email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
@@ -62,7 +63,8 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
     setSaving(section);
 
     try {
-      const values = methods.getValues();
+      // Re-parse so coerced input values (e.g. SMTP port) are typed as outputs.
+      const values = systemSettingsSchema.parse(methods.getValues());
       let result;
 
       const actionMap: Record<
