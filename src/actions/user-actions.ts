@@ -196,11 +196,12 @@ export const updateUser = withPermission(
       newValues: updatedUser,
     });
 
-    // Invalidate user sessions if role changed or deactivated
+    // Revoke existing JWTs if role changed or the account was deactivated.
+    // (session.deleteMany is inert under the JWT strategy; tokenVersion is
+    // the effective mechanism, #15.)
     if (validatedData.role !== undefined || validatedData.status === 'inactive') {
-      await prisma.session.deleteMany({
-        where: { userId },
-      });
+      await bumpUserTokenVersion(userId);
+      await prisma.session.deleteMany({ where: { userId } });
     }
 
     revalidatePath('/settings/users');

@@ -237,12 +237,13 @@ export async function resetPasswordWithToken(
     const email = resetToken.identifier.replaceAll(TOKEN_PREFIX.PASSWORD_RESET, '');
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update user password
+    // Update user password and revoke existing JWTs via tokenVersion bump (#15).
     const user = await prisma.user.update({
       where: { email },
       data: {
         password: hashedPassword,
         passwordChangedAt: new Date(),
+        tokenVersion: { increment: 1 },
       },
       select: { id: true },
     });

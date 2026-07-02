@@ -247,6 +247,7 @@ export const authConfig = {
           role: UserRole.VIEWER, // Default role for OAuth users
           twoFactorEnabled: false,
           isActive: true,
+          tokenVersion: 0,
           department: null,
         };
       },
