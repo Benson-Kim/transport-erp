@@ -48,16 +48,21 @@ export default async function ServiceDetailPage({
   try {
     service = await getServiceWithDetails(id);
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
+    if (error instanceof UnauthorizedError) {
       redirect('/login');
     }
-    return (
-      <ErrorState
-        variant="full"
-        title="Access Denied"
-        description="You don't have permission to view this service"
-      />
-    );
+    if (error instanceof ForbiddenError) {
+      return (
+        <ErrorState
+          variant="full"
+          title="Access Denied"
+          description="You don't have permission to view this service"
+        />
+      );
+    }
+    // Not an authorization decision (e.g. DB outage): surface it to the
+    // error boundary instead of masking it as access-denied. (review 5)
+    throw error;
   }
 
   if (!service) notFound();

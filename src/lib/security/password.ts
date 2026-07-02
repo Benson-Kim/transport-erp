@@ -14,6 +14,10 @@ const ALL = UPPER + LOWER + DIGITS + SYMBOLS;
 /** Unbiased random integer in [0, max) using rejection sampling. */
 export function secureRandomInt(max: number): number {
   if (max <= 0) throw new Error('max must be positive');
+  // Single-byte sampling: for max > 256, limit would be 0 and the rejection
+  // loop would never exit (review !16 finding 4). Guard explicitly rather
+  // than silently biasing or hanging.
+  if (max > 256) throw new Error('max must be <= 256 (single-byte sampling)');
   const limit = 256 - (256 % max);
   const buf = new Uint8Array(1);
   let val: number;

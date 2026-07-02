@@ -17,6 +17,11 @@ describe('secureRandomInt', () => {
   it('throws for non-positive max', () => {
     expect(() => secureRandomInt(0)).toThrow();
   });
+
+  it('throws for max > 256 instead of infinite-looping (review finding 4)', () => {
+    expect(() => secureRandomInt(257)).toThrow();
+    expect(() => secureRandomInt(256)).not.toThrow();
+  });
 });
 
 describe('generateSecurePassword', () => {

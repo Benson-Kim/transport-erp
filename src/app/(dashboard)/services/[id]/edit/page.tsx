@@ -10,6 +10,7 @@ import { ServiceForm } from '@/components/features/services/ServiceForm';
 import { PageHeader, Alert, Badge } from '@/components/ui';
 import { auth } from '@/lib/auth';
 import { hasPermission } from '@/lib/permissions';
+import { ForbiddenError, UnauthorizedError } from '@/lib/rbac';
 
 import type { Metadata } from 'next';
 
