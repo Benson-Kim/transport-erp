@@ -235,19 +235,17 @@ export const deleteUser = withPermission('users', 'delete', async (userId: strin
     throw new Error('Cannot delete super administrator accounts');
   }
 
-  // Soft delete user
+  // Soft delete user and revoke existing JWTs (tokenVersion bump, #15).
   await prisma.user.update({
     where: { id: userId },
     data: {
       deletedAt: new Date(),
       isActive: false,
+      tokenVersion: { increment: 1 },
     },
   });
 
-  // Invalidate all user sessions
-  await prisma.session.deleteMany({
-    where: { userId },
-  });
+  await prisma.session.deleteMany({ where: { userId } });
 
   // Create audit log
   await createAuditLog({

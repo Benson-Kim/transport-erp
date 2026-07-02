@@ -298,8 +298,11 @@ export const authConfig = {
         token['role'] = user.role;
         token['emailVerified'] = user.emailVerified;
         token['twoFactorEnabled'] = user.twoFactorEnabled;
+        token['isActive'] = user.isActive ?? true;
+        token['tokenVersion'] = user.tokenVersion ?? 0;
         token['department'] = user.department;
         token['avatar'] = user.avatar;
+        token['checkedAt'] = Date.now();
       }
 
       if (trigger === 'update' && session) {
@@ -313,6 +316,28 @@ export const authConfig = {
         }
       }
 
+      // Re-validate isActive/role/tokenVersion from the DB on a short cache
+      // so that deactivating a user or changing their role takes effect
+      // within seconds instead of waiting up to the 30-day token maxAge.
+      // session.deleteMany is inert under the JWT strategy, so this DB
+      // re-check is the actual revocation mechanism. (#15)
+      const userId = token['id'] as string | undefined;
+      if (userId && shouldRevalidateToken(token['checkedAt'] as number | undefined)) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true, isActive: true, deletedAt: true, tokenVersion: true },
+        });
+
+        const revalidated = revalidateTokenFields(
+          dbUser,
+          token['role'] as UserRole | undefined,
+          token['tokenVersion'] as number | undefined
+        );
+        token['role'] = revalidated.role;
+        token['isActive'] = revalidated.isActive;
+        token['checkedAt'] = Date.now();
+      }
+
       return token;
     },
 
@@ -323,6 +348,7 @@ export const authConfig = {
         session.user.role = (token['role'] as UserRole) ?? UserRole.VIEWER;
         session.user.emailVerified = (token['emailVerified'] as Date | null) ?? null;
         session.user.twoFactorEnabled = Boolean(token['twoFactorEnabled']);
+        session.user.isActive = token['isActive'] !== false;
         session.user.department = (token['department'] as string | null) ?? null;
         session.user.avatar = (token['avatar'] as string | null) ?? null;
       }
