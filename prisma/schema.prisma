@@ -66,6 +66,7 @@ enum AuditAction {
   SEND_EMAIL
   GENERATE_DOCUMENT
   ARCHIVE
+  PERMISSION_CHECK
 }
 
 enum DocumentType {
