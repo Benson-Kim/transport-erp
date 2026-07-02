@@ -524,9 +524,9 @@ This chart computes `avgMarginPercent = (totalMargin/totalRevenue)*100` and rend
 
 ## Components (batch 4): ServiceDetail, SystemSettings, Backup, ServiceActions, StatsCard
 
-### P1 — `StatsCard.tsx`: `formatPercentage` misused three different ways in one component
+### CORRECTED — `StatsCard.tsx`: exactly ONE wrong `formatPercentage` call site (the fraction); the rest are right
 
-This is the clearest proof of the `formatPercentage` design flaw. The helper divides by 100 (expects a fraction like `0.185`). In `StatsCard`:
+The helper divides by 100 and `Intl` percent style multiplies back — net identity for percent-point inputs. Re-adjudicated in `StatsCard`:
 
 - **`formatPercentage(stats.averageMargin)`** — `averageMargin` is `_avg.marginPercentage` from the DB (already a percentage, e.g. `18.5`) → renders **`1,850%`**. Wrong.
 - **`formatPercentage(stats.completedServices / stats.totalServices)`** — this is a _fraction_ (e.g. `0.6`) → renders **`60%`**. Correct.
