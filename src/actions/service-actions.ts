@@ -379,7 +379,7 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
  */
 export async function deleteService(serviceId: string) {
   const session = await requireAuth();
-  await requirePermission('services', 'delete');
+  await requireServiceAccess('delete', serviceId);
 
   await prisma.service.update({
     where: { id: serviceId },
