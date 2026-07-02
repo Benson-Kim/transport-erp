@@ -1,6 +1,10 @@
 /**
  * #15 - JWT session re-check + tokenVersion revocation.
  *
+ * Revocation bound: a deactivation/role change/version bump takes effect
+ * within AT MOST TOKEN_REVALIDATE_MS (60s) per server instance - the jwt
+ * re-check is cached, so this is NOT immediate revocation.
+ *
  * auth.ts calls NextAuth(authConfig) and imports heavy Node-only deps at
  * module load. The jest.mock factories below are hoisted above the imports
  * by ts-jest, so only the pure exports under test are exercised.

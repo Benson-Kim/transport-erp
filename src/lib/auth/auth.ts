@@ -337,11 +337,12 @@ export const authConfig = {
         }
       }
 
-      // Re-validate isActive/role/tokenVersion from the DB on a short cache
-      // so that deactivating a user or changing their role takes effect
-      // within seconds instead of waiting up to the 30-day token maxAge.
-      // session.deleteMany is inert under the JWT strategy, so this DB
-      // re-check is the actual revocation mechanism. (#15)
+      // Re-validate isActive/role/tokenVersion from the DB on a short cache:
+      // deactivating a user or changing their role takes effect within AT
+      // MOST TOKEN_REVALIDATE_MS (60s) per server instance - not immediately
+      // - instead of waiting up to the 30-day token maxAge. session.deleteMany
+      // is inert under the JWT strategy, so this DB re-check is the actual
+      // revocation mechanism. (#15)
       const userId = token['id'] as string | undefined;
       if (userId && shouldRevalidateToken(token['checkedAt'] as number | undefined)) {
         const dbUser = await prisma.user.findUnique({

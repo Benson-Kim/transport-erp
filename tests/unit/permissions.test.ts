@@ -84,6 +84,15 @@ describe('canAccessRoute', () => {
     expect(canAccessRoute(undefined, '/dashboard')).toBe(false);
   });
 
+  it('covers every settings nav destination (no dead nav links, #17)', () => {
+    // The settings sidebar (settings/layout.tsx) derives visibility via
+    // canAccessRoute; every href it renders must exist in the route table.
+    for (const href of ['/settings/company', '/settings/users', '/settings/system']) {
+      expect(ROUTE_PERMISSIONS[href]).toBeDefined();
+      expect(ROUTE_PERMISSIONS[href]?.length).toBeGreaterThan(0);
+    }
+  });
+
   it('derives ROUTE_PERMISSIONS from the matrix (drift is impossible)', () => {
     expect(ROUTE_PERMISSIONS['/dashboard']).toEqual(
       PERMISSION_MATRIX[RESOURCES.DASHBOARD][ACTIONS.VIEW]
