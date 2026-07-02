@@ -12,9 +12,9 @@ Before anything else: there are **compile-breaking / auth-breaking bugs in the h
 
 3. **The Accelerate extension is unconditional but the client is generated with `--no-engine` only in one script.** `prisma:generate` uses `--no-engine` (Accelerate/Data Proxy) while `prisma:generate:prod` does not. `.$extends(withAccelerate())` is always applied. If `DATABASE_URL` is a direct Postgres URL (as your backup code assumes with `pg_dump` parsing `postgresql://`), Accelerate expectations and engine mode will mismatch across environments. Pick one connection strategy and make generate flags consistent.
 
-4. **`auth.config.ts` is an empty file (0 bytes).** With NextAuth v5 the split-config (edge-safe `auth.config.ts`) pattern is normally required so middleware can run auth on the edge. Your `proxy.ts` calls the full `auth()` which imports Prisma, bcrypt, nodemailer, AWS SDK, etc. That pulls Node-only code into the middleware runtime.
+4. **`auth.config.ts` is an empty file (0 bytes) — a dead stray file; delete it.** CORRECTED (verified against the stack): this project is on Next 16, where the middleware convention is `proxy.ts` and it runs on the **Node.js runtime**. The NextAuth v5 edge-safe split-config pattern is therefore NOT required here — `proxy.ts` calling the full `auth()` (Prisma, bcrypt, nodemailer) is legitimate on the Node runtime. The only defect is the stray empty file.
 
-5. **The middleware file is named `src/proxy.ts`, not `middleware.ts`.** Next.js only auto-runs `middleware.ts` (root or `src/`). Unless you have config aliasing this, **none of your route protection is actually executing**. Every "protected" route is relying solely on the `requirePermission` calls inside server actions. Verify this immediately: it means direct navigation / RSC data fetches for pages may be unprotected if any page reads data without going through a guarded action.
+5. **CORRECTED — `src/proxy.ts` IS the correct middleware convention on Next 16.** Next 16 renamed `middleware.ts` to `proxy.ts` (root or `src/`), running on the Node.js runtime; a default export plus `config.matcher` is auto-run. Route protection and the `x-pathname`/`x-user-*` headers DO execute. Do NOT rename to `middleware.ts` (deprecated on 16) and do NOT add an edge-safe split. Remaining real work: add the missing public routes (`/resend-verification`, `/check-email`) to `PUBLIC_ROUTES`, and verify at boot that unauthenticated requests to protected routes redirect to `/login`.
 
 #### P0 — Security
 
@@ -170,7 +170,7 @@ I re-read the modules I'd only inferred before. Some earlier claims were confirm
 ### Cross-cutting (re-confirmed against multiple files)
 
 - **P0 — `prisma.ts` missing `import { PrismaClient }`** and `signInWithCredentials` referencing undefined `result` — both re-confirmed. These are the two that make me want you to run `npm run type-check` first; everything else is moot if the build is red.
-- **P0 — middleware filename `src/proxy.ts`** (not `middleware.ts`) and empty `auth.config.ts` — re-confirmed. Route protection likely not executing.
+- **RETRACTED — `src/proxy.ts` is correct on Next 16** (middleware renamed to proxy; Node runtime). Route protection executes. The empty `auth.config.ts` is a dead file to delete; no edge split is needed.
 - **P1 — Two permission systems, three "completed revenue" definitions, two email-config sources.** The recurring theme is **duplicated logic that has already drifted**. Consolidate to single sources: one `hasPermission`, one `recognizedRevenue()` helper, one email config.
 - **P1 — `findUnique` with non-unique `where` (`deletedAt: null` / composite non-keys)** appears in `getService` (uses `findFirst`, good), `getUser` (uses `findUnique`, bug), and `getServiceWithDetails` (uses `findFirst`, good). Audit every `findUnique` for non-unique filters.
 
