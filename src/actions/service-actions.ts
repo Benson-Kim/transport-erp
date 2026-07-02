@@ -403,7 +403,9 @@ export async function deleteService(serviceId: string) {
  * Duplicate service
  */
 export async function duplicateService(sourceServiceId: string) {
+  await requireAuth();
   await requirePermission('services', 'create');
+  // getService below enforces read access (incl. ownership) on the source.
 
   const sourceService = await getService(sourceServiceId);
 
@@ -424,63 +426,6 @@ export async function duplicateService(sourceServiceId: string) {
   };
 }
 
-/**
- * Get service with all details
- */
-export async function getServiceWithDetails(serviceId: string) {
-  const service = await prisma.service.findFirst({
-    where: {
-      id: serviceId,
-      deletedAt: null,
-    },
-    include: {
-      client: true,
-      supplier: true,
-      createdBy: true,
-      assignedTo: true,
-      invoiceItems: {
-        include: {
-          invoice: {
-            select: {
-              id: true,
-              invoiceNumber: true,
-              status: true,
-            },
-          },
-        },
-      },
-      documents: {
-        where: { deletedAt: null },
-        orderBy: { uploadedAt: 'desc' },
-      },
-      statusHistory: {
-        orderBy: { changedAt: 'desc' },
-        take: 10,
-      },
-    },
-  });
-
-  if (!service) return null;
-
-  const invoice = service.invoiceItems?.[0]?.invoice || null;
-
-  // Calculate edit count from audit logs
-  const editCount = await prisma.auditLog.count({
-    where: {
-      tableName: 'services',
-      recordId: serviceId,
-      action: 'UPDATE',
-    },
-  });
-
-  return {
-    ...service,
-    invoice,
-    invoiceId: invoice?.id,
-    editCount,
-  };
-}
-
 /** Full service payload returned by getServiceWithDetails (type-only export). */
 export type ServiceWithDetails = NonNullable<Awaited<ReturnType<typeof getServiceWithDetails>>>;
 
@@ -491,6 +436,8 @@ export async function getServiceActivity(
   serviceId: string,
   options: { page?: number; limit?: number } = {}
 ) {
+  await requireServiceAccess('view', serviceId);
+
   const { page = 1, limit = 10 } = options;
   const offset = (page - 1) * limit;
 
