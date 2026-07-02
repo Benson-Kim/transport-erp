@@ -908,12 +908,18 @@ async function initDocumentCounters(
   for (const { prefix, value } of scopes) {
     if (value <= 0) continue;
     const scope = `${prefix}-${year}`;
+    // Monotone, matching the migration backfill (review !15 round 2): an
+    // unconditional overwrite could LOWER a counter the migration backfilled
+    // higher and re-open the P2002 window. GREATEST means counters only ever
+    // move forward, regardless of which writer runs first.
     // eslint-disable-next-line no-await-in-loop -- 4 sequential upserts at seed time
-    await prisma.documentCounter.upsert({
-      where: { scope },
-      create: { scope, value: BigInt(value) },
-      update: { value: BigInt(value) },
-    });
+    await prisma.$executeRaw`
+      INSERT INTO "document_counters" ("scope", "value", "updatedAt")
+      VALUES (${scope}, ${BigInt(value)}, now())
+      ON CONFLICT ("scope") DO UPDATE
+        SET "value" = GREATEST("document_counters"."value", EXCLUDED."value"),
+            "updatedAt" = now();
+    `;
   }
 }
 

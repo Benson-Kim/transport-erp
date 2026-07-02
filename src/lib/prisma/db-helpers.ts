@@ -294,16 +294,21 @@ export function createDateRangeCondition(field: string, range: DateRangeFilter) 
  * delegates to the race-free counter-based allocator; the `model` and `field`
  * arguments are ignored (the scope is derived from the prefix + current year).
  */
+let generateUniqueIdentifierWarned = false;
+
 export async function generateUniqueIdentifier(
   prefix: string,
   _model?: string,
   _field?: string
 ): Promise<string> {
-  console.warn(
-    'generateUniqueIdentifier is deprecated (#61): model/field arguments are ignored, and ' +
-      'allocating outside the create transaction burns a number if the subsequent insert fails. ' +
-      'Call generateDocumentNumber(tx, prefix) inside the create transaction instead.'
-  );
+  if (!generateUniqueIdentifierWarned) {
+    generateUniqueIdentifierWarned = true;
+    console.warn(
+      'generateUniqueIdentifier is deprecated (#61): model/field arguments are ignored, and ' +
+        'allocating outside the create transaction burns a number if the subsequent insert fails. ' +
+        'Call generateDocumentNumber(tx, prefix) inside the create transaction instead.'
+    );
+  }
   return generateDocumentNumber(prisma, prefix);
 }
 
