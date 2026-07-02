@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { Activity, Building2, Database, Lock, Settings, Shield, User, Users } from 'lucide-react';
+import { Building2, Settings, Users } from 'lucide-react';
 
 import { UserRole } from '@/app/generated/prisma';
 import { PageHeader } from '@/components/ui';
@@ -18,52 +18,29 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: UserRole[];
   badge?: string;
   description?: string;
 }
 
+/**
+ * Settings navigation (#17).
+ *
+ * Visibility derives from the canonical permission matrix via canAccessRoute:
+ * no hardcoded role lists to drift. Only routes that exist are listed - the
+ * old profile/security/backup/audit/permissions entries pointed at pages that
+ * were never built (no dead affordances).
+ */
 const navItems: NavItem[] = [
-  {
-    label: 'My Profile',
-    href: '/settings/profile',
-    icon: User,
-    roles: [
-      UserRole.SUPER_ADMIN,
-      UserRole.ADMIN,
-      UserRole.MANAGER,
-      UserRole.ACCOUNTANT,
-      UserRole.OPERATOR,
-      UserRole.VIEWER,
-    ],
-    description: 'Personal information and preferences',
-  },
-  {
-    label: 'Security',
-    href: '/settings/security',
-    icon: Lock,
-    roles: [
-      UserRole.SUPER_ADMIN,
-      UserRole.ADMIN,
-      UserRole.MANAGER,
-      UserRole.ACCOUNTANT,
-      UserRole.OPERATOR,
-      UserRole.VIEWER,
-    ],
-    description: 'Password and authentication',
-  },
   {
     label: 'Company Information',
     href: '/settings/company',
     icon: Building2,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.ACCOUNTANT],
     description: 'Company details and branding',
   },
   {
     label: 'User Management',
     href: '/settings/users',
     icon: Users,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     description: 'Manage users and roles',
     badge: 'Admin',
   },
@@ -71,32 +48,7 @@ const navItems: NavItem[] = [
     label: 'System Settings',
     href: '/settings/system',
     icon: Settings,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
     description: 'System configuration',
-    badge: 'Admin',
-  },
-  {
-    label: 'Backup & Restore',
-    href: '/settings/backup',
-    icon: Database,
-    roles: [UserRole.SUPER_ADMIN],
-    description: 'Data backup settings',
-    badge: 'Super Admin',
-  },
-  {
-    label: 'Audit Log',
-    href: '/settings/audit',
-    icon: Activity,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-    description: 'System activity logs',
-    badge: 'Admin',
-  },
-  {
-    label: 'Permissions',
-    href: '/settings/permissions',
-    icon: Shield,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-    description: 'Role permissions matrix',
     badge: 'Admin',
   },
 ];
@@ -134,7 +86,7 @@ const SettingsNavItem = ({
  * Sidebar for the settings section.
  */
 const SettingsSidebar = ({ userRole, pathname }: { userRole: UserRole; pathname: string }) => {
-  const accessibleNavItems = navItems.filter((item) => item.roles.includes(userRole));
+  const accessibleNavItems = navItems.filter((item) => canAccessRoute(userRole, item.href));
 
   return (
     <aside className="w-full md:w-64 md:shrink-0">

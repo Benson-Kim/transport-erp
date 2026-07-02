@@ -17,12 +17,36 @@ import {
 import prisma from '@/lib/prisma/prisma';
 
 /**
+ * Typed authorization errors (review !16 finding 5).
+ *
+ * The contract between rbac.ts and pages/actions: catch by instanceof and
+ * rethrow everything else, so infrastructure failures (DB outages) are never
+ * masked as authorization decisions. Adopt in all subsequent security work
+ * items (#21, #22, #23).
+ */
+export class UnauthorizedError extends Error {
+  constructor(message = 'Unauthorized') {
+    super(message);
+    this.name = 'UnauthorizedError';
+  }
+}
+
+export class ForbiddenError extends Error {
+  constructor(message = 'Forbidden') {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
+/**
  * Check if current user has permission for an action
  */
 export async function checkPermission(resource: Resource, action: Action): Promise<boolean> {
   const session = await getServerAuth();
 
-  if (!session?.user) {
+  // Deactivated/revoked sessions (isActive:false, set by the jwt re-check,
+  // #15) are treated as unauthenticated on every permission-gated path.
+  if (!session?.user || session.user.isActive === false) {
     return false;
   }
 
@@ -36,7 +60,7 @@ export async function requirePermission(resource: Resource, action: Action): Pro
   const hasAccess = await checkPermission(resource, action);
 
   if (!hasAccess) {
-    throw new Error(`Insufficient permissions: ${resource}:${action} required`);
+    throw new ForbiddenError(`Insufficient permissions: ${resource}:${action} required`);
   }
 }
 
@@ -46,7 +70,7 @@ export async function requirePermission(resource: Resource, action: Action): Pro
 export async function checkRouteAccess(path: string): Promise<boolean> {
   const session = await getServerAuth();
 
-  if (!session?.user) {
+  if (!session?.user || session.user.isActive === false) {
     return false;
   }
 
@@ -113,6 +137,37 @@ export async function checkResourceOwnership(
 
     default:
       return false;
+  }
+}
+
+/**
+ * Require auth + a services permission, and enforce object-level ownership
+ * for OPERATOR (who may only touch services they created or are assigned to).
+ * ADMIN / MANAGER / SUPER_ADMIN are not ownership-scoped per the matrix.
+ *
+ * Throws 'Unauthorized' when unauthenticated or revoked (#15), 'Forbidden'
+ * otherwise. Centralizes the IDOR guard so every service action enforces it
+ * uniformly. (#16)
+ */
+export async function requireServiceAccess(action: Action, serviceId: string): Promise<void> {
+  const session = await getServerAuth();
+
+  if (!session?.user || session.user.isActive === false) {
+    throw new UnauthorizedError();
+  }
+
+  if (!hasPermission(session.user.role, 'services', action)) {
+    throw new ForbiddenError(`Insufficient permissions: services:${action} required`);
+  }
+
+  // Only OPERATOR is ownership-scoped.
+  if (session.user.role !== UserRole.OPERATOR) {
+    return;
+  }
+
+  const owns = await checkResourceOwnership('services', serviceId, session.user.id);
+  if (!owns) {
+    throw new ForbiddenError('Forbidden: you do not have access to this service');
   }
 }
 

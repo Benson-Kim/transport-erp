@@ -327,6 +327,15 @@ async function updateSetting<T>(
 }
 
 /**
+ * Email secret fields are write-only (#19): they are never sent to the client,
+ * and a blank value on save means "keep the stored secret". This prevents the
+ * plaintext API key / SMTP password from being hydrated into the browser.
+ */
+function redactEmailSecrets(email: EmailConfigInput): EmailConfigInput {
+  return { ...email, apiKey: '', password: '' };
+}
+
+/**
  * Get all system settings
  */
 export async function getSystemSettings(): Promise<SystemSettings> {
@@ -344,7 +353,8 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   ]);
 
   return {
-    email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...email },
+    // Never surface stored email secrets to the client. (#19)
+    email: redactEmailSecrets({ ...DEFAULT_SYSTEM_SETTINGS.email, ...email }),
     pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
     backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...backup },
     numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...numberSequences },
@@ -352,10 +362,39 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   };
 }
 
+/** Write-only secret handling flags for saveEmailSettings (#19, review 6). */
+interface EmailSecretFlags {
+  /** Explicitly erase the stored API key (blank alone means "keep"). */
+  clearApiKey?: boolean;
+  /** Explicitly erase the stored SMTP password (blank alone means "keep"). */
+  clearPassword?: boolean;
+}
+
 export async function saveEmailSettings(data: unknown) {
+  // Write-only fields (#19): the redacted values sent to the client come
+  // back empty unless the admin typed a new secret. Blank = keep stored;
+  // an explicit clear flag = erase (an empty string alone must never mean
+  // "delete", or a routine save would wipe the key).
+  //
+  // NOTE: getSetting -> updateSetting is read-merge-write and non-atomic.
+  // Acceptable at single-admin scale; revisit if settings gain concurrent
+  // writers.
+  let incoming = data as (Partial<EmailConfigInput> & EmailSecretFlags) | null;
+  if (incoming && typeof incoming === 'object') {
+    const { clearApiKey, clearPassword, ...rest } = incoming;
+    const stored = await getSetting<EmailConfigInput>(
+      SettingKey.EMAIL,
+      DEFAULT_SYSTEM_SETTINGS.email
+    );
+    const merged: Partial<EmailConfigInput> = { ...rest };
+    if (!merged.apiKey) merged.apiKey = clearApiKey ? '' : stored.apiKey;
+    if (!merged.password) merged.password = clearPassword ? '' : stored.password;
+    incoming = merged;
+  }
+
   return updateSetting(
     SettingKey.EMAIL,
-    data,
+    incoming,
     emailConfigSchema,
     'Email configuration for System notifications'
   );

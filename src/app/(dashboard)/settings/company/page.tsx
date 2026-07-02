@@ -29,16 +29,14 @@ export default async function CompanySettingsPage() {
 
   const userRole = session.user?.role ?? UserRole.VIEWER;
 
+  // canAccessRoute('/settings/company') is derived from companies:view (#17),
+  // so a separate canView re-check would be redundant. /settings/profile does
+  // not exist; send under-privileged users home.
   if (!canAccessRoute(userRole, '/settings/company')) {
-    redirect('/settings/profile');
+    redirect('/dashboard');
   }
 
-  const canView = hasPermission(userRole, RESOURCES.COMPANIES, ACTIONS.VIEW);
   const canEdit = hasPermission(userRole, RESOURCES.COMPANIES, ACTIONS.EDIT);
-
-  if (!canView) {
-    redirect('/settings/profile');
-  }
 
   const result = await getCompanySettings();
   const companyData = result.success ? result.data : null;
@@ -50,7 +48,7 @@ export default async function CompanySettingsPage() {
         description="Manage your company details and branding"
       />
 
-      {canView && !canEdit && (
+      {!canEdit && (
         <Alert variant="info">
           You have view-only access to company settings. Contact an administrator to make changes.
         </Alert>

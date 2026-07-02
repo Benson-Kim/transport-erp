@@ -10,7 +10,7 @@ import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/app/generated/prisma';
 import { requireRole } from '@/lib/auth';
 import { hashPassword } from '@/lib/auth/auth-helpers';
-import { createAuditLog } from '@/lib/prisma/db-helpers';
+import { bumpUserTokenVersion, createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { withPermission } from '@/lib/rbac';
 import { createUserSchema, updateUserSchema } from '@/lib/validations/settings-schema';
@@ -196,11 +196,12 @@ export const updateUser = withPermission(
       newValues: updatedUser,
     });
 
-    // Invalidate user sessions if role changed or deactivated
+    // Revoke existing JWTs if role changed or the account was deactivated.
+    // (session.deleteMany is inert under the JWT strategy; tokenVersion is
+    // the effective mechanism, #15.)
     if (validatedData.role !== undefined || validatedData.status === 'inactive') {
-      await prisma.session.deleteMany({
-        where: { userId },
-      });
+      await bumpUserTokenVersion(userId);
+      await prisma.session.deleteMany({ where: { userId } });
     }
 
     revalidatePath('/settings/users');
@@ -234,19 +235,17 @@ export const deleteUser = withPermission('users', 'delete', async (userId: strin
     throw new Error('Cannot delete super administrator accounts');
   }
 
-  // Soft delete user
+  // Soft delete user and revoke existing JWTs (tokenVersion bump, #15).
   await prisma.user.update({
     where: { id: userId },
     data: {
       deletedAt: new Date(),
       isActive: false,
+      tokenVersion: { increment: 1 },
     },
   });
 
-  // Invalidate all user sessions
-  await prisma.session.deleteMany({
-    where: { userId },
-  });
+  await prisma.session.deleteMany({ where: { userId } });
 
   // Create audit log
   await createAuditLog({
@@ -280,19 +279,17 @@ export const resetUserPassword = withPermission(
     // Hash new password
     const hashedPassword = await hashPassword(newPassword);
 
-    // Update password
+    // Update password and revoke existing JWTs (tokenVersion bump, #15).
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
         passwordChangedAt: new Date(),
+        tokenVersion: { increment: 1 },
       },
     });
 
-    // Invalidate all user sessions
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
+    await prisma.session.deleteMany({ where: { userId } });
 
     // Create audit log
     await createAuditLog({
@@ -323,17 +320,18 @@ export const toggleUserStatus = withPermission('users', 'edit', async (userId: s
     throw new Error('User not found');
   }
 
-  // Toggle status
+  // Toggle status. When deactivating, bump tokenVersion in the same update
+  // to revoke existing JWTs (#15).
   const updatedUser = await prisma.user.update({
     where: { id: userId },
-    data: { isActive: !user.isActive },
+    data: {
+      isActive: !user.isActive,
+      ...(user.isActive ? { tokenVersion: { increment: 1 } } : {}),
+    },
   });
 
-  // Invalidate sessions if deactivated
   if (!updatedUser.isActive) {
-    await prisma.session.deleteMany({
-      where: { userId },
-    });
+    await prisma.session.deleteMany({ where: { userId } });
   }
 
   // Create audit log
@@ -363,12 +361,10 @@ export async function bulkDeactivateUsers(userIds: string[]) {
 
       await prisma.user.update({
         where: { id: userId },
-        data: { isActive: false },
+        data: { isActive: false, tokenVersion: { increment: 1 } },
       });
 
-      await prisma.session.deleteMany({
-        where: { userId },
-      });
+      await prisma.session.deleteMany({ where: { userId } });
 
       return { success: true };
     })
@@ -420,6 +416,7 @@ export async function bulkDeleteUsers(userIds: string[]) {
     data: {
       deletedAt: new Date(),
       isActive: false,
+      tokenVersion: { increment: 1 },
     },
   });
 
