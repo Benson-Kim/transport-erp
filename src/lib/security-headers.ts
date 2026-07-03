@@ -41,3 +41,16 @@ export const securityHeaders: SecurityHeader[] = [
   { key: 'Content-Security-Policy', value: CONTENT_SECURITY_POLICY },
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
 ];
+
+/**
+ * Headers for a given environment (#24). Everything applies in EVERY
+ * environment - CSP violations must surface in dev, not first in prod.
+ * Strict-Transport-Security alone is production-only: HSTS pins the host to
+ * HTTPS and would break http://localhost development.
+ * (Previously next.config.ts served NO headers outside production, while the
+ * !16 record claimed "all environments" - source and claim now agree.)
+ */
+export function securityHeadersForEnv(isProduction: boolean): SecurityHeader[] {
+  if (isProduction) return securityHeaders;
+  return securityHeaders.filter((header) => header.key !== 'Strict-Transport-Security');
+}
