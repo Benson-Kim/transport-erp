@@ -6,7 +6,14 @@
  * transaction client flows through - so the helper's storage contract is
  * pinned without a database.
  */
-import { expect, it } from '@jest/globals';
+import { expect, it, jest } from '@jest/globals';
+
+// Unit convention (rate-limiter.test.ts, db-helpers-tx.test.ts): no unit
+// suite may construct the real Prisma singleton. Instantiating the
+// $extends-ed client fires an async engine/connection probe against
+// DATABASE_URL that rejects AFTER the run in the no-DB test-unit job and
+// crashes it (unhandled P1001). Every write here uses the fake writer.
+jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: {} }));
 
 import { Prisma } from '@/app/generated/prisma';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
