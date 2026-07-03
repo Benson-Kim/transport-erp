@@ -135,22 +135,40 @@ export async function getSuppliers(
 
 /**
  * Supplier statistics, aggregated IN the database (#33 direction): status
- * counts via groupBy, cost sum via aggregate - no row streaming into JS.
+ * counts via count(), cost sum via aggregate - no row streaming into JS.
+ *
+ * Deliberately count() x4 rather than groupBy: the prisma singleton is
+ * $extends(withAccelerate()) (src/lib/prisma/prisma.ts), and on extended
+ * clients Prisma 6's conditional groupBy return type loses its literal
+ * inference and collapses to {}[] - phase0-gate failed with TS2322/TS2339
+ * on both the annotated (50077d92) and unannotated (9b88b42a) forms.
+ * count() has an unconditional number return type, so it cannot regress the
+ * same way; every count still executes as a SQL aggregate, batched in the
+ * same Promise.all round trip.
  */
 async function calculateSupplierStats(supplierId: string): Promise<SupplierStats> {
   const serviceWhere: Prisma.ServiceWhereInput = { supplierId, deletedAt: null };
 
-  // No annotation on the groupBy assignment: an annotated target becomes a
-  // contextual inference source for Prisma's conditional groupBy return type
-  // and collapses the payload to {}[] (phase0-gate TS2322). Inferred type:
-  // Array<{ status: ServiceStatus; _count: { _all: number } }>.
-  const statusCounts = await prisma.service.groupBy({
-    by: ['status'],
-    where: serviceWhere,
-    _count: { _all: true },
+  const countWhere = (statuses: ServiceStatus[]): Prisma.ServiceWhereInput => ({
+    ...serviceWhere,
+    status: { in: statuses },
   });
 
-  const [costSum, lastService] = await Promise.all([
+  const active = [ServiceStatus.DRAFT, ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS];
+  const completed = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
+
+  const [
+    totalServices,
+    activeServices,
+    completedServices,
+    cancelledServices,
+    costSum,
+    lastService,
+  ] = await Promise.all([
+    prisma.service.count({ where: serviceWhere }),
+    prisma.service.count({ where: countWhere(active) }),
+    prisma.service.count({ where: countWhere(completed) }),
+    prisma.service.count({ where: countWhere([ServiceStatus.CANCELLED]) }),
     prisma.service.aggregate({
       where: serviceWhere,
       _sum: { costAmount: true },
@@ -162,22 +180,11 @@ async function calculateSupplierStats(supplierId: string): Promise<SupplierStats
     }),
   ]);
 
-  const countFor = (statuses: ServiceStatus[]): number =>
-    statusCounts
-      .filter((row) => statuses.includes(row.status))
-      .reduce((sum, row) => sum + row._count._all, 0);
-
-  const totalServices = statusCounts.reduce((sum, row) => sum + row._count._all, 0);
-
   return {
     totalServices,
-    activeServices: countFor([
-      ServiceStatus.DRAFT,
-      ServiceStatus.CONFIRMED,
-      ServiceStatus.IN_PROGRESS,
-    ]),
-    completedServices: countFor([ServiceStatus.COMPLETED, ServiceStatus.INVOICED]),
-    cancelledServices: countFor([ServiceStatus.CANCELLED]),
+    activeServices,
+    completedServices,
+    cancelledServices,
     totalCost: costSum._sum.costAmount ? decimalToNumber(costSum._sum.costAmount) : 0,
     lastServiceDate: lastService?.date ?? null,
   };
