@@ -555,13 +555,16 @@ export async function deleteClient(id: string): Promise<ActionResult> {
       data: { deletedAt: new Date() },
     });
 
-    // Create audit log
+    // Create audit log. Minimal before-image (#21): the row still exists
+    // (soft delete) - snapshotting it duplicated the whole record,
+    // including creditLimit/discount, into audit_logs.
     await createAuditLog({
       userId: session.user.id,
       action: 'DELETE',
       tableName: 'clients',
       recordId: id,
-      oldValues: existing,
+      oldValues: { deletedAt: null },
+      newValues: { deletedAt: new Date() },
       ipAddress,
       userAgent,
       metadata: { servicesCount: existing._count.services },
