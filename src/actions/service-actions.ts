@@ -8,7 +8,7 @@
 import { revalidatePath } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
-import { ServiceStatus, DocumentType, UserRole } from '@/app/generated/prisma';
+import { ServiceStatus, UserRole } from '@/app/generated/prisma';
 import { requireAuth } from '@/lib/auth';
 import { getServiceWithDetails } from '@/lib/data/service-data';
 import type { Action } from '@/lib/permissions';
@@ -764,61 +764,6 @@ export async function archiveService(serviceId: string) {
 }
 
 /**
- * Generate loading order PDF
- */
-export async function generateLoadingOrder(serviceId: string) {
-  const session = await requireAuth();
-  await requirePermission('documents', 'create');
-  await requireServiceAccess('view', serviceId);
-
-  // Get service details
-  const service = await getServiceWithDetails(serviceId);
-  if (!service) throw new Error('Service not found');
-
-  // TODO: Implement PDF generation
-  // const pdfBuffer = await generateServicePDF(service, 'loading-order');
-  // const pdfPath = await saveFile(pdfBuffer);
-
-  // For now, use a placeholder
-  const pdfPath = `/documents/loading-orders/${serviceId}.pdf`;
-  const fileName = `LoadingOrder_${service.serviceNumber}.pdf`;
-
-  // Document row and its audit row commit together (#27).
-  const document = await withTransaction(async (tx) => {
-    const created = await tx.document.create({
-      data: {
-        documentType: DocumentType.LOADING_ORDER,
-        documentNumber: `LO-${service.serviceNumber}`,
-        serviceId,
-        fileName,
-        filePath: pdfPath,
-        fileSize: 0, // TODO: Get actual file size
-        mimeType: 'application/pdf',
-        description: `Loading order for service ${service.serviceNumber}`,
-        uploadedBy: session.user.id,
-      },
-    });
-
-    await createAuditLog(
-      {
-        userId: session.user.id,
-        action: 'GENERATE_DOCUMENT',
-        tableName: 'services',
-        recordId: serviceId,
-        metadata: { documentType: 'LOADING_ORDER' },
-      },
-      tx
-    );
-
-    return created;
-  });
-
-  revalidatePath(`/services/${serviceId}`);
-
-  return { url: pdfPath, document };
-}
-
-/**
  * Send service details by email
  */
 export async function sendServiceEmail(serviceId: string) {
@@ -1100,25 +1045,7 @@ export async function bulkDeleteServices(serviceIds: string[]) {
   return { success: true, count: result.count };
 }
 
-/**
- * Generate bulk loading orders
- */
-export async function generateBulkLoadingOrders(_serviceIds: string[]) {
-  await requireAuth();
-  await requirePermission('documents', 'create');
-
-  // TODO: Implementation for generating loading orders.
-  // MANDATORY when implemented (#16): every id must pass
-  // requireServiceAccess('view', id) - per-service ownership - exactly like
-  // generateLoadingOrder does on the single-service path. Do not ship an
-  // implementation without that guard.
-  // This would group services and create loading order documents.
-
-  // Honest counts (review !16 R2-3): a stub must not claim success for work
-  // it did not do - the UI would confidently lie on its behalf.
-  return {
-    success: false as const,
-    error: 'Bulk loading-order generation is not implemented yet',
-    count: 0,
-  };
-}
+// Loading-order generation lives in src/actions/loading-order-actions.ts
+// (#32): createLoadingOrder enforces per-member requireServiceAccess (the
+// mandatory guard the deleted generateBulkLoadingOrders stub documented)
+// and writes NO Document row until a real stored PDF exists (#34).

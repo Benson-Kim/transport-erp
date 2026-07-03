@@ -7,20 +7,17 @@
  *       bulk path AND the generic single-op update/create paths (the
  *       single-op hole predated !16 and is closed by the same guard).
  * R2-1: assertBulkServiceInvariants rejections are typed ForbiddenError.
- * R2-3: the unimplemented generateBulkLoadingOrders stub must not report
- *       success.
+ *
+ * R2-3 (stub honesty) was retired with #32: the generateBulkLoadingOrders
+ * stub is deleted and the real createLoadingOrder path carries its own
+ * tests (tests/unit/loading-orders.test.ts, tests/db/loading-orders.test.ts).
  */
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ServiceStatus, UserRole } from '@/app/generated/prisma';
 import type { ServiceFormData } from '@/lib/validations/service-schema';
 
-import {
-  bulkUpdateServices,
-  createService,
-  generateBulkLoadingOrders,
-  updateService,
-} from '@/actions/service-actions';
+import { bulkUpdateServices, createService, updateService } from '@/actions/service-actions';
 
 const mockRequireAuth = jest.fn<() => Promise<unknown>>();
 jest.mock('@/lib/auth', () => ({
@@ -233,17 +230,5 @@ describe('typed bulk-guard errors (review !16 R2-1)', () => {
     await expect(bulkUpdateServices(['s1'], {})).rejects.toMatchObject({
       name: 'ForbiddenError',
     });
-  });
-});
-
-describe('generateBulkLoadingOrders stub honesty (review !16 R2-3)', () => {
-  it('does not claim success for work it did not do', async () => {
-    mockRequireAuth.mockResolvedValue(session(UserRole.MANAGER, 'mgr-1'));
-
-    const result = await generateBulkLoadingOrders(['s1', 's2', 's3']);
-
-    expect(result.success).toBe(false);
-    expect(result.count).toBe(0);
-    expect(result.error).toMatch(/not implemented/i);
   });
 });
