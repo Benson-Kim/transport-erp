@@ -21,6 +21,8 @@ describe('parseAllowlist / config (#23)', () => {
     expect(parseAllowlist(' Acme.ES ,, transporte.com , ')).toEqual(['acme.es', 'transporte.com']);
     expect(parseAllowlist(undefined)).toEqual([]);
     expect(parseAllowlist('')).toEqual([]);
+    // Separators and whitespace only = no config = fail closed.
+    expect(parseAllowlist('  ,  , ')).toEqual([]);
   });
 
   it('reads both env vars', () => {
