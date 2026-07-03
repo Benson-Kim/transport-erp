@@ -17,7 +17,7 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-import { PaymentStatus, type Prisma } from '@/app/generated/prisma';
+import { InvoiceStatus, PaymentStatus, type Prisma } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import { recomputeInvoicePaymentState } from '@/lib/invoices';
 import { RESOURCES, ACTIONS } from '@/lib/permissions';

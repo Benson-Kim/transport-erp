@@ -252,6 +252,10 @@ export async function getInvoiceableServices(
 
     const where: Prisma.ServiceWhereInput = {
       deletedAt: null,
+      // Double-billing guard: a service already covered by a live invoice
+      // of the same direction is not offered again. Relation-based (not
+      // status-based) so soft-deleting a draft invoice frees its services.
+      invoiceItems: { none: { invoice: { direction, deletedAt: null } } },
       ...(direction === InvoiceDirection.SALES
         ? {
             clientId: partyId,

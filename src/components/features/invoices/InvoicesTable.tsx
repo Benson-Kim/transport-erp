@@ -32,13 +32,18 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   [InvoiceStatus.CANCELLED]: 'Cancelled',
 };
 
-const STATUS_VARIANT: Record<InvoiceStatus, 'default' | 'success' | 'warning' | 'error'> = {
+// Badge ships 'active' | 'completed' | 'cancelled' | 'billed' | 'archived'
+// | 'default' - there is no success/warning/error variant.
+const STATUS_VARIANT: Record<
+  InvoiceStatus,
+  'default' | 'billed' | 'completed' | 'cancelled' | 'archived'
+> = {
   [InvoiceStatus.DRAFT]: 'default',
-  [InvoiceStatus.SENT]: 'default',
-  [InvoiceStatus.VIEWED]: 'default',
-  [InvoiceStatus.PAID]: 'success',
-  [InvoiceStatus.OVERDUE]: 'error',
-  [InvoiceStatus.CANCELLED]: 'warning',
+  [InvoiceStatus.SENT]: 'billed',
+  [InvoiceStatus.VIEWED]: 'billed',
+  [InvoiceStatus.PAID]: 'completed',
+  [InvoiceStatus.OVERDUE]: 'cancelled',
+  [InvoiceStatus.CANCELLED]: 'archived',
 };
 
 interface InvoicesTableProps {
