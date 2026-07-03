@@ -4,6 +4,8 @@
  */
 
 import type { AuditAction, Prisma, PrismaClient } from '@/app/generated/prisma';
+import { computeAuditDiff } from '@/lib/audit-diff';
+import { getRequestId } from '@/lib/request-context';
 
 import prisma from './prisma';
 
@@ -111,32 +113,51 @@ export async function createAuditLog(
     newValues,
     ipAddress,
     userAgent,
+    requestId,
     metadata,
   }: {
     userId?: string | undefined;
     action: AuditAction;
     tableName: string;
     recordId: string;
-    oldValues?: any;
-    newValues?: any;
+    /** Full or partial before-image; reduced to a field-level diff (#21). */
+    oldValues?: object | null | undefined;
+    /** Full or partial after-image; reduced to a field-level diff (#21). */
+    newValues?: object | null | undefined;
     ipAddress?: string | undefined;
     userAgent?: string | undefined;
+    /** Correlation id; defaults to the x-request-id minted by proxy.ts (#21). */
+    requestId?: string | undefined;
     metadata?: Record<string, any> | undefined;
   },
   client: AuditLogWriter = prisma
 ) {
+  // Field-level diffs with redaction (#21): the previous structuredClone
+  // whole-record snapshots leaked internalNotes/pricing (and, via
+  // user-actions, bcrypt password hashes) to anyone with audit_logs:view,
+  // and grew unbounded. computeAuditDiff stores changed keys only and omits
+  // sensitive content; sensitive field NAMES are still recorded in
+  // metadata.changedFields so the trail stays complete-but-minimal.
+  const diff = computeAuditDiff(
+    tableName,
+    oldValues ? ({ ...oldValues } as Record<string, unknown>) : null,
+    newValues ? ({ ...newValues } as Record<string, unknown>) : null
+  );
+
   return client.auditLog.create({
     data: {
       userId: userId ?? null,
       action,
       tableName,
       recordId,
-      oldValues: oldValues ? structuredClone(oldValues) : null,
-      newValues: newValues ? structuredClone(newValues) : null,
+      oldValues: diff.oldValues,
+      newValues: diff.newValues,
       ipAddress: ipAddress ?? null,
       userAgent: userAgent ?? null,
+      requestId: requestId ?? (await getRequestId()) ?? null,
       metadata: {
         timestamp: new Date().toISOString(),
+        ...(diff.changedFields.length > 0 ? { changedFields: diff.changedFields } : {}),
         ...metadata,
       },
     },
