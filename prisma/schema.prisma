@@ -797,3 +797,21 @@ model DocumentCounter {
 
   @@map("document_counters")
 }
+
+/// Cross-process rate limiting (#22). One row per limiter key
+/// ("scope:email:ip"). Mutated only under a SELECT ... FOR UPDATE row lock in
+/// src/lib/rate-limiter.ts, so the attempt count is atomic across app
+/// instances. Rows are deleted on reset (successful login).
+model RateLimitCounter {
+  key         String    @id // e.g. "login:user@example.com:203.0.113.7"
+  attempts    Int       @default(0)
+  windowStart DateTime  @default(now())
+  lockedUntil DateTime?
+
+  createdAt DateTime @default(now())
+  // @default(now()) mirrors the DB DEFAULT CURRENT_TIMESTAMP in the migration
+  // (drift-check requires schema and migrations to agree on it).
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("rate_limit_counters")
+}

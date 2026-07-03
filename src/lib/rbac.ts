@@ -39,6 +39,14 @@ export class ForbiddenError extends Error {
 }
 
 /**
+ * Typed rate-limit rejection (#22) - the third member of this contract,
+ * carrying retryAfter. Defined in rate-limiter.ts (rbac depends on lib/auth,
+ * which depends on the limiter; defining it there avoids an import cycle)
+ * and re-exported here so authz call sites catch all three from one module.
+ */
+export { RateLimitedError } from '@/lib/rate-limiter';
+
+/**
  * Check if current user has permission for an action
  */
 export async function checkPermission(resource: Resource, action: Action): Promise<boolean> {
