@@ -145,7 +145,7 @@ async function calculateSupplierStats(supplierId: string): Promise<SupplierStats
       by: ['status'],
       where: serviceWhere,
       _count: { _all: true },
-    }),
+    });
 
     const [costSum, lastService] = await Promise.all([
       prisma.service.aggregate({
