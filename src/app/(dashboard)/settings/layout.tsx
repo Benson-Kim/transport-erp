@@ -6,52 +6,15 @@ import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { Building2, Settings, Users } from 'lucide-react';
-
 import { UserRole } from '@/app/generated/prisma';
 import { PageHeader } from '@/components/ui';
 import { auth } from '@/lib/auth';
 import { canAccessRoute } from '@/lib/permissions';
 import { cn } from '@/lib/utils/cn';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-  description?: string;
-}
-
-/**
- * Settings navigation (#17).
- *
- * Visibility derives from the canonical permission matrix via canAccessRoute:
- * no hardcoded role lists to drift. Only routes that exist are listed - the
- * old profile/security/backup/audit/permissions entries pointed at pages that
- * were never built (no dead affordances).
- */
-const navItems: NavItem[] = [
-  {
-    label: 'Company Information',
-    href: '/settings/company',
-    icon: Building2,
-    description: 'Company details and branding',
-  },
-  {
-    label: 'User Management',
-    href: '/settings/users',
-    icon: Users,
-    description: 'Manage users and roles',
-    badge: 'Admin',
-  },
-  {
-    label: 'System Settings',
-    href: '/settings/system',
-    icon: Settings,
-    description: 'System configuration',
-    badge: 'Admin',
-  },
-];
+// Settings navigation (#17, #36): the shared list in ./settings-nav.ts is
+// the single source for this sidebar AND the /settings index redirect.
+import { SETTINGS_NAV_ITEMS, type SettingsNavEntry } from './settings-nav';
 
 /**
  * Navigation item for the settings sidebar.
@@ -63,7 +26,7 @@ const SettingsNavItem = ({
   pathname,
   description,
   badge,
-}: NavItem & { pathname: string }) => {
+}: SettingsNavEntry & { pathname: string }) => {
   const isActive = pathname === href;
 
   return (
@@ -86,7 +49,9 @@ const SettingsNavItem = ({
  * Sidebar for the settings section.
  */
 const SettingsSidebar = ({ userRole, pathname }: { userRole: UserRole; pathname: string }) => {
-  const accessibleNavItems = navItems.filter((item) => canAccessRoute(userRole, item.href));
+  const accessibleNavItems = SETTINGS_NAV_ITEMS.filter((item) =>
+    canAccessRoute(userRole, item.href)
+  );
 
   return (
     <aside className="w-full md:w-64 md:shrink-0">

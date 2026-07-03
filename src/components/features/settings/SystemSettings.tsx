@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, FileText, Database, Hash, Settings } from 'lucide-react';
+import { Mail, FileText, Database, Settings } from 'lucide-react';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import {
@@ -14,7 +14,6 @@ import {
   testEmailConfiguration,
   updateBackup,
   updateGeneral,
-  updateNumberSequences,
   updatePDF,
 } from '@/actions/settings-actions';
 import type { getSystemSettings } from '@/actions/settings-actions';
@@ -32,7 +31,6 @@ import BackupSettings from './SystemSettings/Backup';
 import EmailConfiguration from './SystemSettings/EmailConfig';
 import GeneralSettings from './SystemSettings/General';
 import PDFSettings from './SystemSettings/PDF';
-import SequenceSettings from './SystemSettings/Sequence';
 
 type SettingsSection = keyof SystemSettings;
 
@@ -51,10 +49,6 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
       email: { ...DEFAULT_SYSTEM_SETTINGS.email, ...initialSettings.email },
       pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...initialSettings.pdf },
       backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...initialSettings.backup },
-      numberSequences: {
-        ...DEFAULT_SYSTEM_SETTINGS.numberSequences,
-        ...initialSettings.numberSequences,
-      },
       general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...initialSettings.general },
     },
   });
@@ -74,7 +68,6 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
         email: () => saveEmailSettings(values.email),
         pdf: () => updatePDF(values.pdf),
         backup: () => updateBackup(values.backup),
-        numberSequences: () => updateNumberSequences(values.numberSequences),
         general: () => updateGeneral(values.general),
       };
 
@@ -197,22 +190,6 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
             }
           >
             <BackupSettings />
-          </TabContent>
-        ),
-      },
-      {
-        id: 'sequences',
-        label: 'Number Sequences',
-        icon: <Hash className="h-4 w-4" />,
-        content: (
-          <TabContent
-            title="Number Sequences"
-            description="Configure document numbering formats and sequences"
-            section="numberSequences"
-            onSave={() => handleSaveSection('numberSequences')}
-            isSaving={saving === 'numberSequences'}
-          >
-            <SequenceSettings />
           </TabContent>
         ),
       },
