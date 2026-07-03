@@ -32,6 +32,7 @@ import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma/prisma';
+import { RATE_LIMITS, extractClientIp, rateLimiter, rateLimitKey } from '@/lib/rate-limiter';
 
 import { EmailTemplate } from '@/types/mail';
 import { emailService } from '@/lib/email';
@@ -45,7 +46,9 @@ function getBaseUrl(): string {
  */
 export async function getClientInfo() {
   const headersList = await headers();
-  const ipAddress = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '';
+  // Shared extraction with authorize() - one implementation (#22): first
+  // x-forwarded-for hop, then x-real-ip.
+  const ipAddress = extractClientIp(headersList) ?? '';
   const userAgent = headersList.get('user-agent') || '';
   return { ipAddress, userAgent };
 }
@@ -59,7 +62,15 @@ const AUTH_ERROR_MAP: Record<string, string> = {
 };
 
 const getAuthErrorMessage = (message: string): string | null => {
-  if (message.includes('Too many login attempts')) {
+  // Rate-limit rejections carry their own user-facing text (#22).
+  if (message.startsWith('Too many')) {
+    return message;
+  }
+
+  // A throttled verification send must NOT be mapped to the "we have sent
+  // you a new verification link" text - the UI may not claim a send that
+  // did not happen (#22).
+  if (message.includes('Email not verified') && !message.includes('new verification link')) {
     return message;
   }
 
@@ -173,6 +184,20 @@ export async function requestPasswordReset(data: ForgotPasswordFormData) {
     const { email } = forgotPasswordSchema.parse(data);
     const { ipAddress, userAgent } = await getClientInfo();
     const baseUrl = getBaseUrl();
+
+    // Throttle the public send trigger (#22): keyed by IP+email, enforced in
+    // Postgres across instances. The response stays enumeration-safe - the
+    // throttle applies whether or not the account exists.
+    const sendGate = await rateLimiter.consume(
+      rateLimitKey('password-reset-email', email, ipAddress || null),
+      RATE_LIMITS.EMAIL_SEND
+    );
+    if (!sendGate.success) {
+      return {
+        success: false,
+        error: 'Too many password reset requests. Please try again later.',
+      };
+    }
 
     const user = await prisma.user.findUnique({
       where: { email },
@@ -290,7 +315,23 @@ export async function verifyEmail(token: string) {
 export async function resendVerificationEmail(data: ForgotPasswordFormData) {
   try {
     const { email } = forgotPasswordSchema.parse(data);
+    const { ipAddress } = await getClientInfo();
     const baseUrl = getBaseUrl();
+
+    // Same budget as the unverified-login send path (#22): one
+    // 'verification-email' scope keyed by IP+email, enforced in Postgres
+    // across instances - the public form cannot bypass the login-path cap.
+    const sendGate = await rateLimiter.consume(
+      rateLimitKey('verification-email', email, ipAddress || null),
+      RATE_LIMITS.EMAIL_SEND
+    );
+    if (!sendGate.success) {
+      return {
+        success: false,
+        error: 'Too many verification email requests. Please try again later.',
+      };
+    }
+
     const result = await regenerateVerificationToken(email);
 
     if (result) {

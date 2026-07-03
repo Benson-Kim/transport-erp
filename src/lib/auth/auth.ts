@@ -14,7 +14,13 @@ import type { Adapter } from 'next-auth/adapters';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 
-import { rateLimiter } from '@/lib/rate-limiter';
+import {
+  RATE_LIMITS,
+  RateLimitedError,
+  extractClientIp,
+  rateLimiter,
+  rateLimitKey,
+} from '@/lib/rate-limiter';
 import { generateVerificationToken } from './auth-helpers';
 import { loginSchema } from '@/lib/validations/auth-schema';
 import { emailService } from '../email';
@@ -138,19 +144,24 @@ export const authConfig = {
             rememberMe: credentials.rememberMe,
           });
 
-          // Get IP/User-Agent from the Request
-          const ip =
-            req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-            req.headers.get('x-real-ip') ??
-            null;
+          // Get IP/User-Agent from the Request (extraction shared with
+          // getClientInfo - one implementation, #22).
+          const ip = extractClientIp(req.headers);
           const userAgent = req.headers.get('user-agent') ?? null;
 
-          // Rate limit
-          const rateLimitResult = await rateLimiter.check(validatedFields.email, 5, 15 * 60 * 1000);
+          // Rate limit (#22): ONE atomic consume per attempt, keyed by
+          // IP+email, enforced in Postgres so every app instance shares the
+          // budget. No check/increment split - the old off-by-one (and the
+          // unverified-email path that never counted at all) cannot recur.
+          const loginKey = rateLimitKey('login', validatedFields.email, ip);
+          const rateLimitResult = await rateLimiter.consume(loginKey, RATE_LIMITS.LOGIN);
 
           if (!rateLimitResult.success) {
             const minutes = Math.ceil(rateLimitResult.retryAfter / 60000);
-            throw new Error(`Too many login attempts. Please try again in ${minutes} minutes.`);
+            throw new RateLimitedError(
+              rateLimitResult.retryAfter,
+              `Too many login attempts. Please try again in ${minutes} minutes.`
+            );
           }
 
           // Find user by email
@@ -172,7 +183,7 @@ export const authConfig = {
           });
 
           if (!user?.password) {
-            await rateLimiter.increment(validatedFields.email);
+            // The consume above already counted this attempt (#22).
             throw new Error('Invalid email or password');
           }
 
@@ -182,24 +193,41 @@ export const authConfig = {
 
           const passwordValid = await compare(validatedFields.password, user.password);
           if (!passwordValid) {
-            await rateLimiter.increment(validatedFields.email);
+            // The consume above already counted this attempt (#22).
             throw new Error('Invalid email or password');
           }
 
           if (!user.emailVerified) {
-            const token = await generateVerificationToken(user.email);
+            // The unlimited-verification-email hole (#22): this branch used
+            // to send unconditionally while the counter stayed at zero. The
+            // send now has its own budget, shared with the public resend
+            // form (same key scope); the login consume above counts the
+            // attempt regardless.
+            const sendGate = await rateLimiter.consume(
+              rateLimitKey('verification-email', user.email, ip),
+              RATE_LIMITS.EMAIL_SEND
+            );
 
-            await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
-              name: user.name || 'User',
-              email: user.email,
-              verificationUrl: `${baseUrl}/verify-email?token=${token}`,
-              expiresIn: '24 hours',
-            });
+            if (sendGate.success) {
+              const token = await generateVerificationToken(user.email);
 
-            throw new Error('Email not verified. We have sent you a new verification link.');
+              await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+                name: user.name || 'User',
+                email: user.email,
+                verificationUrl: `${baseUrl}/verify-email?token=${token}`,
+                expiresIn: '24 hours',
+              });
+
+              throw new Error('Email not verified. We have sent you a new verification link.');
+            }
+
+            // Honest UI (#22): when throttled, do NOT claim a link was sent.
+            throw new Error(
+              'Email not verified. Please use the verification link already sent to your inbox.'
+            );
           }
 
-          await rateLimiter.reset(validatedFields.email);
+          await rateLimiter.reset(loginKey);
 
           await prisma.user.update({
             where: { id: user.id },
