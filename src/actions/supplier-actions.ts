@@ -140,24 +140,27 @@ export async function getSuppliers(
 async function calculateSupplierStats(supplierId: string): Promise<SupplierStats> {
   const serviceWhere: Prisma.ServiceWhereInput = { supplierId, deletedAt: null };
 
-  const statusCounts: Array<{ status: ServiceStatus; _count: { _all: number } }> =
-    await prisma.service.groupBy({
-      by: ['status'],
-      where: serviceWhere,
-      _count: { _all: true },
-    });
+  // No annotation on the groupBy assignment: an annotated target becomes a
+  // contextual inference source for Prisma's conditional groupBy return type
+  // and collapses the payload to {}[] (phase0-gate TS2322). Inferred type:
+  // Array<{ status: ServiceStatus; _count: { _all: number } }>.
+  const statusCounts = await prisma.service.groupBy({
+    by: ['status'],
+    where: serviceWhere,
+    _count: { _all: true },
+  });
 
-    const [costSum, lastService] = await Promise.all([
-      prisma.service.aggregate({
-        where: serviceWhere,
-        _sum: { costAmount: true },
-      }),
-      prisma.service.findFirst({
-        where: serviceWhere,
-        orderBy: { date: 'desc' },
-        select: { date: true },
-      }),
-    ]);
+  const [costSum, lastService] = await Promise.all([
+    prisma.service.aggregate({
+      where: serviceWhere,
+      _sum: { costAmount: true },
+    }),
+    prisma.service.findFirst({
+      where: serviceWhere,
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+  ]);
 
   const countFor = (statuses: ServiceStatus[]): number =>
     statusCounts
