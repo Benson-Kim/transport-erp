@@ -14,6 +14,7 @@ import { headers } from 'next/headers';
 import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import { RESOURCES, ACTIONS } from '@/lib/permissions';
+import { decimalToNumber, ZERO } from '@/lib/pricing';
 import {
   createAuditLog,
   excludeDeleted,
@@ -24,6 +25,7 @@ import {
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
+import { RECOGNIZED_REVENUE_STATUSES } from '@/lib/revenue';
 import { asAddress } from '@/lib/utils/address';
 import { clientSchema, clientFilterSchema } from '@/lib/validations/client-schema';
 import type {
@@ -190,58 +192,58 @@ export async function getClientById(id: string): Promise<ActionResult<ClientWith
 }
 
 /**
- * Calculate client statistics
+ * Client statistics, aggregated IN the database (#33): status counts via
+ * count(), money sums via aggregate over RECOGNIZED_REVENUE_STATUSES - no
+ * row streaming, no Number(decimal) float sums in JS. count()/aggregate()
+ * instead of groupBy because the $extends(withAccelerate()) client
+ * (src/lib/prisma/prisma.ts) collapses groupBy's inferred payload to {}[]
+ * (same failure fixed in calculateSupplierStats, !20).
  */
 async function calculateClientStats(clientId: string): Promise<ClientStats> {
-  const services = await prisma.service.findMany({
-    where: {
-      clientId,
-      deletedAt: null,
-    },
-    select: {
-      status: true,
-      saleAmount: true,
-      costAmount: true,
-      margin: true,
-      marginPercentage: true,
-      date: true,
-    },
-    orderBy: { date: 'desc' },
+  const serviceWhere: Prisma.ServiceWhereInput = { clientId, deletedAt: null };
+
+  const countWhere = (statuses: ServiceStatus[]): Prisma.ServiceWhereInput => ({
+    ...serviceWhere,
+    status: { in: statuses },
   });
 
-  const totalServices = services.length;
-  const activeServices = services.filter(
-    (s) =>
-      s.status === ServiceStatus.DRAFT ||
-      s.status === ServiceStatus.CONFIRMED ||
-      s.status === ServiceStatus.IN_PROGRESS
-  ).length;
-  const completedServices = services.filter(
-    (s) => s.status === ServiceStatus.COMPLETED || s.status === ServiceStatus.INVOICED
-  ).length;
-  const cancelledServices = services.filter((s) => s.status === ServiceStatus.CANCELLED).length;
+  const active = [ServiceStatus.DRAFT, ServiceStatus.CONFIRMED, ServiceStatus.IN_PROGRESS];
+  const completed = [ServiceStatus.COMPLETED, ServiceStatus.INVOICED];
 
-  const totalRevenue = services.reduce((sum, s) => sum + Number(s.saleAmount), 0);
-  const totalCost = services.reduce((sum, s) => sum + Number(s.costAmount), 0);
-  const totalMargin = services.reduce((sum, s) => sum + Number(s.margin), 0);
-
-  const averageMarginPercentage =
-    totalServices > 0
-      ? services.reduce((sum, s) => sum + Number(s.marginPercentage), 0) / totalServices
-      : 0;
-
-  const lastServiceDate = services[0]?.date ?? null;
+  const [
+    totalServices,
+    activeServices,
+    completedServices,
+    cancelledServices,
+    revenueSums,
+    lastService,
+  ] = await Promise.all([
+    prisma.service.count({ where: serviceWhere }),
+    prisma.service.count({ where: countWhere(active) }),
+    prisma.service.count({ where: countWhere(completed) }),
+    prisma.service.count({ where: countWhere([ServiceStatus.CANCELLED]) }),
+    prisma.service.aggregate({
+      where: countWhere([...RECOGNIZED_REVENUE_STATUSES]),
+      _sum: { saleAmount: true, costAmount: true, margin: true },
+      _avg: { marginPercentage: true },
+    }),
+    prisma.service.findFirst({
+      where: serviceWhere,
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+  ]);
 
   return {
     totalServices,
     activeServices,
     completedServices,
     cancelledServices,
-    totalRevenue,
-    totalCost,
-    totalMargin,
-    averageMarginPercentage,
-    lastServiceDate,
+    totalRevenue: decimalToNumber(revenueSums._sum.saleAmount ?? ZERO),
+    totalCost: decimalToNumber(revenueSums._sum.costAmount ?? ZERO),
+    totalMargin: decimalToNumber(revenueSums._sum.margin ?? ZERO),
+    averageMarginPercentage: decimalToNumber(revenueSums._avg.marginPercentage ?? ZERO),
+    lastServiceDate: lastService?.date ?? null,
   };
 }
 
