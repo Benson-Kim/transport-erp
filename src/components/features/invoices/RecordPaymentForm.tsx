@@ -5,32 +5,36 @@
  *
  * Inline form rendered on the invoice detail page. Validates that the
  * payment amount does not exceed the remaining balance before submitting
- * (client-side guard; the action enforces it server-side too).
+ * (client-side guard; the action enforces it server-side too). On success
+ * the route refreshes so paidAmount / paymentStatus / remaining re-render
+ * from the recomputed invoice - no callback prop, so the (server)
+ * InvoiceDetail component can mount this directly.
  */
 
 import { useTransition } from 'react';
+
+import { useRouter } from 'next/navigation';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 
 import { recordPayment } from '@/actions/payment-actions';
 import { Alert, Button, FormField, Input, Select } from '@/components/ui';
-import { createPaymentSchema, PAYMENT_METHODS, type CreatePaymentInput } from '@/lib/validations/payment-schema';
 import { formatCurrency } from '@/lib/utils';
+import { createPaymentSchema, PAYMENT_METHODS, type CreatePaymentInput } from '@/lib/validations/payment-schema';
 
 interface RecordPaymentFormProps {
   invoiceId: string;
   remainingAmount: number;
   currency: string;
-  onSuccess: () => void;
 }
 
 export function RecordPaymentForm({
   invoiceId,
   remainingAmount,
   currency,
-  onSuccess,
-}: RecordPaymentFormProps) {
+}: Readonly<RecordPaymentFormProps>) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -52,7 +56,7 @@ export function RecordPaymentForm({
       const result = await recordPayment(invoiceId, data);
       if (result.success) {
         reset();
-        onSuccess();
+        router.refresh();
       } else {
         setError('root', { message: result.error ?? 'Failed to record payment' });
       }

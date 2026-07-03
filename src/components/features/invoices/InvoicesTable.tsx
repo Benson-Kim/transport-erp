@@ -14,7 +14,7 @@ import { useCallback, useTransition } from 'react';
 
 import { InvoiceDirection, InvoiceStatus } from '@/app/generated/prisma';
 import { deleteInvoice } from '@/actions/invoice-actions';
-import { Alert, Badge, Button, Pagination } from '@/components/ui';
+import { Badge, Button, Pagination } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { InvoiceListItem, PaginatedInvoices } from '@/types/invoice';
 

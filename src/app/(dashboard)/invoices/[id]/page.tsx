@@ -66,6 +66,7 @@ async function InvoiceContent({ id }: { id: string }) {
   const canEdit = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.EDIT);
   const canDelete = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.DELETE);
   const canSend = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.SEND);
+  const canRecordPayment = hasPermission(userRole, RESOURCES.PAYMENTS, ACTIONS.CREATE);
 
   return (
     <InvoiceDetail
@@ -73,6 +74,7 @@ async function InvoiceContent({ id }: { id: string }) {
       canEdit={canEdit}
       canDelete={canDelete}
       canSend={canSend}
+      canRecordPayment={canRecordPayment}
     />
   );
 }
