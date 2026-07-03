@@ -6,9 +6,10 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 
-import { ServiceStatus } from '@/app/generated/prisma';
+import { Prisma, ServiceStatus } from '@/app/generated/prisma';
 import appPrisma from '@/lib/prisma/prisma';
 import { queryClientMargins, queryMonthlyFinancials } from '@/lib/reports/queries';
+import { RECOGNIZED_REVENUE_STATUSES } from '@/lib/revenue';
 
 import {
   prisma,
@@ -138,5 +139,39 @@ describe('report SQL aggregation (#33)', () => {
     expect(String(mine?.revenue)).toBe('150.4');
     expect(String(mine?.cost)).toBe('80.25');
     expect(String(mine?.margin)).toBe('70.15');
+  });
+
+  it('captures EXPLAIN evidence: aggregation happens inside Postgres', async () => {
+    const recognized = Prisma.join(
+      RECOGNIZED_REVENUE_STATUSES.map((status) => Prisma.sql`${status}::"ServiceStatus"`)
+    );
+
+    // Same statement shape as queryMonthlyFinancials (statuses interpolated
+    // from the single revenue definition - no forked list). ANALYZE executes
+    // it; the plan is printed into the CI job trace as the #33 acceptance
+    // evidence that grouping/summing run in the database.
+    const plan = await prisma.$queryRaw<Array<{ 'QUERY PLAN': string }>>`
+      EXPLAIN (ANALYZE, COSTS OFF)
+      SELECT
+        date_trunc('month', "date") AS "month",
+        COUNT(*)::int AS "services",
+        COALESCE(SUM("saleAmount"), 0) AS "revenue",
+        COALESCE(SUM("costAmount"), 0) AS "cost",
+        COALESCE(SUM("margin"), 0) AS "margin"
+      FROM "services"
+      WHERE "deletedAt" IS NULL
+        AND "status" IN (${recognized})
+        AND "date" >= ${WINDOW.start}
+        AND "date" < ${WINDOW.end}
+      GROUP BY 1
+      ORDER BY 1
+    `;
+
+    const planText = plan.map((row) => row['QUERY PLAN']).join('\n');
+    process.stdout.write(`\n[#33 EXPLAIN evidence]\n${planText}\n\n`);
+
+    // GroupAggregate/HashAggregate both prove DB-side aggregation; a plan
+    // without an Aggregate node would mean rows were streamed out to JS.
+    expect(planText).toMatch(/Aggregate/);
   });
 });

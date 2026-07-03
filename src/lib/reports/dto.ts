@@ -65,6 +65,13 @@ export interface ClientMarginsDto extends FinancialsDto {
   clientName: string;
 }
 
+/**
+ * marginPercentage is DERIVED from revenue/cost while margin is the summed
+ * STORED column. The two agree because every write path stores
+ * margin = saleAmount - costAmount (pricing.ts margin(), #11 money CHECK
+ * family at the database). If that invariant ever changes, derive the
+ * percentage from the summed margin instead.
+ */
 function financialsDto(row: {
   services: number;
   revenue: MoneyInput;
