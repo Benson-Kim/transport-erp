@@ -7,8 +7,6 @@ import {
   FileText,
   BarChart3,
   Settings,
-  Package,
-  Receipt,
   FileCheck,
 } from 'lucide-react';
 
@@ -45,24 +43,15 @@ export const navigation: NavItem[] = [
     label: 'Documents',
     href: '/documents',
     icon: FileText,
+    // Dead children removed (#32): /documents/invoices and
+    // /documents/delivery-notes had no routes behind them. The invoices
+    // entry returns with the invoicing vertical (#30).
     children: [
-      {
-        id: 'invoices',
-        label: 'Invoices',
-        href: '/documents/invoices',
-        icon: Receipt,
-      },
       {
         id: 'loading-orders',
         label: 'Loading Orders',
         href: '/documents/loading-orders',
         icon: FileCheck,
-      },
-      {
-        id: 'delivery-notes',
-        label: 'Delivery Notes',
-        href: '/documents/delivery-notes',
-        icon: Package,
       },
     ],
   },

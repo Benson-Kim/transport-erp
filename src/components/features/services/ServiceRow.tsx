@@ -113,7 +113,7 @@ export const ServiceRow = memo(
     };
 
     const handleGenerateLoadingOrder = () => {
-      router.push(`/loading-orders/new?serviceId=${service.id}`);
+      router.push(`/documents/loading-orders/new?serviceIds=${service.id}`);
     };
 
     // Build dropdown menu items

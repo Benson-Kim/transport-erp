@@ -6,12 +6,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Trash2, CheckCircle, FileText, AlertTriangle, Info } from 'lucide-react';
-import {
-  bulkUpdateServices,
-  bulkDeleteServices,
-  generateBulkLoadingOrders,
-} from '@/actions/service-actions';
+import { bulkUpdateServices, bulkDeleteServices } from '@/actions/service-actions';
 import type { UserRole } from '@/app/generated/prisma';
 import { Alert, Button, Modal } from '@/components/ui';
 import { hasPermission } from '@/lib/permissions';
@@ -33,6 +30,7 @@ export function BulkActions({
   userRole,
   className,
 }: Readonly<BulkActionsProps>) {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -58,18 +56,12 @@ export function BulkActions({
     }
   };
 
-  const handleGenerateLoadingOrders = async () => {
-    setIsProcessing(true);
-    try {
-      const result = await generateBulkLoadingOrders(selectedIds);
-      toast.success(`Generated ${result.count} loading order${result.count === 1 ? '' : 's'}`);
-      onClear();
-    } catch (error) {
-      toast.error('Failed to generate loading orders');
-      console.error('Failed to generate loading orders:', error);
-    } finally {
-      setIsProcessing(false);
-    }
+  // Grouping happens on the create page (#32): the selection is reviewed,
+  // ordered and confirmed there - this button navigates, it does not write.
+  // (The old path called a stub and toasted success on its honest
+  // success:false result - the UI lied on the stub's behalf.)
+  const handleGenerateLoadingOrders = () => {
+    router.push(`/documents/loading-orders/new?serviceIds=${selectedIds.join(',')}`);
   };
 
   const handleDelete = async () => {
@@ -142,7 +134,7 @@ export function BulkActions({
                   className="group"
                 >
                   <FileText className="mr-1.5 h-4 w-4 group-hover:scale-110 transition-transform" />
-                  Generate Orders
+                  Create Loading Order
                 </Button>
               )}
 
