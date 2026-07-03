@@ -192,6 +192,21 @@ export async function getClientById(id: string): Promise<ActionResult<ClientWith
 }
 
 /**
+ * Explicit aggregate payload: the $extends(withAccelerate()) client
+ * collapses aggregate()'s inferred payload the same way it collapses
+ * groupBy's (see !20) - the cast below states what Postgres actually
+ * returns for the requested _sum/_avg selections.
+ */
+type ClientRevenueAggregate = {
+  _sum: {
+    saleAmount: Prisma.Decimal | null;
+    costAmount: Prisma.Decimal | null;
+    margin: Prisma.Decimal | null;
+  };
+  _avg: { marginPercentage: Prisma.Decimal | null };
+};
+
+/**
  * Client statistics, aggregated IN the database (#33): status counts via
  * count(), money sums via aggregate over RECOGNIZED_REVENUE_STATUSES - no
  * row streaming, no Number(decimal) float sums in JS. count()/aggregate()
@@ -226,7 +241,7 @@ async function calculateClientStats(clientId: string): Promise<ClientStats> {
       where: countWhere([...RECOGNIZED_REVENUE_STATUSES]),
       _sum: { saleAmount: true, costAmount: true, margin: true },
       _avg: { marginPercentage: true },
-    }),
+    }) as unknown as Promise<ClientRevenueAggregate>,
     prisma.service.findFirst({
       where: serviceWhere,
       orderBy: { date: 'desc' },

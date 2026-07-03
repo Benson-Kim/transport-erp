@@ -115,6 +115,10 @@ describe('report SQL aggregation (#33)', () => {
     expect(months).toHaveLength(2);
 
     const [jan, feb] = months;
+    // Narrow for noUncheckedIndexedAccess: toHaveLength above proves both.
+    if (!jan || !feb) {
+      throw new Error('expected exactly two month rows');
+    }
 
     expect(jan.month.getUTCFullYear()).toBe(2019);
     expect(jan.month.getUTCMonth()).toBe(0);
