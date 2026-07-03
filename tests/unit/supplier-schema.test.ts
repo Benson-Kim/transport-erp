@@ -70,6 +70,18 @@ describe('supplierSchema', () => {
     const parsed = supplierSchema.parse({ ...validMinimal, paymentMethod: '' });
     expect(parsed.paymentMethod).toBeUndefined();
   });
+
+  it('treats cleared optional text fields (empty string) as unset, never ""', () => {
+    const parsed = supplierSchema.parse({
+      ...validMinimal,
+      vatNumber: '',
+      tradeName: '',
+      iban: '',
+    });
+    expect(parsed.vatNumber).toBeUndefined();
+    expect(parsed.tradeName).toBeUndefined();
+    expect(parsed.iban).toBeUndefined();
+  });
 });
 
 describe('supplierFilterSchema', () => {

@@ -19,6 +19,15 @@ export const PAYMENT_METHODS = ['TRANSFER', 'CASH', 'CARD', 'CHEQUE'] as const;
  */
 const emptyStringToUndefined = (value: unknown) => (value === '' ? undefined : value);
 
+/**
+ * Optional string whose cleared form value ('') parses to undefined, so the
+ * action's `?? null` mapping persists NULL - never '' (!20 re-review item 6:
+ * a blank vatNumber stored as '' would collide on the planned partial unique
+ * index over live vatNumber; all optional text fields normalize the same way).
+ */
+const emptyableString = (schema: z.ZodString) =>
+  z.preprocess(emptyStringToUndefined, schema.optional());
+
 /** Supplier create/update schema */
 export const supplierSchema = z.object({
   // Basic Information
@@ -26,30 +35,21 @@ export const supplierSchema = z.object({
     .string()
     .min(2, 'Name must be at least 2 characters')
     .max(200, 'Name must be less than 200 characters'),
-  tradeName: z
-    .string()
-    .max(200, 'Trade name must be less than 200 characters')
-    .optional()
-    .or(z.literal('')),
-  vatNumber: z
-    .string()
-    .max(50, 'VAT number must be less than 50 characters')
-    .optional()
-    .or(z.literal(''))
-    .transform((val) => val?.toUpperCase()),
+  tradeName: emptyableString(z.string().max(200, 'Trade name must be less than 200 characters')),
+  vatNumber: emptyableString(
+    z.string().max(50, 'VAT number must be less than 50 characters')
+  ).transform((val) => val?.toUpperCase()),
 
   // Address (flat, matching the Supplier model)
   addressLine1: z
     .string()
     .min(1, 'Address line 1 is required')
     .max(200, 'Address line 1 must be less than 200 characters'),
-  addressLine2: z
-    .string()
-    .max(200, 'Address line 2 must be less than 200 characters')
-    .optional()
-    .or(z.literal('')),
+  addressLine2: emptyableString(
+    z.string().max(200, 'Address line 2 must be less than 200 characters')
+  ),
   city: z.string().min(1, 'City is required').max(100, 'City must be less than 100 characters'),
-  state: z.string().max(100, 'State must be less than 100 characters').optional().or(z.literal('')),
+  state: emptyableString(z.string().max(100, 'State must be less than 100 characters')),
   postalCode: z
     .string()
     .min(1, 'Postal code is required')
@@ -62,18 +62,12 @@ export const supplierSchema = z.object({
 
   // Contact
   email: z.email('Invalid email address').min(1, 'Email is required'),
-  phone: z.string().max(30, 'Phone must be less than 30 characters').optional().or(z.literal('')),
-  fax: z.string().max(30, 'Fax must be less than 30 characters').optional().or(z.literal('')),
-  contactPerson: z
-    .string()
-    .max(100, 'Contact person must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-  contactMobile: z
-    .string()
-    .max(30, 'Mobile must be less than 30 characters')
-    .optional()
-    .or(z.literal('')),
+  phone: emptyableString(z.string().max(30, 'Phone must be less than 30 characters')),
+  fax: emptyableString(z.string().max(30, 'Fax must be less than 30 characters')),
+  contactPerson: emptyableString(
+    z.string().max(100, 'Contact person must be less than 100 characters')
+  ),
+  contactMobile: emptyableString(z.string().max(30, 'Mobile must be less than 30 characters')),
 
   // Financial settings (percent POINTS, e.g. 21 -> 21%; see pricing.ts).
   // '' preprocesses to undefined so a cleared input is "unset", never 0.
@@ -107,22 +101,10 @@ export const supplierSchema = z.object({
     .transform((value) => (value === '' ? undefined : value)),
 
   // Banking
-  bankName: z
-    .string()
-    .max(100, 'Bank name must be less than 100 characters')
-    .optional()
-    .or(z.literal('')),
-  bankAccount: z
-    .string()
-    .max(50, 'Bank account must be less than 50 characters')
-    .optional()
-    .or(z.literal('')),
-  swiftCode: z
-    .string()
-    .max(20, 'SWIFT code must be less than 20 characters')
-    .optional()
-    .or(z.literal('')),
-  iban: z.string().max(40, 'IBAN must be less than 40 characters').optional().or(z.literal('')),
+  bankName: emptyableString(z.string().max(100, 'Bank name must be less than 100 characters')),
+  bankAccount: emptyableString(z.string().max(50, 'Bank account must be less than 50 characters')),
+  swiftCode: emptyableString(z.string().max(20, 'SWIFT code must be less than 20 characters')),
+  iban: emptyableString(z.string().max(40, 'IBAN must be less than 40 characters')),
 
   // Settings
   currency: z
@@ -134,11 +116,7 @@ export const supplierSchema = z.object({
   requirePO: z.boolean().default(false),
 
   // Metadata
-  notes: z
-    .string()
-    .max(5000, 'Notes must be less than 5000 characters')
-    .optional()
-    .or(z.literal('')),
+  notes: emptyableString(z.string().max(5000, 'Notes must be less than 5000 characters')),
   tags: z.array(z.string()).default([]),
   isActive: z.boolean().default(true),
 });

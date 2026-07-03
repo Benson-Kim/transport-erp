@@ -284,7 +284,11 @@ export function SupplierForm({ supplier, mode }: SupplierFormProps) {
               max="100"
               {...register('vatRate')}
               aria-invalid={!!errors.vatRate}
+              aria-describedby="vatRate-hint"
             />
+            <p id="vatRate-hint" className="text-sm text-gray-500">
+              Leave blank to use the default 21%.
+            </p>
             <FieldError message={errors.vatRate?.message} />
           </div>
           <div className="space-y-2">
