@@ -19,8 +19,9 @@ import {
   excludeDeleted,
   getPaginationParams,
   createPaginatedResponse,
-  generateUniqueIdentifier,
+  withTransaction,
 } from '@/lib/prisma/db-helpers';
+import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
 import { asAddress } from '@/lib/utils/address';
@@ -340,12 +341,10 @@ export async function createClient(data: unknown): Promise<ActionResult<{ id: st
       }
     }
 
-    // Generate unique client code
-    const clientCode = await generateUniqueIdentifier('CLI', 'client', 'clientCode');
-
-    // Prepare data
-    const createData: Prisma.ClientCreateInput = {
-      clientCode,
+    // Prepare data. The client code is allocated INSIDE the transaction
+    // below (#61) so the counter bump and the insert commit - or roll
+    // back - together.
+    const createData: Omit<Prisma.ClientCreateInput, 'clientCode'> = {
       name: validated.name,
       tradeName: validated.tradeName ?? null,
       vatNumber: validated.vatNumber ?? null,
@@ -371,19 +370,32 @@ export async function createClient(data: unknown): Promise<ActionResult<{ id: st
       isActive: validated.isActive,
     };
 
-    const client = await prisma.client.create({
-      data: createData,
-    });
+    // Allocation, insert and audit row in ONE transaction (#61), following
+    // the service-actions.ts createService pattern: generateDocumentNumber
+    // takes a row lock on the counter, so concurrent creates cannot
+    // duplicate codes, and a rollback leaves neither a partial client row
+    // nor - allocation being in-tx - a burned number.
+    const client = await withTransaction(async (tx) => {
+      const clientCode = await generateDocumentNumber(tx, 'CLI');
 
-    // Create audit log
-    await createAuditLog({
-      userId: session.user.id,
-      action: 'CREATE',
-      tableName: 'clients',
-      recordId: client.id,
-      newValues: createData,
-      ipAddress,
-      userAgent,
+      const created = await tx.client.create({
+        data: { ...createData, clientCode },
+      });
+
+      await createAuditLog(
+        {
+          userId: session.user.id,
+          action: 'CREATE',
+          tableName: 'clients',
+          recordId: created.id,
+          newValues: { ...createData, clientCode },
+          ipAddress,
+          userAgent,
+        },
+        tx
+      );
+
+      return created;
     });
 
     revalidatePath('/clients');
