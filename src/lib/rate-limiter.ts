@@ -44,6 +44,13 @@ export const RATE_LIMITS = {
    * lock for 1 h at the 3rd send within 1 h - spam/abuse and cost vector.
    */
   EMAIL_SEND: { maxAttempts: 3, windowMs: 60 * 60 * 1000, lockMs: 60 * 60 * 1000 },
+  /**
+   * Public registration, keyed per IP with an empty email component (#35):
+   * bounds bcrypt work, allow-list probing and account/send attempts for
+   * callers rotating email addresses (the per-email budgets cannot).
+   * Lock for 1 h at the 10th attempt within 1 h.
+   */
+  REGISTRATION: { maxAttempts: 10, windowMs: 60 * 60 * 1000, lockMs: 60 * 60 * 1000 },
 } as const;
 
 /**
@@ -103,9 +110,14 @@ export function extractClientIp(headers: { get(name: string): string | null }): 
   return headers.get('x-real-ip');
 }
 
-/** Scopes with independent budgets. verification-email is shared between the
- * unverified-login send path and the public resend form - one budget. */
-export type RateLimitScope = 'login' | 'verification-email' | 'password-reset-email';
+/** Scopes with independent budgets. verification-email is ONE send budget
+ * shared by the unverified-login path, the public resend form and
+ * registration; 'registration' is the per-IP attempt gate (#35). */
+export type RateLimitScope =
+  | 'login'
+  | 'verification-email'
+  | 'password-reset-email'
+  | 'registration';
 
 /**
  * Longest IP component persisted into a key: covers any textual IPv6 form

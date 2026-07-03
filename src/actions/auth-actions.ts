@@ -173,6 +173,23 @@ export async function registerUser(data: RegisterFormData) {
       return { success: false, error: 'Registration is currently disabled.' };
     }
 
+    // Per-IP bound (!27 review item 1): limiter keys include the email, so
+    // an attacker rotating addresses would otherwise get a fresh budget per
+    // address - each attempt costing a bcrypt hash and, when allow-listed,
+    // a user row + verification send. Consumed BEFORE the allow-list check
+    // so membership is not probeable at line rate.
+    const { ipAddress } = await getClientInfo();
+    const ipGate = await rateLimiter.consume(
+      rateLimitKey('registration', '', ipAddress || null),
+      RATE_LIMITS.REGISTRATION
+    );
+    if (!ipGate.success) {
+      return {
+        success: false,
+        error: 'Too many registration attempts. Please try again later.',
+      };
+    }
+
     // Signup allow-list (#23): gating OAuth alone would be decoration if
     // anyone could still self-provision a VIEWER account with a password
     // through this public form. Same single authority as the OAuth path;
@@ -184,11 +201,12 @@ export async function registerUser(data: RegisterFormData) {
       };
     }
 
-    // Registration sends a verification email (createUser), so it draws from
-    // the same 'verification-email' budget as the unverified-login send path
-    // and the public resend form (#22) - one Postgres-enforced cap that
-    // registering cannot bypass.
-    const { ipAddress } = await getClientInfo();
+    // Per-email send budget: registration sends a verification email
+    // (createUser), so it draws from the same 'verification-email' budget as
+    // the unverified-login send path and the public resend form (#22) - one
+    // Postgres-enforced cap that registering cannot bypass. Distinct from
+    // the IP gate above: send volume per address vs attempt volume per
+    // caller.
     const sendGate = await rateLimiter.consume(
       rateLimitKey('verification-email', validatedData.email, ipAddress || null),
       RATE_LIMITS.EMAIL_SEND
