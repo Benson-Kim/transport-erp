@@ -4,7 +4,17 @@
  * must never reopen the enumeration oracle.
  */
 
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
+
+// Unit convention (auth-token-hashing.test.ts, audit-log-writer.test.ts,
+// rate-limiter.test.ts): no unit suite may construct the real Prisma
+// singleton - instantiating the $extends-ed client fires an async
+// engine/connection probe against DATABASE_URL that rejects AFTER the run
+// and crashes the no-DB test-unit job (unhandled P1001). This suite needs
+// only the pure error contract; instanceof still sees the real generated
+// Prisma error classes.
+jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: {} }));
+jest.mock('@/lib/email', () => ({ emailService: {} }));
 
 import { Prisma } from '@/app/generated/prisma';
 import { DuplicateUserError, isDuplicateUserError } from '@/lib/auth/auth-helpers';
