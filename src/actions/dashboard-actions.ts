@@ -94,14 +94,14 @@ export const getDashboardData = unstable_cache(
         _count: true,
       }) as unknown as Promise<ServiceGroupResult[]>,
 
-      // Current period revenue
+      // Current period revenue (RECOGNIZED_REVENUE_STATUSES - #33)
       prisma.service.aggregate({
         where: {
           date: {
             gte: startDate,
             lte: endDate,
           },
-          status: ServiceStatus.COMPLETED,
+          status: { in: [...RECOGNIZED_REVENUE_STATUSES] },
           deletedAt: null,
         },
         _sum: {
@@ -115,14 +115,14 @@ export const getDashboardData = unstable_cache(
         },
       }),
 
-      // Previous period revenue
+      // Previous period revenue (RECOGNIZED_REVENUE_STATUSES - #33)
       prisma.service.aggregate({
         where: {
           date: {
             gte: previousPeriod.startDate,
             lte: previousPeriod.endDate,
           },
-          status: ServiceStatus.COMPLETED,
+          status: { in: [...RECOGNIZED_REVENUE_STATUSES] },
           deletedAt: null,
         },
         _sum: {
