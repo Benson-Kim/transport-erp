@@ -104,6 +104,7 @@ export function RegisterForm() {
           <Button
             type="button"
             variant="ghost"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
             onClick={() => setShowPassword((prev) => !prev)}
             className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             icon={showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -124,6 +125,7 @@ export function RegisterForm() {
           <Button
             type="button"
             variant="ghost"
+            aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
             onClick={() => setShowConfirmPassword((prev) => !prev)}
             className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
             icon={
