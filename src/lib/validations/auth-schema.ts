@@ -54,9 +54,6 @@ export const registerSchema = z
       .regex(/^[a-zA-Z\s'-]+$/, 'Name can only contain letters, spaces, hyphens and apostrophes'),
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),
-    acceptTerms: z
-      .boolean()
-      .refine((val) => val === true, 'You must accept the terms and conditions'),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',

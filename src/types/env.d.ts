@@ -24,6 +24,11 @@ declare namespace NodeJS {
     AUTH_ALLOWED_SIGNUP_DOMAINS?: string;
     AUTH_ALLOWED_SIGNUP_EMAILS?: string;
 
+    // Self-service registration master switch (#35): /register and the
+    // registerUser action are enabled only when this is exactly 'true'
+    // (fail closed). New accounts still pass the signup allow-list.
+    ENABLE_USER_REGISTRATION?: 'true' | 'false';
+
     // Email (Resend)
     RESEND_API_KEY?: string;
     EMAIL_FROM?: string;

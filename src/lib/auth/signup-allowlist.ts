@@ -63,6 +63,21 @@ export function isSignupAllowed(email: string, config: SignupAllowlistConfig): b
   return config.domains.includes(domain);
 }
 
+interface RegistrationEnv {
+  ENABLE_USER_REGISTRATION?: string | undefined;
+}
+
+/**
+ * Master switch for credentials self-registration (#35). Gates BOTH the
+ * /register page render and the registerUser action (the action is callable
+ * without the form). Exactly 'true' enables; anything else fails closed.
+ * Even when enabled, new accounts still pass isSignupAllowed above. OAuth
+ * provisioning is governed by evaluateOAuthSignIn, not this flag.
+ */
+export function isRegistrationEnabled(env: RegistrationEnv = process.env): boolean {
+  return env.ENABLE_USER_REGISTRATION === 'true';
+}
+
 /** Minimal existing-user state the decision needs. */
 export interface ExistingSignupUser {
   isActive: boolean;

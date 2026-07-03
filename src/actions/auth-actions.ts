@@ -32,7 +32,13 @@ import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma/prisma';
-import { getSignupAllowlistConfig, isSignupAllowed } from '@/lib/auth/signup-allowlist';
+import { z } from 'zod';
+import { isDuplicateUserError } from '@/lib/auth/auth-helpers';
+import {
+  getSignupAllowlistConfig,
+  isRegistrationEnabled,
+  isSignupAllowed,
+} from '@/lib/auth/signup-allowlist';
 import { RATE_LIMITS, extractClientIp, rateLimiter, rateLimitKey } from '@/lib/rate-limiter';
 
 import { EmailTemplate } from '@/types/mail';
@@ -146,11 +152,48 @@ export async function signInWithProvider(provider: 'google') {
 }
 
 /**
+ * Neutral registration outcome (#35): identical whether the email was new or
+ * already registered, so the public form cannot be used to probe which
+ * addresses hold accounts (same pattern as requestPasswordReset).
+ *
+ * Accepted trade-off (!27 review): this defends the direct oracle only - a
+ * duplicate returns after one SELECT while a fresh signup pays bcrypt +
+ * insert + send, so a timing probe can still distinguish them. Same accepted
+ * posture as requestPasswordReset.
+ */
+const REGISTRATION_NEUTRAL_MESSAGE =
+  'Registration received. If your email is eligible, you will receive a verification link shortly.';
+
+/**
  * Register new user
  */
 export async function registerUser(data: RegisterFormData) {
   try {
     const validatedData = registerSchema.parse(data);
+
+    // Master switch (#35): server-side only - a NEXT_PUBLIC_ flag would be
+    // decoration, not enforcement - and checked HERE as well as in the page
+    // render, because the action is callable without the form. Fail closed.
+    if (!isRegistrationEnabled()) {
+      return { success: false, error: 'Registration is currently disabled.' };
+    }
+
+    // Per-IP bound (!27 review item 1): limiter keys include the email, so
+    // an attacker rotating addresses would otherwise get a fresh budget per
+    // address - each attempt costing a bcrypt hash and, when allow-listed,
+    // a user row + verification send. Consumed BEFORE the allow-list check
+    // so membership is not probeable at line rate.
+    const { ipAddress } = await getClientInfo();
+    const ipGate = await rateLimiter.consume(
+      rateLimitKey('registration', '', ipAddress || null),
+      RATE_LIMITS.REGISTRATION
+    );
+    if (!ipGate.success) {
+      return {
+        success: false,
+        error: 'Too many registration attempts. Please try again later.',
+      };
+    }
 
     // Signup allow-list (#23): gating OAuth alone would be decoration if
     // anyone could still self-provision a VIEWER account with a password
@@ -163,20 +206,46 @@ export async function registerUser(data: RegisterFormData) {
       };
     }
 
-    // Create user account
+    // Per-email send budget: registration sends a verification email
+    // (createUser), so it draws from the same 'verification-email' budget as
+    // the unverified-login send path and the public resend form (#22) - one
+    // Postgres-enforced cap that registering cannot bypass. Distinct from
+    // the IP gate above: send volume per address vs attempt volume per
+    // caller.
+    const sendGate = await rateLimiter.consume(
+      rateLimitKey('verification-email', validatedData.email, ipAddress || null),
+      RATE_LIMITS.EMAIL_SEND
+    );
+    if (!sendGate.success) {
+      return {
+        success: false,
+        error: 'Too many registration attempts. Please try again later.',
+      };
+    }
+
+    // Create user account (server-assigned defaults: VIEWER, active - the
+    // payload can never carry role/isActive).
     await createUser({
       email: validatedData.email,
       password: validatedData.password,
       name: validatedData.name,
     });
 
-    return {
-      success: true,
-      message: 'Registration successful. Please check your email to verify your account.',
-    };
-  } catch (error: any) {
-    if (error.code === 'P2002') {
-      return { success: false, error: 'An account with this email already exists' };
+    return { success: true, message: REGISTRATION_NEUTRAL_MESSAGE };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: error.issues.map((issue) => issue.message).join(', '),
+      };
+    }
+
+    // No user enumeration (#35): an already-registered email gets the SAME
+    // neutral success as a fresh one. Typed contract (!27 review item 2):
+    // isDuplicateUserError matches the DuplicateUserError pre-check and the
+    // P2002 unique-index backstop by instanceof - never by message text.
+    if (isDuplicateUserError(error)) {
+      return { success: true, message: REGISTRATION_NEUTRAL_MESSAGE };
     }
 
     console.error('Registration error:', error);

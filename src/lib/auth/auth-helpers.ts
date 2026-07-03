@@ -8,7 +8,8 @@ export const runtime = 'nodejs';
 import { hash, compare } from 'bcryptjs';
 import { addHours } from 'date-fns';
 
-import { UserRole } from '@/app/generated/prisma';
+import { Prisma, UserRole } from '@/app/generated/prisma';
+import { createAuditLog, withTransaction } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 
 import { emailService } from '../email';
@@ -374,6 +375,31 @@ export async function regenerateVerificationToken(
 }
 
 /**
+ * Typed duplicate-account rejection (!27 review item 2): callers needing the
+ * anti-enumeration neutral response match this by instanceof - never by
+ * message text, which can be reworded without any test failing.
+ */
+export class DuplicateUserError extends Error {
+  constructor(message = 'A user with this email already exists') {
+    super(message);
+    this.name = 'DuplicateUserError';
+  }
+}
+
+/**
+ * Duplicate detection across both failure paths: the pre-check
+ * (DuplicateUserError) and the unique-index backstop when two registrations
+ * race (Prisma P2002). Pure predicate, unit-tested without a database
+ * (tests/unit/registration-errors.test.ts).
+ */
+export function isDuplicateUserError(error: unknown): boolean {
+  return (
+    error instanceof DuplicateUserError ||
+    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+  );
+}
+
+/**
  * Create user account
  */
 export async function createUser(data: {
@@ -389,48 +415,63 @@ export async function createUser(data: {
   });
 
   if (existingUser) {
-    throw new Error('A user with this email already exists');
+    throw new DuplicateUserError();
   }
 
   const hashedPassword = await hashPassword(data.password);
 
-  const user = await prisma.user.create({
-    data: {
-      email: data.email,
-      password: hashedPassword,
-      name: data.name,
-      role: data.role || UserRole.VIEWER,
-    },
-  });
-
-  // Generate verification token
-  const verificationToken = await generateVerificationToken(user.email);
-
-  // Send verification email
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
-
-  await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
-    name: user.name || 'User',
-    email: user.email,
-    verificationUrl,
-    expiresIn: '24 hours',
-  });
-
-  // Create audit log
-  await prisma.auditLog.create({
-    data: {
-      userId: user.id,
-      action: 'CREATE',
-      tableName: 'users',
-      recordId: user.id,
-      newValues: {
-        email: user.email,
-        name: user.name,
-        role: user.role,
+  // User row + audit row commit - or roll back - together (#27 doctrine,
+  // !27 review item 4): account creation is a security-relevant event and
+  // must never exist without its trail.
+  const user = await withTransaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        email: data.email,
+        password: hashedPassword,
+        name: data.name,
+        role: data.role || UserRole.VIEWER,
       },
-    },
+    });
+
+    await createAuditLog(
+      {
+        userId: created.id,
+        action: 'CREATE',
+        tableName: 'users',
+        recordId: created.id,
+        newValues: {
+          email: created.email,
+          name: created.name,
+          role: created.role,
+        },
+      },
+      tx
+    );
+
+    return created;
   });
+
+  // Verification email AFTER commit (!27 review item 4): a send failure must
+  // not lose the account or its audit row, and callers must not report
+  // "failed to create" for an account that exists. /resend-verification is
+  // the recovery path; registerUser's neutral message only promises a link
+  // "if eligible".
+  let verificationToken: string | null = null;
+  try {
+    verificationToken = await generateVerificationToken(user.email);
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+
+    await emailService.sendTemplate(EmailTemplate.VERIFICATION, user.email, {
+      name: user.name || 'User',
+      email: user.email,
+      verificationUrl,
+      expiresIn: '24 hours',
+    });
+  } catch (error) {
+    console.error('Verification email failed after user creation:', error);
+  }
 
   return { user, verificationToken };
 }
