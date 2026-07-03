@@ -1,25 +1,31 @@
 /**
- * Login Page
- * User authentication page with credentials and OAuth options
+ * Register Page (#35)
+ * Invitation-gated self-service registration. When ENABLE_USER_REGISTRATION
+ * is off this route redirects to /login; the server action is independently
+ * gated, so the page check is presentation, not the enforcement boundary.
  */
 
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-
-import { LoginForm } from '@/components/features/auth/login-form';
-import { OAuthButtons } from '@/components/features/auth/oauth-buttons';
+import { RegisterForm } from '@/components/features/auth';
 import { Logo } from '@/components/ui/Logo';
 import { getServerAuth } from '@/lib/auth';
+import { isRegistrationEnabled } from '@/lib/auth/signup-allowlist';
 
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Sign In | Enterprise Dashboard',
-  description: 'Sign in to your account',
+  title: 'Create Account | Enterprise Dashboard',
+  description: 'Create your account',
 };
 
-export default async function LoginPage() {
+export default async function RegisterPage() {
+  // Flag off -> the route does not exist as an affordance (#35).
+  if (!isRegistrationEnabled()) {
+    redirect('/login');
+  }
+
   // Redirect if already authenticated
   const session = await getServerAuth();
   if (session) {
@@ -33,70 +39,28 @@ export default async function LoginPage() {
         <div className="flex flex-col items-center">
           <Logo className="h-12 w-auto" />
           <h1 className="mt-6 text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-            Welcome back
+            Create your account
           </h1>
           <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-            Sign in to your account to continue
+            Registration is by invitation only
           </p>
         </div>
 
-        {/* Login Card */}
+        {/* Register Card */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-xl dark:border-neutral-800 dark:bg-neutral-950">
-          {/* Login Form */}
-          <LoginForm />
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-2 text-neutral-500 dark:bg-neutral-950 dark:text-neutral-400">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          {/* OAuth Buttons */}
-          <OAuthButtons />
+          <RegisterForm />
 
           {/* Links */}
-          <div className="mt-6 flex flex-col space-y-2 text-center text-sm">
+          <div className="mt-6 text-center text-sm text-neutral-600 dark:text-neutral-400">
+            Already have an account?{' '}
             <Link
-              href="/forgot-password"
-              className="text-primary-600 hover:text-primary-500 dark:text-primary-400"
+              href="/login"
+              className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
             >
-              Forgot your password?
+              Sign in
             </Link>
-            <div className="text-neutral-600 dark:text-neutral-400">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
-              >
-                Sign up
-              </Link>
-            </div>
           </div>
         </div>
-
-        {/* Footer
-        <div className="text-center text-xs text-neutral-500 dark:text-neutral-400">
-          By signing in, you agree to our{' '}
-          <Link
-            href="/terms"
-            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
-          >
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link
-            href="/privacy"
-            className="underline hover:text-neutral-700 dark:hover:text-neutral-300"
-          >
-            Privacy Policy
-          </Link>
-        </div> */}
       </div>
     </div>
   );

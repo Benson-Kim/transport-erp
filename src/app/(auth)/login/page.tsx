@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { LoginForm, OAuthButtons } from '@/components/features/auth';
 import { Logo } from '@/components/ui/Logo';
 import { getServerAuth } from '@/lib/auth';
+import { isRegistrationEnabled } from '@/lib/auth/signup-allowlist';
 
 import type { Metadata } from 'next';
 
@@ -24,6 +25,10 @@ export default async function LoginPage() {
   if (session) {
     redirect('/dashboard');
   }
+
+  // Server-evaluated (#35): the signup affordance only renders when the
+  // registration flow actually exists - no dead controls.
+  const registrationEnabled = isRegistrationEnabled();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-neutral-50 to-neutral-100 px-4 py-12 dark:from-neutral-950 dark:to-neutral-900">
@@ -67,6 +72,17 @@ export default async function LoginPage() {
             >
               Forgot your password?
             </Link>
+            {registrationEnabled && (
+              <div className="text-neutral-600 dark:text-neutral-400">
+                Don&apos;t have an account?{' '}
+                <Link
+                  href="/register"
+                  className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
+                >
+                  Sign up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
