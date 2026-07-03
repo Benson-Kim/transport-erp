@@ -1,6 +1,12 @@
 /**
  * OAuth Buttons Component
- * Social login buttons for OAuth providers
+ * Social login buttons for OAuth providers.
+ *
+ * Google only (#23): the previous Microsoft button called
+ * signInWithProvider('microsoft-entra-id') with no Entra provider
+ * configured in auth.ts - a dead affordance that always ended on an error
+ * page. Remove-or-configure was the issue's choice; removed, since no
+ * Microsoft tenant exists in this stack.
  */
 
 'use client';
@@ -10,33 +16,39 @@ import { useState } from 'react';
 import { signInWithProvider } from '@/actions/auth-actions';
 import { Button } from '@/components/ui';
 import { toast } from '@/lib/toast';
+import { isNextRedirectError } from '@/lib/utils/next-redirect';
 
 export function OAuthButtons() {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleOAuthSignIn = async (provider: 'google' | 'microsoft-entra-id') => {
+  const handleGoogleSignIn = async () => {
     try {
-      setLoading(provider);
-      await signInWithProvider(provider);
+      setLoading(true);
+      await signInWithProvider('google');
     } catch (error) {
+      // redirect() signals SUCCESS via a control-flow error (#23): Next is
+      // already navigating - a toast here would lie, and the loading state
+      // honestly stays on until the redirect completes.
+      if (isNextRedirectError(error)) {
+        return;
+      }
       console.error('OAuth sign in error:', error);
       toast.error('Failed to sign in. Please try again.');
-      setLoading(null);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="gap-x-3 flex ">
-      {/* Google Sign In */}
+    <div className="flex gap-x-3">
       <Button
         type="button"
         variant="secondary"
         className="w-full"
-        onClick={() => handleOAuthSignIn('google')}
-        disabled={loading !== null}
-        loading={loading === 'google'}
+        onClick={handleGoogleSignIn}
+        disabled={loading}
+        loading={loading}
         icon={
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -56,27 +68,7 @@ export function OAuthButtons() {
           </svg>
         }
       >
-        Google
-      </Button>
-
-      {/* Microsoft Sign In */}
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-full"
-        onClick={() => handleOAuthSignIn('microsoft-entra-id')}
-        disabled={loading !== null}
-        loading={loading === 'microsoft-entra-id'}
-        icon={
-          <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-            <path fill="#F25022" d="M1 1h10v10H1z" />
-            <path fill="#7FBA00" d="M13 1h10v10H13z" />
-            <path fill="#00A4EF" d="M1 13h10v10H1z" />
-            <path fill="#FFB900" d="M13 13h10v10H13z" />
-          </svg>
-        }
-      >
-        Microsoft
+        Continue with Google
       </Button>
     </div>
   );

@@ -136,9 +136,12 @@ export async function signInWithCredentials(data: LoginFormData) {
 }
 
 /**
- * Sign in with OAuth provider
+ * Sign in with OAuth provider. Only Google is configured (#23): the
+ * 'microsoft-entra-id' union member fed a dead button that always ended on
+ * an error page; narrowing the type keeps the dead path from being re-wired
+ * silently.
  */
-export async function signInWithProvider(provider: 'google' | 'microsoft-entra-id') {
+export async function signInWithProvider(provider: 'google') {
   await signIn(provider, { redirectTo: '/dashboard' });
 }
 
