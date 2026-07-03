@@ -43,9 +43,8 @@ export const navigation: NavItem[] = [
     label: 'Documents',
     href: '/documents',
     icon: FileText,
-    // Dead children removed (#32): /documents/invoices and
-    // /documents/delivery-notes had no routes behind them. The invoices
-    // entry returns with the invoicing vertical (#30).
+    // /documents/delivery-notes removed (#32): no route behind it.
+    // /documents/invoices restored (#30): the invoicing vertical is live.
     children: [
       {
         id: 'loading-orders',
