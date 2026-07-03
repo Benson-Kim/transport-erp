@@ -59,3 +59,59 @@ it('DB unique index rejects a duplicate serviceNumber (#12)', async () => {
   await prisma.service.create({ data });
   await expect(prisma.service.create({ data })).rejects.toThrow();
 });
+
+it('converted call site (#61): in-tx allocation + insert commit or roll back together', async () => {
+  const prefix = `C${uid().toUpperCase()}`; // unique scope per test run
+  const year = new Date().getFullYear();
+  const suffix = uid();
+
+  const billingAddress = {
+    line1: '1 Test St',
+    city: 'Madrid',
+    postalCode: '28001',
+    country: 'ES',
+  };
+
+  // Success path - the createClient shape after #61: allocate the code and
+  // insert the row in ONE transaction.
+  const created = await prisma.$transaction(async (tx) => {
+    const clientCode = await generateDocumentNumber(tx, prefix, year);
+    return tx.client.create({
+      data: {
+        clientCode,
+        name: `Tx Client ${suffix}`,
+        billingAddress,
+        billingEmail: `tx-${suffix}@example.test`,
+      },
+    });
+  });
+  expect(created.clientCode).toBe(`${prefix}-${year}-00001`);
+
+  // Failure path: the insert violates the unique clientCode index, the
+  // transaction rolls back, and NO partially-visible row remains. Because
+  // the allocation happened in-tx, the counter bump rolls back with it -
+  // the next allocation reuses the sequence value instead of leaving a gap.
+  // (Gaps remain BY DESIGN for allocations that auto-commit outside the
+  // insert's transaction - see the contiguity note above.)
+  await expect(
+    prisma.$transaction(async (tx) => {
+      await generateDocumentNumber(tx, prefix, year);
+      return tx.client.create({
+        data: {
+          clientCode: created.clientCode, // duplicate -> unique violation
+          name: `Tx Client dup ${suffix}`,
+          billingAddress,
+          billingEmail: `tx-dup-${suffix}@example.test`,
+        },
+      });
+    })
+  ).rejects.toThrow();
+
+  const orphans = await prisma.client.findMany({
+    where: { name: `Tx Client dup ${suffix}` },
+  });
+  expect(orphans).toHaveLength(0);
+
+  const next = await generateDocumentNumber(prisma, prefix, year);
+  expect(next).toBe(`${prefix}-${year}-00002`);
+});
