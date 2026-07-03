@@ -9,6 +9,7 @@ import { describe, expect, it } from '@jest/globals';
 import {
   evaluateOAuthSignIn,
   getSignupAllowlistConfig,
+  isRegistrationEnabled,
   isSignupAllowed,
   parseAllowlist,
 } from '@/lib/auth/signup-allowlist';
@@ -114,5 +115,17 @@ describe('evaluateOAuthSignIn (#23 - signIn callback path)', () => {
       allowed: false,
       reason: 'no-email',
     });
+  });
+});
+
+describe('isRegistrationEnabled (#35 - /register master switch)', () => {
+  it("is enabled only by the exact string 'true' - everything else fails closed", () => {
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: 'true' })).toBe(true);
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: 'TRUE' })).toBe(false);
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: '1' })).toBe(false);
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: 'yes' })).toBe(false);
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: 'false' })).toBe(false);
+    expect(isRegistrationEnabled({ ENABLE_USER_REGISTRATION: '' })).toBe(false);
+    expect(isRegistrationEnabled({})).toBe(false);
   });
 });
