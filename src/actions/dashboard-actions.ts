@@ -12,6 +12,7 @@ import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus } from '@/app/generated/prisma';
 import prisma from '@/lib/prisma/prisma';
+import { RECOGNIZED_REVENUE_STATUSES } from '@/lib/revenue';
 import {
   calculatePercentageChange,
   calculateDateRange,

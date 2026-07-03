@@ -146,13 +146,9 @@ export function aggregateRevenueByMonth(
     };
   }
 
-  // Aggregate revenue
+  // Aggregate revenue (recognized statuses only - the #33 single definition)
   services.forEach((service) => {
-    if (
-      service.status === ServiceStatus.COMPLETED ||
-      service.status === ServiceStatus.INVOICED ||
-      service.status === ServiceStatus.ARCHIVED
-    ) {
+    if (isRecognizedRevenueStatus(service.status)) {
       const monthKey = formatDate.monthYear(startOfMonth(service.date));
       const bucket = monthlyData[monthKey];
       if (bucket) {
