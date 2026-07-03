@@ -4,6 +4,8 @@
 
 import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
 
+import { InvoiceDirection } from '@/app/generated/prisma';
+
 import {
   prisma,
   uid,
@@ -66,6 +68,9 @@ function invoice(overrides: Record<string, unknown>) {
       invoiceNumber: `INV-TEST-${uid()}`,
       invoiceDate: new Date(),
       dueDate: new Date(),
+      // ADR 0001 (#30): direction is required (no default); this fixture is
+      // supplier-linked, so PURCHASE per invoices_party_matches_direction.
+      direction: InvoiceDirection.PURCHASE,
       supplierId,
       createdById: userId,
       subtotal: '100.00',
