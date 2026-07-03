@@ -32,6 +32,7 @@ import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma/prisma';
+import { getSignupAllowlistConfig, isSignupAllowed } from '@/lib/auth/signup-allowlist';
 import { RATE_LIMITS, extractClientIp, rateLimiter, rateLimitKey } from '@/lib/rate-limiter';
 
 import { EmailTemplate } from '@/types/mail';
@@ -135,9 +136,12 @@ export async function signInWithCredentials(data: LoginFormData) {
 }
 
 /**
- * Sign in with OAuth provider
+ * Sign in with OAuth provider. Only Google is configured (#23): the
+ * 'microsoft-entra-id' union member fed a dead button that always ended on
+ * an error page; narrowing the type keeps the dead path from being re-wired
+ * silently.
  */
-export async function signInWithProvider(provider: 'google' | 'microsoft-entra-id') {
+export async function signInWithProvider(provider: 'google') {
   await signIn(provider, { redirectTo: '/dashboard' });
 }
 
@@ -147,6 +151,17 @@ export async function signInWithProvider(provider: 'google' | 'microsoft-entra-i
 export async function registerUser(data: RegisterFormData) {
   try {
     const validatedData = registerSchema.parse(data);
+
+    // Signup allow-list (#23): gating OAuth alone would be decoration if
+    // anyone could still self-provision a VIEWER account with a password
+    // through this public form. Same single authority as the OAuth path;
+    // checked before any DB work.
+    if (!isSignupAllowed(validatedData.email, getSignupAllowlistConfig())) {
+      return {
+        success: false,
+        error: 'Registration is by invitation. Contact your administrator for access.',
+      };
+    }
 
     // Create user account
     await createUser({

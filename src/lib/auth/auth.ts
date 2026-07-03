@@ -22,6 +22,7 @@ import {
   rateLimitKey,
 } from '@/lib/rate-limiter';
 import { generateVerificationToken } from './auth-helpers';
+import { evaluateOAuthSignIn, getSignupAllowlistConfig } from './signup-allowlist';
 import { loginSchema } from '@/lib/validations/auth-schema';
 import { emailService } from '../email';
 import { EmailTemplate } from '@/types/mail';
@@ -315,16 +316,35 @@ export const authConfig = {
         return !!user?.emailVerified;
       }
 
-      // OAuth sign-ins are allowed, but we check if the email is verified in the profile callback
-      if (!user?.email) return false;
+      // OAuth allow-list (#23). The PrismaAdapter auto-creates a user row
+      // for any profile allowed through here, so this callback is the ONLY
+      // gate against open self-provisioning. evaluateOAuthSignIn is the
+      // single unit-tested authority: existing active users are invited
+      // (soft-deleted/disabled are explicit denials - deletedAt was
+      // previously never checked); new identities need an allow-listed
+      // email/domain; empty config denies new identities (fail closed).
+      const existingUser = user?.email
+        ? await prisma.user.findUnique({
+            where: { email: user.email },
+            select: { id: true, isActive: true, deletedAt: true },
+          })
+        : null;
 
-      const existingUser = await prisma.user.findUnique({
-        where: { email: user.email },
-        select: { id: true, isActive: true },
-      });
+      const decision = evaluateOAuthSignIn(user?.email, existingUser, getSignupAllowlistConfig());
 
-      // Block disabled accounts
-      if (existingUser && !existingUser.isActive) {
+      if (!decision.allowed) {
+        // Audited denial with its typed reason - no user row is created,
+        // and the user lands on /auth-error?error=AccessDenied instead of
+        // an inscrutable failure.
+        await prisma.auditLog.create({
+          data: {
+            userId: existingUser?.id ?? null,
+            action: 'PERMISSION_CHECK',
+            tableName: 'users',
+            recordId: existingUser?.id ?? user?.email ?? 'unknown',
+            metadata: { provider: account?.provider, oauthDenied: decision.reason },
+          },
+        });
         return false;
       }
 
@@ -335,7 +355,7 @@ export const authConfig = {
             action: 'LOGIN',
             tableName: 'users',
             recordId: existingUser.id,
-            metadata: { provider: account?.provider },
+            metadata: { provider: account?.provider, oauthAllowed: decision.reason },
           },
         });
       }

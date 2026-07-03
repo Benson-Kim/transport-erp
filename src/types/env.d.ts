@@ -18,6 +18,12 @@ declare namespace NodeJS {
     GOOGLE_CLIENT_ID?: string;
     GOOGLE_CLIENT_SECRET?: string;
 
+    // Signup allow-list (#23): who may obtain a NEW account (OAuth
+    // auto-provisioning and the /register form). Comma-separated; empty =
+    // new identities denied (fail closed), existing users unaffected.
+    AUTH_ALLOWED_SIGNUP_DOMAINS?: string;
+    AUTH_ALLOWED_SIGNUP_EMAILS?: string;
+
     // Email (Resend)
     RESEND_API_KEY?: string;
     EMAIL_FROM?: string;
