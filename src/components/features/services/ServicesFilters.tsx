@@ -30,11 +30,7 @@ import {
   FileStack,
 } from 'lucide-react';
 
-import {
-  bulkUpdateServices,
-  bulkDeleteServices,
-  generateBulkLoadingOrders,
-} from '@/actions/service-actions';
+import { bulkUpdateServices, bulkDeleteServices } from '@/actions/service-actions';
 import type { ServiceStatus } from '@/app/generated/prisma';
 import {
   Badge,
@@ -168,9 +164,12 @@ export function ServicesFilters({
             break;
 
           case 'loadingOrder': {
-            const result = await generateBulkLoadingOrders(selectedServices);
-            toast.success(`Generated ${result.count} loading orders`);
-            break;
+            // Grouping happens on the create page (#32): the selection is
+            // reviewed, ordered and confirmed there - this navigates, it
+            // does not write. (The old path called the deleted stub and
+            // toasted success on its honest success:false result.)
+            router.push(`/documents/loading-orders/new?serviceIds=${selectedServices.join(',')}`);
+            return;
           }
         }
 
@@ -494,7 +493,7 @@ export function ServicesFilters({
                   label: (
                     <div className="flex items-center gap-2">
                       <FileStack className="h-3 w-3" />
-                      Generate Loading Orders
+                      Create Loading Order
                     </div>
                   ),
                   onClick: () => {
