@@ -90,7 +90,7 @@ export function InvoicePdfPanel({
             {canGenerate && (
               <Button
                 size="sm"
-                variant={hasPdf ? 'ghost' : undefined}
+                variant={hasPdf ? 'ghost' : 'primary'}
                 onClick={handleGenerate}
                 loading={isGenerating}
               >

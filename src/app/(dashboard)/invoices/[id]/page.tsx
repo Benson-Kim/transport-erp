@@ -67,6 +67,7 @@ async function InvoiceContent({ id }: { id: string }) {
   const canEdit = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.EDIT);
   const canDelete = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.DELETE);
   const canSend = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.SEND);
+  const canRecordPayment = hasPermission(userRole, RESOURCES.PAYMENTS, ACTIONS.CREATE);
   // PDF generation needs documents:create on top of the page's invoices:view
   // gate; the server action enforces both again (#34).
   const canGeneratePdf = hasPermission(userRole, RESOURCES.DOCUMENTS, ACTIONS.CREATE);
@@ -78,6 +79,7 @@ async function InvoiceContent({ id }: { id: string }) {
         canEdit={canEdit}
         canDelete={canDelete}
         canSend={canSend}
+        canRecordPayment={canRecordPayment}
       />
       <InvoicePdfPanel
         invoiceId={result.data.id}
