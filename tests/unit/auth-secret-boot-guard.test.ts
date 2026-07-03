@@ -29,20 +29,33 @@ jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: { user: {} 
 const ENV_KEYS = ['NODE_ENV', 'AUTH_SECRET', 'NEXTAUTH_SECRET'] as const;
 const saved: Record<string, string | undefined> = {};
 
+/**
+ * Next's ProcessEnv augmentation types NODE_ENV as readonly, so direct
+ * assignment is TS2540; at runtime process.env values are plain writable
+ * strings. Drive the env matrix through defineProperty: the compile-time
+ * contract is satisfied without `as any` (repo rule), and the module-load
+ * wiring stays under test (!25 review item 1, minimal option).
+ */
+function setEnv(key: (typeof ENV_KEYS)[number], value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[key];
+    return;
+  }
+  Object.defineProperty(process.env, key, {
+    value,
+    configurable: true,
+    enumerable: true,
+    writable: true,
+  });
+}
+
 beforeEach(() => {
   for (const key of ENV_KEYS) saved[key] = process.env[key];
   jest.resetModules();
 });
 
 afterEach(() => {
-  for (const key of ENV_KEYS) {
-    const value = saved[key];
-    if (value === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = value;
-    }
-  }
+  for (const key of ENV_KEYS) setEnv(key, saved[key]);
 });
 
 /** Load auth.ts in an isolated module registry; return what it threw. */
@@ -60,7 +73,7 @@ function loadAuthModule(): unknown {
 }
 
 it('production boot WITHOUT a secret throws an actionable error (#24)', () => {
-  process.env.NODE_ENV = 'production';
+  setEnv('NODE_ENV', 'production');
   delete process.env.AUTH_SECRET;
   delete process.env.NEXTAUTH_SECRET;
 
@@ -70,23 +83,23 @@ it('production boot WITHOUT a secret throws an actionable error (#24)', () => {
 });
 
 it('production boot WITH AUTH_SECRET loads', () => {
-  process.env.NODE_ENV = 'production';
-  process.env.AUTH_SECRET = 'test-secret-value-that-is-32-chars!!';
+  setEnv('NODE_ENV', 'production');
+  setEnv('AUTH_SECRET', 'unit-test-secret-value-32-chars-long!!');
   delete process.env.NEXTAUTH_SECRET;
 
   expect(loadAuthModule()).toBeUndefined();
 });
 
 it('the transitional v4 NEXTAUTH_SECRET fallback also satisfies the guard', () => {
-  process.env.NODE_ENV = 'production';
+  setEnv('NODE_ENV', 'production');
   delete process.env.AUTH_SECRET;
-  process.env.NEXTAUTH_SECRET = 'legacy-secret-value-32-chars-long!!';
+  setEnv('NEXTAUTH_SECRET', 'legacy-secret-value-32-chars-long!!');
 
   expect(loadAuthModule()).toBeUndefined();
 });
 
 it('non-production boot without a secret loads (v5 throws MissingSecret later)', () => {
-  process.env.NODE_ENV = 'test';
+  setEnv('NODE_ENV', 'test');
   delete process.env.AUTH_SECRET;
   delete process.env.NEXTAUTH_SECRET;
 
