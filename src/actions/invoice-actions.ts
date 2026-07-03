@@ -387,9 +387,25 @@ export async function createInvoice(
       if (!supplier) return { success: false, error: 'Supplier not found' };
     }
 
-    // Fetch the selected services to compute line amounts.
+    // Fetch the selected services to compute line amounts. The where
+    // clause re-enforces exactly what getInvoiceableServices offers -
+    // party ownership, an invoiceable status per direction, and no live
+    // invoice of the same direction already covering the service - the UI
+    // list is a convenience, never the validation.
     const services = await prisma.service.findMany({
-      where: { id: { in: validated.serviceIds }, deletedAt: null },
+      where: {
+        id: { in: validated.serviceIds },
+        deletedAt: null,
+        invoiceItems: {
+          none: { invoice: { direction: validated.direction, deletedAt: null } },
+        },
+        ...(validated.direction === InvoiceDirection.SALES
+          ? { clientId: validated.partyId, status: ServiceStatus.COMPLETED }
+          : {
+              supplierId: validated.partyId,
+              status: { in: [ServiceStatus.COMPLETED, ServiceStatus.INVOICED] },
+            }),
+      },
       select: {
         id: true,
         serviceNumber: true,
@@ -400,7 +416,10 @@ export async function createInvoice(
     });
 
     if (services.length !== validated.serviceIds.length) {
-      return { success: false, error: 'One or more selected services no longer exist' };
+      return {
+        success: false,
+        error: 'One or more selected services are not eligible for this invoice',
+      };
     }
 
     const lines = services.map((service) => ({

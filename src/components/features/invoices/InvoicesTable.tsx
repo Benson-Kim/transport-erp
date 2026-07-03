@@ -207,7 +207,7 @@ function InvoiceRow({ invoice, canDelete, onDelete, onNavigate }: InvoiceRowProp
     >
       <td className="font-mono text-sm">{invoice.invoiceNumber}</td>
       <td>
-        <Badge variant={invoice.direction === InvoiceDirection.SALES ? 'default' : 'warning'}>
+        <Badge variant={invoice.direction === InvoiceDirection.SALES ? 'billed' : 'default'}>
           {DIRECTION_LABELS[invoice.direction]}
         </Badge>
       </td>

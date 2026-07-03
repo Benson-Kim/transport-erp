@@ -79,6 +79,14 @@ export async function recordPayment(
         if (!invoice) {
           throw new Error('Invoice not found');
         }
+        // Money is only receivable against an issued document: the status
+        // was already re-read in this tx but never checked.
+        if (
+          invoice.status === InvoiceStatus.DRAFT ||
+          invoice.status === InvoiceStatus.CANCELLED
+        ) {
+          throw new Error('Payments can only be recorded against issued invoices');
+        }
 
         const remaining = toDecimal(invoice.totalAmount).minus(toDecimal(invoice.paidAmount));
         const paymentAmount = toDecimal(validated.amount);
