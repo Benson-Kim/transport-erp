@@ -9,6 +9,7 @@ import { startOfMonth, subDays } from 'date-fns';
 import { ServiceStatus } from '@/app/generated/prisma';
 import type { Decimal } from '@/app/generated/prisma/runtime/library';
 import { decimalToNumber, toDecimal, ZERO, type MoneyInput } from '@/lib/pricing';
+import { isRecognizedRevenueStatus } from '@/lib/revenue';
 
 import { formatDate, toDate } from './date-formats';
 
