@@ -1,5 +1,5 @@
 /**
- * Loading Order Detail Page (#32)
+ * Loading Order Detail Page (#32, PDF pipeline #34)
  *
  * Static metadata by design: no gated fetch is shared with
  * generateMetadata, so the title path can never bypass the access gate
@@ -9,8 +9,11 @@
 import Link from 'next/link';
 
 import { getLoadingOrderById } from '@/actions/loading-order-actions';
+import { LoadingOrderPdfPanel } from '@/components/features/loading-orders/LoadingOrderPdfPanel';
 import { ServiceStatusBadge } from '@/components/features/services/ServiceStatusBadge';
-import { Alert, Badge, Breadcrumbs, Card, CardBody, PageHeader } from '@/components/ui';
+import { Alert, Breadcrumbs, Card, CardBody, PageHeader } from '@/components/ui';
+import { getServerAuth } from '@/lib/auth';
+import { ACTIONS, hasPermission, RESOURCES } from '@/lib/permissions';
 import { formatDate } from '@/lib/utils/date-formats';
 
 import type { Metadata } from 'next';
@@ -25,7 +28,7 @@ interface PageProps {
 
 export default async function LoadingOrderDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const result = await getLoadingOrderById(id);
+  const [result, session] = await Promise.all([getLoadingOrderById(id), getServerAuth()]);
 
   if (!result.success || !result.data) {
     return (
@@ -40,6 +43,11 @@ export default async function LoadingOrderDetailPage({ params }: PageProps) {
 
   const order = result.data;
 
+  // Capability derived from the PERMISSION_MATRIX (#17): the panel renders
+  // the generate control only for roles that hold documents:create; the
+  // server action enforces the same gate again.
+  const canGenerate = hasPermission(session?.user?.role, RESOURCES.DOCUMENTS, ACTIONS.CREATE);
+
   return (
     <div className="space-y-6">
       <Breadcrumbs />
@@ -49,25 +57,15 @@ export default async function LoadingOrderDetailPage({ params }: PageProps) {
         description={`Generated ${formatDate.dateTime(order.generatedAt)} by ${order.generatedByName}`}
       />
 
-      {/* Honest PDF status (#32): no download control exists until a real
-          stored PDF does - the server-side pipeline ships with #34. */}
-      <Card>
-        <CardBody>
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold">PDF document</h3>
-            {order.hasPdf ? (
-              <Badge variant="completed">Available</Badge>
-            ) : (
-              <Badge>Not generated</Badge>
-            )}
-          </div>
-          {!order.hasPdf && (
-            <p className="mt-2 text-sm text-muted-foreground">
-              PDF generation for loading orders is not available yet.
-            </p>
-          )}
-        </CardBody>
-      </Card>
+      {/* Server-side PDF pipeline (#34): generation renders the
+          carrier-facing template, stores real bytes to B2 and records a
+          Document row per member service; download is a short-lived
+          presigned URL minted after the permission checks. */}
+      <LoadingOrderPdfPanel
+        loadingOrderId={order.id}
+        hasPdf={order.hasPdf}
+        canGenerate={canGenerate}
+      />
 
       {order.notes && (
         <Card>
