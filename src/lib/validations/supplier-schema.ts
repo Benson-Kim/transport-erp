@@ -11,6 +11,14 @@ import { z } from 'zod';
 
 export const PAYMENT_METHODS = ['TRANSFER', 'CASH', 'CARD', 'CHEQUE'] as const;
 
+/**
+ * Cleared form inputs submit '' (RHF register keeps DOM string values).
+ * Map '' to "not provided" BEFORE any coercion: Number('') === 0, so without
+ * this a blank IRPF/VAT field would silently persist 0 - and "0% retention"
+ * vs "no retention configured" are different facts (!20 review, must-fix 2).
+ */
+const emptyStringToUndefined = (value: unknown) => (value === '' ? undefined : value);
+
 /** Supplier create/update schema */
 export const supplierSchema = z.object({
   // Basic Information
@@ -67,24 +75,36 @@ export const supplierSchema = z.object({
     .optional()
     .or(z.literal('')),
 
-  // Financial settings (percent POINTS, e.g. 21 -> 21%; see pricing.ts)
-  irpfRate: z.coerce
-    .number()
-    .min(0, 'IRPF rate cannot be negative')
-    .max(100, 'IRPF rate cannot exceed 100%')
-    .optional(),
-  vatRate: z.coerce
-    .number()
-    .min(0, 'VAT rate cannot be negative')
-    .max(100, 'VAT rate cannot exceed 100%')
-    .default(21),
+  // Financial settings (percent POINTS, e.g. 21 -> 21%; see pricing.ts).
+  // '' preprocesses to undefined so a cleared input is "unset", never 0.
+  irpfRate: z.preprocess(
+    emptyStringToUndefined,
+    z.coerce
+      .number()
+      .min(0, 'IRPF rate cannot be negative')
+      .max(100, 'IRPF rate cannot exceed 100%')
+      .optional()
+  ),
+  vatRate: z.preprocess(
+    emptyStringToUndefined,
+    z.coerce
+      .number()
+      .min(0, 'VAT rate cannot be negative')
+      .max(100, 'VAT rate cannot exceed 100%')
+      .default(21)
+  ),
   paymentTerms: z.coerce
     .number()
     .int('Payment terms must be a whole number')
     .min(0, 'Payment terms cannot be negative')
     .max(365, 'Payment terms cannot exceed 365 days')
     .default(30),
-  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  // '' is the form's "Not specified" option -> unset (!20 review, must-fix 1)
+  paymentMethod: z
+    .enum(PAYMENT_METHODS)
+    .optional()
+    .or(z.literal(''))
+    .transform((value) => (value === '' ? undefined : value)),
 
   // Banking
   bankName: z

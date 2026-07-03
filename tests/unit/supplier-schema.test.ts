@@ -57,6 +57,19 @@ describe('supplierSchema', () => {
   it('rejects payment terms beyond 365 days', () => {
     expect(() => supplierSchema.parse({ ...validMinimal, paymentTerms: 366 })).toThrow();
   });
+
+  it('treats cleared rate inputs (empty string) as unset, never 0', () => {
+    const parsed = supplierSchema.parse({ ...validMinimal, irpfRate: '' });
+    expect(parsed.irpfRate).toBeUndefined();
+
+    // vatRate falls back to its schema default, never silently to 0
+    expect(supplierSchema.parse({ ...validMinimal, vatRate: '' }).vatRate).toBe(21);
+  });
+
+  it('treats the "Not specified" payment method (empty string) as unset', () => {
+    const parsed = supplierSchema.parse({ ...validMinimal, paymentMethod: '' });
+    expect(parsed.paymentMethod).toBeUndefined();
+  });
 });
 
 describe('supplierFilterSchema', () => {
