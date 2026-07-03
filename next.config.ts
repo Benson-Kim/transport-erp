@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 import createBundleAnalyzer from '@next/bundle-analyzer';
 
-import { securityHeaders } from './src/lib/security-headers';
+import { securityHeadersForEnv } from './src/lib/security-headers';
 
 const withBundleAnalyzer = createBundleAnalyzer({
   enabled: process.env['ANALYZE'] === 'true',
@@ -35,11 +35,13 @@ const nextConfig: NextConfig = {
   },
 
   async headers() {
-    if (process.env['NODE_ENV'] !== 'production') return [];
+    // #24: headers apply in EVERY environment so CSP breakage surfaces in
+    // dev; HSTS alone is production-only (it would pin http://localhost to
+    // HTTPS). securityHeadersForEnv is the unit-tested authority.
     return [
       {
         source: '/:path*',
-        headers: securityHeaders,
+        headers: securityHeadersForEnv(process.env['NODE_ENV'] === 'production'),
       },
     ];
   },

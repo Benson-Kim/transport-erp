@@ -3,7 +3,11 @@
  */
 import { describe, expect, it } from '@jest/globals';
 
-import { CONTENT_SECURITY_POLICY, securityHeaders } from '@/lib/security-headers';
+import {
+  CONTENT_SECURITY_POLICY,
+  securityHeaders,
+  securityHeadersForEnv,
+} from '@/lib/security-headers';
 
 function headerValue(key: string): string | undefined {
   return securityHeaders.find((h) => h.key === key)?.value;
@@ -42,5 +46,21 @@ describe('CONTENT_SECURITY_POLICY', () => {
 
   it('defaults to self', () => {
     expect(CONTENT_SECURITY_POLICY.startsWith("default-src 'self'")).toBe(true);
+  });
+});
+
+describe('securityHeadersForEnv (#24 close-out)', () => {
+  it('production serves the full set, including CSP and HSTS', () => {
+    const keys = securityHeadersForEnv(true).map((header) => header.key);
+    expect(keys).toContain('Content-Security-Policy');
+    expect(keys).toContain('Strict-Transport-Security');
+    expect(keys).toHaveLength(securityHeaders.length);
+  });
+
+  it('non-production serves everything EXCEPT HSTS (would pin http://localhost)', () => {
+    const keys = securityHeadersForEnv(false).map((header) => header.key);
+    expect(keys).toContain('Content-Security-Policy');
+    expect(keys).not.toContain('Strict-Transport-Security');
+    expect(keys).toHaveLength(securityHeaders.length - 1);
   });
 });
