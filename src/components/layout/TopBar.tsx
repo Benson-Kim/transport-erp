@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 
-import { Menu, User, LogOut, ChevronDown, Settings, HelpCircle } from 'lucide-react';
+import { Menu, LogOut, ChevronDown, Settings } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
 import { Button, DropdownMenu } from '@/components/ui';
@@ -27,24 +27,14 @@ export function TopBar({ user, companyName, showHamburger }: Readonly<TopBarProp
     }
   };
 
+  // Profile and Help pointed at routes that do not exist (/profile, /help)
+  // - dead affordances removed per #36. Reinstate only with real pages.
   const items = [
-    {
-      id: 'profile',
-      label: 'Profile',
-      icon: <User className="h-4 w-4" />,
-      onClick: () => router.push('/profile'),
-    },
     {
       id: 'settings',
       label: 'Settings',
       icon: <Settings className="h-4 w-4" />,
       onClick: () => router.push('/settings'),
-    },
-    {
-      id: 'help',
-      label: 'Help & Support',
-      icon: <HelpCircle className="h-4 w-4" />,
-      onClick: () => router.push('/help'),
     },
     { id: 'divider', divider: true },
     {
