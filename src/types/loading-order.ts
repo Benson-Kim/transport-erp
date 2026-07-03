@@ -9,7 +9,6 @@ export interface LoadingOrderListItem {
   servicesCount: number;
   /** True only when a real stored PDF exists (#34); never claimed otherwise. */
   hasPdf: boolean;
-  notes: string | null;
 }
 
 /** Paginated list response (shape shared with the clients vertical). */

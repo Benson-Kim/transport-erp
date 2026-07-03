@@ -266,7 +266,6 @@ export async function getLoadingOrders(
       generatedByName: row.generatedBy.name,
       servicesCount: row._count.services,
       hasPdf: row.pdfPath !== null,
-      notes: row.notes,
     }));
 
     return { success: true, data: createPaginatedResponse(data, total, { page, limit }) };
