@@ -146,10 +146,9 @@ export function SupplierForm({ supplier, mode }: SupplierFormProps) {
       setServerError(result.error ?? 'Failed to save supplier');
       if (result.errors) {
         Object.entries(result.errors).forEach(([field, messages]) => {
-          form.setError(field as keyof SupplierInput, {
-            type: 'server',
-            message: messages[0],
-          });
+          const [message] = messages;
+          if (!message) return;
+          form.setError(field as keyof SupplierInput, { type: 'server', message });
         });
       }
     });
