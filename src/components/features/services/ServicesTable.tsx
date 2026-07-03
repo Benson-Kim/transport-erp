@@ -154,9 +154,9 @@ export function ServicesTable({
         },
         hasPermission(userRole, 'loading_orders', 'create') && {
           id: 'loadingOrder',
-          label: 'Generate Loading Order',
+          label: 'Create Loading Order',
           icon: <FileText className="h-4 w-4" />,
-          onClick: () => router.push(`/loading-orders/new?serviceId=${service.id}`),
+          onClick: () => router.push(`/documents/loading-orders/new?serviceIds=${service.id}`),
         },
         hasPermission(userRole, 'services', 'delete') && { id: 'divider-2', divider: true },
         hasPermission(userRole, 'services', 'delete') && {

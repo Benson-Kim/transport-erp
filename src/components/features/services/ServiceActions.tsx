@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation';
 
 import { AlertCircle } from 'lucide-react';
 
+import { createLoadingOrder } from '@/actions/loading-order-actions';
 import {
   markServiceComplete,
   deleteService,
-  generateLoadingOrder,
   //   archiveService,
   //   sendServiceEmail,
 } from '@/actions/service-actions';
@@ -68,10 +68,16 @@ export function ServiceActions({
           break;
 
         case 'generate-loading-order': {
-          const { url } = await generateLoadingOrder(service.id);
-          window.open(url, '_blank');
-          toast.success('Loading order generated');
-          router.refresh();
+          // Honest result handling (#32): there is no document URL to open
+          // until #34 stores a real PDF - navigate to the created order.
+          const result = await createLoadingOrder({ serviceIds: [service.id] });
+          if (!result.success || !result.data) {
+            toast.error(result.error ?? 'Failed to create loading order');
+            setIsLoading(false);
+            return;
+          }
+          toast.success(`Loading order ${result.data.orderNumber} created`);
+          router.push(`/documents/loading-orders/${result.data.id}`);
           break;
         }
 
@@ -120,9 +126,10 @@ export function ServiceActions({
 
       case 'generate-loading-order':
         return {
-          title: 'Generate Loading Order',
-          description: 'A PDF loading order will be generated for this service.',
-          confirmText: 'Generate PDF',
+          title: 'Create Loading Order',
+          description:
+            'Creates a loading order for this service. The PDF document is not generated yet; the order can be reviewed on its detail page.',
+          confirmText: 'Create Loading Order',
         };
 
       case 'archive':
