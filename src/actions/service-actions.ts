@@ -34,6 +34,16 @@ import { serviceSchema } from '@/lib/validations/service-schema';
 import type { ServiceFiltersAPI } from '@/types/service';
 
 /**
+ * The reports aggregate recognized revenue over services (#33): any service
+ * mutation can change a month's booked totals, so the report routes refresh
+ * together with the services routes.
+ */
+function revalidateReportPaths(): void {
+  revalidatePath('/reports/revenue');
+  revalidatePath('/reports/margins');
+}
+
+/**
  * Get a single service by ID
  */
 export async function getService(serviceId: string) {
@@ -337,6 +347,7 @@ export async function createService(data: ServiceFormData) {
   );
 
   revalidatePath('/services');
+  revalidateReportPaths();
 
   return { success: true, service };
 }
@@ -487,6 +498,7 @@ export async function updateService(serviceId: string, data: ServiceFormData) {
 
   revalidatePath('/services');
   revalidatePath(`/services/${serviceId}`);
+  revalidateReportPaths();
 
   return { success: true, service };
 }
@@ -517,6 +529,7 @@ export async function deleteService(serviceId: string) {
   });
 
   revalidatePath('/services');
+  revalidateReportPaths();
 
   return { success: true };
 }
@@ -702,6 +715,7 @@ export async function markServiceComplete(serviceId: string) {
   );
 
   revalidatePath(`/services/${serviceId}`);
+  revalidateReportPaths();
 
   return service;
 }
@@ -759,6 +773,7 @@ export async function archiveService(serviceId: string) {
   );
 
   revalidatePath(`/services/${serviceId}`);
+  revalidateReportPaths();
 
   return service;
 }
@@ -995,6 +1010,7 @@ export async function bulkUpdateServices(
   );
 
   revalidatePath('/services');
+  revalidateReportPaths();
 
   return { success: true, count: result.count };
 }
@@ -1041,6 +1057,7 @@ export async function bulkDeleteServices(serviceIds: string[]) {
   });
 
   revalidatePath('/services');
+  revalidateReportPaths();
 
   return { success: true, count: result.count };
 }
