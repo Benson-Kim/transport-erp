@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 import { hash, compare } from 'bcryptjs';
 import { addHours } from 'date-fns';
 
-import { UserRole } from '@/app/generated/prisma';
+import { Prisma, UserRole } from '@/app/generated/prisma';
 import prisma from '@/lib/prisma/prisma';
 
 import { emailService } from '../email';
@@ -374,6 +374,31 @@ export async function regenerateVerificationToken(
 }
 
 /**
+ * Typed duplicate-account rejection (!27 review item 2): callers needing the
+ * anti-enumeration neutral response match this by instanceof - never by
+ * message text, which can be reworded without any test failing.
+ */
+export class DuplicateUserError extends Error {
+  constructor(message = 'A user with this email already exists') {
+    super(message);
+    this.name = 'DuplicateUserError';
+  }
+}
+
+/**
+ * Duplicate detection across both failure paths: the pre-check
+ * (DuplicateUserError) and the unique-index backstop when two registrations
+ * race (Prisma P2002). Pure predicate, unit-tested without a database
+ * (tests/unit/registration-errors.test.ts).
+ */
+export function isDuplicateUserError(error: unknown): boolean {
+  return (
+    error instanceof DuplicateUserError ||
+    (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+  );
+}
+
+/**
  * Create user account
  */
 export async function createUser(data: {
@@ -389,7 +414,7 @@ export async function createUser(data: {
   });
 
   if (existingUser) {
-    throw new Error('A user with this email already exists');
+    throw new DuplicateUserError();
   }
 
   const hashedPassword = await hashPassword(data.password);

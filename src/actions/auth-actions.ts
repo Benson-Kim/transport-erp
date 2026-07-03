@@ -33,7 +33,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import prisma from '@/lib/prisma/prisma';
 import { z } from 'zod';
-import { Prisma } from '@/app/generated/prisma';
+import { isDuplicateUserError } from '@/lib/auth/auth-helpers';
 import {
   getSignupAllowlistConfig,
   isRegistrationEnabled,
@@ -155,6 +155,11 @@ export async function signInWithProvider(provider: 'google') {
  * Neutral registration outcome (#35): identical whether the email was new or
  * already registered, so the public form cannot be used to probe which
  * addresses hold accounts (same pattern as requestPasswordReset).
+ *
+ * Accepted trade-off (!27 review): this defends the direct oracle only - a
+ * duplicate returns after one SELECT while a fresh signup pays bcrypt +
+ * insert + send, so a timing probe can still distinguish them. Same accepted
+ * posture as requestPasswordReset.
  */
 const REGISTRATION_NEUTRAL_MESSAGE =
   'Registration received. If your email is eligible, you will receive a verification link shortly.';
@@ -236,12 +241,10 @@ export async function registerUser(data: RegisterFormData) {
     }
 
     // No user enumeration (#35): an already-registered email gets the SAME
-    // neutral success as a fresh one. createUser pre-checks (Error) and the
-    // unique index backstops the race (P2002).
-    if (
-      (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') ||
-      (error instanceof Error && error.message === 'A user with this email already exists')
-    ) {
+    // neutral success as a fresh one. Typed contract (!27 review item 2):
+    // isDuplicateUserError matches the DuplicateUserError pre-check and the
+    // P2002 unique-index backstop by instanceof - never by message text.
+    if (isDuplicateUserError(error)) {
       return { success: true, message: REGISTRATION_NEUTRAL_MESSAGE };
     }
 
