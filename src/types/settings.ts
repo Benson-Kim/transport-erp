@@ -10,9 +10,6 @@ export type LogoPosition = 'left' | 'center' | 'right';
 /** Backup frequency options */
 export type BackupFrequency = 'daily' | 'weekly' | 'monthly' | 'never';
 
-/** Number sequence reset options */
-export type SequenceReset = 'yearly' | 'monthly' | 'never' | 'manual';
-
 /** Currency options */
 export type Currency = 'EUR' | 'USD' | 'GBP';
 
@@ -29,12 +26,14 @@ export interface ActionResult<T = void> {
   error?: string;
 }
 
-/** Setting key enum for type safety */
+/** Setting key enum for type safety. NUMBER_SEQUENCES was deleted in #36
+ * (the setting was written by the UI but read by nothing - numbering is the
+ * hardcoded document_counters allocator, #12). Orphaned 'number_sequences'
+ * rows in system_settings are unread and harmless. */
 export enum SettingKey {
   EMAIL = 'email_config',
   PDF = 'pdf_settings',
   BACKUP = 'backup_settings',
-  NUMBER_SEQUENCES = 'number_sequences',
   GENERAL = 'general_settings',
   LAST_BACKUP = 'last_backup_timestamp',
 }

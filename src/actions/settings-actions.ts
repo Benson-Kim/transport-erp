@@ -17,14 +17,12 @@ import {
   type EmailConfigInput,
   type BackupSettingsInput,
   type PDFSettingsInput,
-  type NumberSequencesInput,
   type GeneralSettingsInput,
   type SystemSettings,
   companySettingsSchema,
   emailConfigSchema,
   backupSettingsSchema,
   pdfSettingsSchema,
-  numberSequencesSchema,
   generalSettingsSchema,
   DEFAULT_SYSTEM_SETTINGS,
 } from '@/lib/validations/settings-schema';
@@ -341,14 +339,10 @@ function redactEmailSecrets(email: EmailConfigInput): EmailConfigInput {
 export async function getSystemSettings(): Promise<SystemSettings> {
   await requirePermission('settings', 'view');
 
-  const [email, pdf, backup, numberSequences, general] = await Promise.all([
+  const [email, pdf, backup, general] = await Promise.all([
     getSetting<EmailConfigInput>(SettingKey.EMAIL, DEFAULT_SYSTEM_SETTINGS.email),
     getSetting<PDFSettingsInput>(SettingKey.PDF, DEFAULT_SYSTEM_SETTINGS.pdf),
     getSetting<BackupSettingsInput>(SettingKey.BACKUP, DEFAULT_SYSTEM_SETTINGS.backup),
-    getSetting<NumberSequencesInput>(
-      SettingKey.NUMBER_SEQUENCES,
-      DEFAULT_SYSTEM_SETTINGS.numberSequences
-    ),
     getSetting<GeneralSettingsInput>(SettingKey.GENERAL, DEFAULT_SYSTEM_SETTINGS.general),
   ]);
 
@@ -357,7 +351,6 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     email: redactEmailSecrets({ ...DEFAULT_SYSTEM_SETTINGS.email, ...email }),
     pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
     backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...backup },
-    numberSequences: { ...DEFAULT_SYSTEM_SETTINGS.numberSequences, ...numberSequences },
     general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...general },
   };
 }
@@ -410,15 +403,6 @@ export async function updateBackup(data: unknown): Promise<ActionResult> {
     data,
     backupSettingsSchema,
     'Automatic backup configuration'
-  );
-}
-
-export async function updateNumberSequences(data: unknown): Promise<ActionResult> {
-  return updateSetting(
-    SettingKey.NUMBER_SEQUENCES,
-    data,
-    numberSequencesSchema,
-    'Document number formatting and sequences'
   );
 }
 
