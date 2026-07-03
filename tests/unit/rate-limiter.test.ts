@@ -10,7 +10,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: {} }));
 
-import { decideRateLimit, extractClientIp, rateLimitKey } from '@/lib/rate-limiter';
+import { RATE_LIMITS, decideRateLimit, extractClientIp, rateLimitKey } from '@/lib/rate-limiter';
 import type { RateLimitState } from '@/lib/rate-limiter';
 
 const OPTS = { maxAttempts: 5, windowMs: 15 * 60 * 1000, lockMs: 15 * 60 * 1000 };
@@ -103,5 +103,35 @@ describe('extractClientIp (#22 - one implementation)', () => {
   it('falls back to x-real-ip, then null', () => {
     expect(extractClientIp(headersOf({ 'x-real-ip': '198.51.100.9' }))).toBe('198.51.100.9');
     expect(extractClientIp(headersOf({}))).toBeNull();
+  });
+});
+
+describe('RATE_LIMITS policy pins (#22, review !22 item 3)', () => {
+  it('login: locks at the 5th attempt within 15 min, for 15 min', () => {
+    expect(RATE_LIMITS.LOGIN).toEqual({
+      maxAttempts: 5,
+      windowMs: 15 * 60 * 1000,
+      lockMs: 15 * 60 * 1000,
+    });
+  });
+
+  it('email send: locks at the 3rd send within 1 h, for 1 h', () => {
+    expect(RATE_LIMITS.EMAIL_SEND).toEqual({
+      maxAttempts: 3,
+      windowMs: 60 * 60 * 1000,
+      lockMs: 60 * 60 * 1000,
+    });
+  });
+});
+
+describe('rateLimitKey truncation (review !22 item 1 - DoS-by-disk guard)', () => {
+  it('caps attacker-controlled IP material at 64 chars', () => {
+    const key = rateLimitKey('login', 'a@b.c', 'x'.repeat(500));
+    expect(key).toBe(`login:a@b.c:${'x'.repeat(64)}`);
+  });
+
+  it('leaves real IPv6 addresses intact', () => {
+    const ipv6 = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
+    expect(rateLimitKey('login', 'a@b.c', ipv6)).toBe(`login:a@b.c:${ipv6}`);
   });
 });

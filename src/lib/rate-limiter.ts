@@ -25,7 +25,11 @@
  * (row creation) + SELECT ... FOR UPDATE (row lock) inside one transaction,
  * so the increment is atomic across app instances - the same row-lock
  * convention as document_counters (#12). reset() deletes the row (successful
- * login), which also keeps the table trim.
+ * login), and every consume() opportunistically sweeps rows idle beyond
+ * RATE_LIMIT_PRUNE_AFTER_MS, so spraying keys on unauthenticated paths
+ * cannot grow the table without bound (review !22 item 1). All timestamps
+ * the decision logic reads are written from the app clock - one clock
+ * domain (review !22 item 2).
  */
 
 import type { PrismaClient } from '@/app/generated/prisma';
@@ -42,10 +46,17 @@ export const RATE_LIMITS = {
   EMAIL_SEND: { maxAttempts: 3, windowMs: 60 * 60 * 1000, lockMs: 60 * 60 * 1000 },
 } as const;
 
+/**
+ * Rows idle longer than this are semantically dead (any window/lock above is
+ * at most 1 h) and are swept opportunistically on consume(). Pinned
+ * conservatively at 24 h so the sweep can never delete live state.
+ */
+export const RATE_LIMIT_PRUNE_AFTER_MS = 24 * 60 * 60 * 1000;
+
 export interface RateLimitOptions {
   /** Attempt number at which the limiter locks (that attempt is blocked). */
   maxAttempts: number;
-  /** Sliding-window length for counting attempts. */
+  /** Fixed counting window, anchored at the key's windowStart. */
   windowMs: number;
   /** Lock duration once maxAttempts is reached. Defaults to windowMs. */
   lockMs?: number;
@@ -96,9 +107,17 @@ export function extractClientIp(headers: { get(name: string): string | null }): 
  * unverified-login send path and the public resend form - one budget. */
 export type RateLimitScope = 'login' | 'verification-email' | 'password-reset-email';
 
+/**
+ * Longest IP component persisted into a key: covers any textual IPv6 form
+ * while capping attacker-controlled x-forwarded-for material - keys become
+ * persisted rows on unauthenticated paths, so unbounded input would be a
+ * DoS-by-disk vector (review !22 item 1).
+ */
+const MAX_IP_KEY_LENGTH = 64;
+
 /** Limiter key: scope + normalised email + IP (issue spec: keyed by IP+email). */
 export function rateLimitKey(scope: RateLimitScope, email: string, ip: string | null): string {
-  return `${scope}:${email.trim().toLowerCase()}:${ip ?? 'unknown'}`;
+  return `${scope}:${email.trim().toLowerCase()}:${(ip ?? 'unknown').slice(0, MAX_IP_KEY_LENGTH)}`;
 }
 
 /** Persisted state of one limiter key. */
@@ -197,12 +216,17 @@ export class PostgresRateLimiter {
    */
   async consume(key: string, options: RateLimitOptions): Promise<RateLimitResult> {
     const decision = await this.store.$transaction(async (tx) => {
+      // One clock domain (review !22 item 2): the seed row, the decision and
+      // the persisted state all use this timestamp - no SQL now() in any
+      // value the decision logic reads.
+      const now = new Date();
+
       // Ensure the row exists, then lock it. Concurrent first attempts on a
       // new key serialise on the speculative insert; everyone else queues on
       // the row lock.
       await tx.$executeRaw`
         INSERT INTO "rate_limit_counters" ("key", "attempts", "windowStart", "updatedAt")
-        VALUES (${key}, 0, now(), now())
+        VALUES (${key}, 0, ${now}, ${now})
         ON CONFLICT ("key") DO NOTHING;
       `;
 
@@ -213,21 +237,45 @@ export class PostgresRateLimiter {
         FOR UPDATE;
       `;
 
-      const result = decideRateLimit(rows[0] ?? null, new Date(), options);
+      const result = decideRateLimit(rows[0] ?? null, now, options);
 
       await tx.$executeRaw`
         UPDATE "rate_limit_counters"
         SET "attempts" = ${result.next.attempts},
             "windowStart" = ${result.next.windowStart},
             "lockedUntil" = ${result.next.lockedUntil},
-            "updatedAt" = now()
+            "updatedAt" = ${now}
         WHERE "key" = ${key};
       `;
 
       return result;
     });
 
+    // Opportunistic sweep of dead rows (review !22 item 1). Never fails the
+    // attempt: a failed sweep is logged, not surfaced.
+    try {
+      await this.pruneStale();
+    } catch (error) {
+      console.error('Rate-limiter prune failed:', error);
+    }
+
     return { success: decision.allowed, retryAfter: decision.retryAfter };
+  }
+
+  /**
+   * Delete rows idle beyond RATE_LIMIT_PRUNE_AFTER_MS whose lock (if any)
+   * has expired. Active keys always have a fresh updatedAt, so the sweep
+   * never contends with rows locked by a concurrent consume(). Scans the
+   * updatedAt index.
+   */
+  private async pruneStale(): Promise<void> {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - RATE_LIMIT_PRUNE_AFTER_MS);
+    await this.store.$executeRaw`
+      DELETE FROM "rate_limit_counters"
+      WHERE "updatedAt" < ${cutoff}
+        AND ("lockedUntil" IS NULL OR "lockedUntil" < ${now});
+    `;
   }
 
   /** Clear a key (successful login). Deleting the row keeps the table trim. */

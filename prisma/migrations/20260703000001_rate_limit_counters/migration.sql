@@ -25,3 +25,6 @@ CREATE TABLE IF NOT EXISTS "rate_limit_counters" (
 
     CONSTRAINT "rate_limit_counters_pkey" PRIMARY KEY ("key")
 );
+
+-- The opportunistic prune in consume() scans on updatedAt (review !22 item 1).
+CREATE INDEX IF NOT EXISTS "rate_limit_counters_updatedAt_idx" ON "rate_limit_counters"("updatedAt");

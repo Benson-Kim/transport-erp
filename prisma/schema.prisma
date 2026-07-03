@@ -813,5 +813,7 @@ model RateLimitCounter {
   // (drift-check requires schema and migrations to agree on it).
   updatedAt DateTime @default(now()) @updatedAt
 
+  // The opportunistic prune scans on updatedAt (review !22 item 1).
+  @@index([updatedAt])
   @@map("rate_limit_counters")
 }
