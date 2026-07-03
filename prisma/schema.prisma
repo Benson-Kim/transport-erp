@@ -44,6 +44,14 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+/// ADR 0001 (#30): a brokerage bills clients (SALES, revenue) and is billed
+/// by suppliers (PURCHASE, cost). One Invoice model, discriminated here;
+/// exactly one party FK is set (invoices_party_matches_direction CHECK).
+enum InvoiceDirection {
+  SALES
+  PURCHASE
+}
+
 enum PaymentStatus {
   PENDING
   PROCESSING
@@ -310,6 +318,7 @@ model Client {
   services  Service[]
   contacts  ClientContact[]
   documents Document[]
+  invoices  Invoice[] // SALES invoices issued to this client (ADR 0001, #30)
 
   // Audit fields
   createdAt DateTime  @default(now())
@@ -552,12 +561,25 @@ model ServiceLoadingOrder {
 
 model Invoice {
   id            String   @id @default(cuid())
-  invoiceNumber String   @unique // AUTO-GENERATED: INV-YYYY-NNNNN
+  invoiceNumber String   @unique // AUTO-GENERATED: INV-YYYY-NNNNN (SALES, issued series) / RINV-YYYY-NNNNN (PURCHASE, internal registration)
   invoiceDate   DateTime
   dueDate       DateTime
 
-  // Relations
-  supplierId  String
+  // Billing direction (ADR 0001, #30): SALES = issued to a Client (revenue);
+  // PURCHASE = received from a Supplier (cost). No default - callers state
+  // the direction explicitly. Party/direction agreement is enforced by the
+  // invoices_party_matches_direction CHECK (migration 20260702000001).
+  direction InvoiceDirection
+
+  // Supplier's own invoice number on PURCHASE invoices: we REGISTER received
+  // invoices (invoiceNumber is our internal RINV series), we do not issue
+  // their numbers. Always null on SALES invoices - enforced by the
+  // invoices_party_matches_direction CHECK, not just documented.
+  externalReference String?
+
+  // Relations (exactly one of clientId/supplierId per direction - see CHECK)
+  clientId    String?
+  supplierId  String?
   createdById String
 
   // Financial
@@ -596,8 +618,12 @@ model Invoice {
   // Metadata
   metadata Json?
 
-  // Relations
-  supplier  Supplier      @relation(fields: [supplierId], references: [id])
+  // Relations. onDelete: Restrict on both party FKs: a financial document
+  // must never silently lose its party (Prisma's default for OPTIONAL
+  // relations is SetNull; explicit Restrict preserves the pre-ADR behaviour
+  // of the previously-required supplier FK).
+  client    Client?       @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  supplier  Supplier?     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   createdBy User          @relation("InvoiceCreator", fields: [createdById], references: [id])
   items     InvoiceItem[]
   payments  Payment[]
@@ -609,6 +635,8 @@ model Invoice {
 
   @@index([invoiceNumber])
   @@index([supplierId])
+  @@index([clientId])
+  @@index([direction])
   @@index([status])
   @@index([dueDate])
   @@index([deletedAt])
@@ -791,7 +819,7 @@ model SystemSetting {
 /// Race-free business-number allocation. One row per prefix+year scope
 /// (e.g. "SRV-2026"). See generateDocumentNumber() and migration #12.
 model DocumentCounter {
-  scope String @id // e.g. "SRV-2026", "INV-2026", "PAY-2026", "LO-2026"
+  scope String @id // e.g. "SRV-2026", "INV-2026" (sales, issued), "RINV-2026" (purchase registration), "PAY-2026", "LO-2026"
   // BigInt does not survive a server-action/JSON boundary - convert with
   // String() before returning it from any action (review !15 item 11).
   value BigInt @default(0)

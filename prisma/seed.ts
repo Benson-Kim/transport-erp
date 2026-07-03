@@ -13,6 +13,7 @@ import {
   UserRole,
   ServiceStatus,
   InvoiceStatus,
+  InvoiceDirection,
   PaymentStatus,
 } from '../src/app/generated/prisma';
 import type {
@@ -627,7 +628,14 @@ async function createSingleInvoice(
   // create invoice and optional payment inside a transaction to keep each invoice atomic
   const invoice = await tx.invoice.create({
     data: {
-      invoiceNumber: generateNumber('INV', index),
+      // ADR 0001 (#30): these are PURCHASE invoices received from suppliers.
+      // RINV is our internal registration series; INV is reserved for the
+      // issued SALES series. NOTE: tx is `any` here, so a missing required
+      // field fails at seed RUNTIME, not at type-check - keep this data
+      // shape in sync with the schema.
+      invoiceNumber: generateNumber('RINV', index),
+      direction: InvoiceDirection.PURCHASE,
+      externalReference: `${supplier.supplierCode}-${String(index).padStart(4, '0')}`,
       invoiceDate,
       dueDate,
       supplierId: supplier.id,
@@ -644,7 +652,7 @@ async function createSingleInvoice(
       irpfRate: irpfRate > 0 ? irpfRate : null,
       irpfAmount: irpfAmount > 0 ? irpfAmount : null,
       description: `Invoice for transport services - Period: ${invoiceDate.toLocaleDateString()}`,
-      pdfPath: `/documents/invoices/INV-2024-${String(index).padStart(5, '0')}.pdf`,
+      pdfPath: `/documents/invoices/RINV-2024-${String(index).padStart(5, '0')}.pdf`,
       pdfGeneratedAt: invoiceDate,
       sentAt: addDays(invoiceDate, 1),
       sentTo: supplier.email ?? null,
@@ -900,7 +908,10 @@ async function initDocumentCounters(
   const year = new Date().getFullYear();
   const scopes: Array<{ prefix: string; value: number }> = [
     { prefix: 'SRV', value: serviceCount },
-    { prefix: 'INV', value: invoiceCount },
+    // ADR 0001 (#30): seed invoices are PURCHASE registrations (RINV). The
+    // issued SALES series (INV) starts fresh at 1 when the app first bills
+    // a client.
+    { prefix: 'RINV', value: invoiceCount },
     { prefix: 'PAY', value: invoiceCount },
     { prefix: 'LO', value: loadingOrderCount },
   ];
