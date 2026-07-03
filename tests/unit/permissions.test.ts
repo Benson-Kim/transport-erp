@@ -93,6 +93,23 @@ describe('canAccessRoute', () => {
     }
   });
 
+  it('gates the documents/loading-orders routes from the matrix (#32)', () => {
+    expect(ROUTE_PERMISSIONS['/documents/loading-orders']).toEqual(
+      PERMISSION_MATRIX[RESOURCES.LOADING_ORDERS][ACTIONS.VIEW]
+    );
+    expect(ROUTE_PERMISSIONS['/documents/loading-orders/new']).toEqual(
+      PERMISSION_MATRIX[RESOURCES.LOADING_ORDERS][ACTIONS.CREATE]
+    );
+    // VIEWER may read the list and details but never reach the create page.
+    expect(canAccessRoute(UserRole.VIEWER, '/documents/loading-orders')).toBe(true);
+    expect(canAccessRoute(UserRole.VIEWER, '/documents/loading-orders/abc123')).toBe(true);
+    expect(canAccessRoute(UserRole.VIEWER, '/documents/loading-orders/new')).toBe(false);
+    expect(canAccessRoute(UserRole.OPERATOR, '/documents/loading-orders/new')).toBe(true);
+    // ACCOUNTANT holds neither documents:view nor loading_orders:view.
+    expect(canAccessRoute(UserRole.ACCOUNTANT, '/documents')).toBe(false);
+    expect(canAccessRoute(UserRole.ACCOUNTANT, '/documents/loading-orders')).toBe(false);
+  });
+
   it('derives ROUTE_PERMISSIONS from the matrix (drift is impossible)', () => {
     expect(ROUTE_PERMISSIONS['/dashboard']).toEqual(
       PERMISSION_MATRIX[RESOURCES.DASHBOARD][ACTIONS.VIEW]
