@@ -709,23 +709,24 @@ model Document {
 // SYSTEM MODELS
 
 model AuditLog {
-  id        String      @id @default(cuid())
+  id        String      @default(cuid())
   userId    String? // Null for system actions
   action    AuditAction
   tableName String
   recordId  String
 
-  // Change tracking
-  oldValues Json? // Previous values
-  newValues Json? // New values
+  // Change tracking (#21): field-level diffs (changed keys only, sensitive
+  // fields omitted - see src/lib/audit-diff.ts), never whole-record snapshots.
+  oldValues Json? // Previous values (diff)
+  newValues Json? // New values (diff)
 
   // Context
   ipAddress String?
   userAgent String?
-  requestId String? // For request tracing
+  requestId String? // Request correlation (#21; minted per-request in src/proxy.ts)
 
   // Metadata
-  metadata Json? // Additional context
+  metadata Json? // Additional context (incl. changedFields)
 
   // Relations
   user User? @relation(fields: [userId], references: [id])
@@ -733,6 +734,12 @@ model AuditLog {
   // Timestamp
   createdAt DateTime @default(now())
 
+  // Partitioned monthly by createdAt (#21, migration 20260703000002): a
+  // partitioned table's primary key must include the partition key, hence
+  // the composite id. Retention = metadata-only DROP of expired monthly
+  // partitions via audit_logs_drop_expired(); the partition child tables
+  // are SQL-managed (see the drift-check allowlist in .gitlab-ci.yml).
+  @@id([id, createdAt])
   @@index([userId])
   @@index([tableName, recordId])
   @@index([action])

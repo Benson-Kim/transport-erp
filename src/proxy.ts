@@ -32,14 +32,29 @@ const API_ROUTES = ['/api/auth'];
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Allow public routes
+  // Request correlation (#21, consumed by createAuditLog; #42 threads the
+  // same id through structured logging). Trust a well-formed inbound id
+  // (load balancer); otherwise mint one. The format guard caps
+  // attacker-controlled header content before it reaches audit rows.
+  const inboundRequestId = request.headers.get('x-request-id');
+  const requestId =
+    inboundRequestId && /^[A-Za-z0-9_-]{8,64}$/.test(inboundRequestId)
+      ? inboundRequestId
+      : crypto.randomUUID();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-request-id', requestId);
+  const nextWithRequestId = () => NextResponse.next({ request: { headers: requestHeaders } });
+
+  // Allow public routes. The request id still flows: audit writes on the
+  // public auth paths need correlation too (#21).
   if (PUBLIC_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return nextWithRequestId();
   }
 
   // Allow API routes to handle their own auth
   if (API_ROUTES.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    return nextWithRequestId();
   }
 
   // Get session
@@ -67,8 +82,8 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // Add user info to headers for server components
-  const requestHeaders = new Headers(request.headers);
+  // Add user info to headers for server components (x-request-id is
+  // already set on requestHeaders above)
   requestHeaders.set('x-user-id', session.user.id);
   requestHeaders.set('x-user-role', session.user.role);
   requestHeaders.set('x-user-email', session.user.email ?? '');
