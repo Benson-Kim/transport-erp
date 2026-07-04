@@ -47,7 +47,9 @@ export async function renderHtmlToPdf(html: string, paperSize: PaperSize): Promi
   const browser = await getBrowser();
   const page = await browser.newPage();
   try {
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // 'load' still waits for subresources (the branding logo <img>);
+    // 'networkidle0' is not part of setContent's LifecycleEvent union here.
+    await page.setContent(html, { waitUntil: 'load' });
     const pdf = await page.pdf({
       format: PAPER_FORMATS[paperSize],
       printBackground: true,
