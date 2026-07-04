@@ -253,23 +253,15 @@ export async function getDashboardData({
       revenueChart,
       recentServices: formattedRecentServices,
     };
-  },
-  ['dashboard-data'],
-  {
-    revalidate: 300, // Cache for 5 minutes
-    tags: ['dashboard'],
-  }
-);
+}
 
 /**
- * Refresh dashboard data
+ * Refresh dashboard data (#37/#66): data is request-fresh (dynamic
+ * rendering); revalidating the route drops any client-cached RSC payload
+ * so the refresh button is honest.
  */
 export async function refreshDashboardData() {
-  'use server';
-
-  // Revalidate the dashboard cache
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag('dashboard', 'default');
+  revalidatePath('/dashboard');
 
   return { success: true };
 }
