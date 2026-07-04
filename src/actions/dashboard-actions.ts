@@ -12,6 +12,7 @@ import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus } from '@/app/generated/prisma';
 import prisma from '@/lib/prisma/prisma';
+import { RECOGNIZED_REVENUE_STATUSES } from '@/lib/revenue';
 import {
   calculatePercentageChange,
   calculateDateRange,
@@ -23,6 +24,26 @@ import type { DashboardData, DashboardDateRange } from '@/types/dashboard';
 type ServiceGroupResult = {
   status: ServiceStatus;
   _count: { _all: number };
+};
+
+/**
+ * Explicit aggregate payload: the $extends(withAccelerate()) client
+ * collapses aggregate()'s inferred payload the same way it collapses
+ * groupBy's (see ServiceGroupResult above and !20) - the casts at the call
+ * sites state what Postgres actually returns for the requested _sum/_avg
+ * selections. The previous-period aggregate does not request _avg.margin;
+ * that field is never read from it.
+ */
+type ServiceRevenueAggregate = {
+  _sum: {
+    saleAmount: Prisma.Decimal | null;
+    costAmount: Prisma.Decimal | null;
+    margin: Prisma.Decimal | null;
+  };
+  _avg: {
+    marginPercentage: Prisma.Decimal | null;
+    margin: Prisma.Decimal | null;
+  };
 };
 
 type RecentServices = Prisma.ServiceGetPayload<{
@@ -67,7 +88,10 @@ export const getDashboardData = unstable_cache(
       recentServices,
       monthlyData,
     ] = await Promise.all([
-      // Current period services
+      // Current period services. _count must be requested as an object:
+      // `_count: true` returns a plain number at runtime, so the
+      // `_count._all` reads below silently produced undefined (stats stuck
+      // at 0, totalServices NaN).
       prisma.service.groupBy({
         by: ['status'],
         where: {
@@ -77,7 +101,7 @@ export const getDashboardData = unstable_cache(
           },
           deletedAt: null,
         },
-        _count: true,
+        _count: { _all: true },
       }) as unknown as Promise<ServiceGroupResult[]>,
 
       // Previous period services
@@ -90,17 +114,17 @@ export const getDashboardData = unstable_cache(
           },
           deletedAt: null,
         },
-        _count: true,
+        _count: { _all: true },
       }) as unknown as Promise<ServiceGroupResult[]>,
 
-      // Current period revenue
+      // Current period revenue (RECOGNIZED_REVENUE_STATUSES - #33)
       prisma.service.aggregate({
         where: {
           date: {
             gte: startDate,
             lte: endDate,
           },
-          status: ServiceStatus.COMPLETED,
+          status: { in: [...RECOGNIZED_REVENUE_STATUSES] },
           deletedAt: null,
         },
         _sum: {
@@ -112,16 +136,16 @@ export const getDashboardData = unstable_cache(
           marginPercentage: true,
           margin: true,
         },
-      }),
+      }) as unknown as Promise<ServiceRevenueAggregate>,
 
-      // Previous period revenue
+      // Previous period revenue (RECOGNIZED_REVENUE_STATUSES - #33)
       prisma.service.aggregate({
         where: {
           date: {
             gte: previousPeriod.startDate,
             lte: previousPeriod.endDate,
           },
-          status: ServiceStatus.COMPLETED,
+          status: { in: [...RECOGNIZED_REVENUE_STATUSES] },
           deletedAt: null,
         },
         _sum: {
@@ -132,7 +156,7 @@ export const getDashboardData = unstable_cache(
         _avg: {
           marginPercentage: true,
         },
-      }),
+      }) as unknown as Promise<ServiceRevenueAggregate>,
 
       // Recent services
       prisma.service.findMany({
