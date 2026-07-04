@@ -74,7 +74,7 @@ export function RecordPaymentForm({
           label="Amount"
           required
           helperText={`Remaining: ${formatCurrency(remainingAmount, currency)}`}
-          error={errors.amount?.message}
+          error={errors.amount?.message ?? ''}
         >
           <Input
             type="number"
@@ -85,18 +85,18 @@ export function RecordPaymentForm({
           />
         </FormField>
 
-        <FormField label="Payment date" required error={errors.paymentDate?.message}>
+        <FormField label="Payment date" required error={errors.paymentDate?.message ?? ''}>
           <Input type="date" {...register('paymentDate')} />
         </FormField>
 
-        <FormField label="Payment method" required error={errors.paymentMethod?.message}>
+        <FormField label="Payment method" required error={errors.paymentMethod?.message ?? ''}>
           <Select
             {...register('paymentMethod')}
             options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
           />
         </FormField>
 
-        <FormField label="Reference" error={errors.reference?.message}>
+        <FormField label="Reference" error={errors.reference?.message ?? ''}>
           <Input {...register('reference')} placeholder="Bank reference (optional)" />
         </FormField>
       </div>

@@ -227,18 +227,18 @@ export async function recomputeInvoicePaymentState(
   tx: InvoicePaymentTxClient,
   invoiceId: string
 ): Promise<DerivedPaymentState> {
-  const invoice = await tx.invoice.findFirst({
+  const invoice = (await tx.invoice.findFirst({
     where: { id: invoiceId, deletedAt: null },
     select: { totalAmount: true, paidAt: true },
-  });
+  })) as { totalAmount: MoneyInput; paidAt: Date | null } | null;
   if (!invoice) {
     throw new Error(`Invoice ${invoiceId} not found or deleted`);
   }
 
-  const payments = await tx.payment.findMany({
+  const payments = (await tx.payment.findMany({
     where: { invoiceId },
     select: { amount: true, status: true },
-  });
+  })) as PaymentLike[];
 
   const state = derivePaymentState(invoice.totalAmount, payments);
 
