@@ -55,16 +55,22 @@ type RecentServices = Prisma.ServiceGetPayload<{
 }>;
 
 /**
- * Get dashboard data with caching
+ * Get dashboard data (#37/#66).
+ *
+ * Renders dynamically - NO unstable_cache. The previous wrapper cached
+ * under a static ['dashboard-data'] key with revalidate: 300 while no
+ * mutation ever revalidated the tag, so money figures lagged edits by up
+ * to 5 minutes. The aggregation below is six indexed SQL aggregates (!29);
+ * at brokerage volume dynamic rendering is cheap and money is always
+ * current. userId stays in the signature for call-site stability; the
+ * dashboard is deliberately org-wide (services are not view-scoped).
  */
-export const getDashboardData = unstable_cache(
-  async ({
-    // userId,
-    dateRange,
-  }: {
-    userId: string;
-    dateRange: DashboardDateRange;
-  }): Promise<DashboardData> => {
+export async function getDashboardData({
+  dateRange,
+}: {
+  userId: string;
+  dateRange: DashboardDateRange;
+}): Promise<DashboardData> {
     // Calculate date range
     const { startDate, endDate } = calculateDateRange(dateRange);
     if (!startDate || !endDate) {
