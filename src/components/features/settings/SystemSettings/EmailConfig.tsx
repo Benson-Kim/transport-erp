@@ -2,48 +2,43 @@
 
 import { useState } from 'react';
 
-import { Lock, Server, Mail } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { Controller, useFormContext } from 'react-hook-form';
 
-import { Alert, FormField, Input, Label, Select, Switch } from '@/components/ui';
+import { Alert, FormField, Input } from '@/components/ui';
 import { type SystemSettings } from '@/lib/validations/settings-schema';
-import { type EmailProvider } from '@/types/settings';
-import type { Option } from '@/types/ui';
 
 /**
- * Email configuration section with provider-specific fields
+ * Email configuration (#40): Resend is the ONE provider - these settings are
+ * the config production sends read (DB over env), so the test button and
+ * real sends can no longer diverge. The API key is write-only (#19): it is
+ * never sent back to the client, blank means "keep the stored key", and the
+ * explicit remove control falls back to the RESEND_API_KEY environment
+ * variable.
  */
 export default function EmailConfiguration() {
   const {
     control,
     watch,
-    setValue,
     formState: { errors },
   } = useFormContext<SystemSettings>();
-  const provider = watch('email.provider') as EmailProvider;
-  const emailSecure = watch('email.secure');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+  const clearApiKey = watch('email.clearApiKey');
 
-  const providerOptions: Option[] = [
-    { value: 'resend', label: 'Resend (Recommended)' },
-    { value: 'sendgrid', label: 'SendGrid' },
-    { value: 'ses', label: 'Amazon SES' },
-    { value: 'smtp', label: 'Custom SMTP Server' },
-  ];
+  return (
+    <div className="space-y-6">
+      <Alert variant="info">
+        <Mail className="h-4 w-4" />
+        <span className="text-sm">
+          Emails are delivered through Resend. The key stored here overrides the RESEND_API_KEY
+          environment variable and is the configuration real sends use - the test button exercises
+          the same path.
+        </span>
+      </Alert>
 
-  // Provider-specific configuration
-  const providerConfig: Record<
-    EmailProvider,
-    {
-      fields: React.ReactNode;
-      helpText: string;
-      icon: React.ElementType;
-    }
-  > = {
-    resend: {
-      icon: Mail,
-      helpText: 'Resend is a modern email API designed for developers',
-      fields: (
+      {/* Resend API key (write-only) */}
+      <div className="border-t pt-6">
+        <h4 className="text-sm font-semibold text-neutral-700 mb-4">Resend Configuration</h4>
         <Controller
           control={control}
           name="email.apiKey"
@@ -51,20 +46,21 @@ export default function EmailConfiguration() {
             <FormField
               label="API Key"
               error={errors.email?.apiKey?.message ?? ''}
-              required
               helperText="Found in your Resend dashboard. Leave blank to keep the stored key."
             >
               <div className="relative">
                 <Input
                   {...field}
-                  type={showPassword ? 'text' : 'password'}
+                  type={showKey ? 'text' : 'password'}
                   placeholder="•••• (unchanged)"
                   autoComplete="off"
+                  disabled={clearApiKey ?? false}
                   className="pr-10"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => setShowKey(!showKey)}
+                  aria-label={showKey ? 'Hide API key' : 'Show API key'}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                 >
                   <Lock className="h-4 w-4" />
@@ -73,237 +69,26 @@ export default function EmailConfiguration() {
             </FormField>
           )}
         />
-      ),
-    },
-    sendgrid: {
-      icon: Mail,
-      helpText: 'SendGrid provides reliable email delivery at scale',
-      fields: (
+
         <Controller
           control={control}
-          name="email.apiKey"
+          name="email.clearApiKey"
           render={({ field }) => (
-            <FormField
-              label="API Key"
-              error={errors.email?.apiKey?.message ?? ''}
-              required
-              helperText="Create an API key in SendGrid settings"
-            >
-              <div className="relative">
-                <Input
-                  {...field}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="SG...."
-                  autoComplete="off"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                >
-                  <Lock className="h-4 w-4" />
-                </button>
-              </div>
-            </FormField>
+            <label className="mt-4 flex items-center gap-3">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={field.value ?? false}
+                onChange={(e) => field.onChange(e.target.checked)}
+              />
+              <span className="text-sm text-neutral-700">
+                Remove the stored API key on save (sends fall back to the RESEND_API_KEY
+                environment variable)
+              </span>
+            </label>
           )}
         />
-      ),
-    },
-    ses: {
-      icon: Server,
-      helpText: 'Amazon SES offers cost-effective email sending',
-      fields: (
-        <Controller
-          control={control}
-          name="email.apiKey"
-          render={({ field }) => (
-            <FormField
-              label="AWS SES Credentials (JSON)"
-              error={errors.email?.apiKey?.message ?? ''}
-              required
-              helperText='Format: {"accessKeyId": "AKIA...", "secretAccessKey": "...", "region": "us-east-1"}'
-            >
-              <div className="relative">
-                <Input
-                  {...field}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="AKIA..."
-                  autoComplete="off"
-                  className="pr-10 font-mono text-xs"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                >
-                  <Lock className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="text-xs text-neutral-500 mt-1">
-                Note: Credentials will be stored securely. Ensure your IAM user has SES send
-                permissions.
-              </p>
-            </FormField>
-          )}
-        />
-      ),
-    },
-    smtp: {
-      icon: Server,
-      helpText: 'Configure any SMTP server for email delivery',
-      fields: (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Controller
-              control={control}
-              name="email.host"
-              render={({ field }) => (
-                <FormField
-                  label="SMTP Host"
-                  error={errors.email?.host?.message ?? ''}
-                  required
-                  helperText="e.g., smtp.gmail.com"
-                >
-                  <Input {...field} placeholder="smtp.example.com" />
-                </FormField>
-              )}
-            />
-            <Controller
-              control={control}
-              name="email.port"
-              render={({ field }) => (
-                <FormField
-                  label="Port"
-                  error={errors.email?.port?.message ?? ''}
-                  required
-                  helperText="Usually 587 for TLS or 465 for SSL"
-                >
-                  <Input
-                    {...field}
-                    type="number"
-                    placeholder="587"
-                    min="1"
-                    max="65535"
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
-                </FormField>
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Controller
-              control={control}
-              name="email.user"
-              render={({ field }) => (
-                <FormField
-                  label="Username"
-                  error={errors.email?.user?.message ?? ''}
-                  required
-                  helperText="SMTP authentication username"
-                >
-                  <Input {...field} placeholder="user@example.com" autoComplete="username" />
-                </FormField>
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="email.password"
-              render={({ field }) => (
-                <FormField
-                  label="Password"
-                  error={errors.email?.password?.message ?? ''}
-                  required
-                  helperText="SMTP authentication password"
-                >
-                  <div className="relative">
-                    <Input
-                      {...field}
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      autoComplete="current-password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
-                    >
-                      <Lock className="h-4 w-4" />
-                    </button>
-                  </div>
-                </FormField>
-              )}
-            />
-          </div>
-          <Controller
-            control={control}
-            name="email.secure"
-            render={({ field }) => (
-              <FormField
-                label="Connection Security"
-                className="mb-4"
-                helperText="Use SSL/TLS encryption for secure email transmission" // ✅ Correct
-              >
-                <Label htmlFor="emailSecure">Enable SSL/TLS (Recommended)</Label>
-                <Switch
-                  {...field}
-                  id="emailSecure"
-                  checked={emailSecure ?? false}
-                  onCheckedChange={(checked) => setValue('email.secure', checked)}
-                />
-                <span className="text-sm text-neutral-700">
-                  Use SSL/TLS encryption (recommended for ports 465 and 587)
-                </span>
-              </FormField>
-            )}
-          />
-        </div>
-      ),
-    },
-  };
-
-  const config = providerConfig[provider];
-  const Icon = config?.icon || Mail;
-
-  return (
-    <div className="space-y-6">
-      {/* Provider Selection */}
-      <div>
-        <Controller
-          control={control}
-          name="email.provider"
-          render={({ field }) => (
-            <FormField
-              label="Email Provider"
-              error={errors.email?.provider?.message ?? ''}
-              required
-              helperText="Select your email service provider"
-            >
-              <Select {...field} className="w-full" size="md" options={providerOptions} />
-            </FormField>
-          )}
-        />
-
-        {config && (
-          <Alert variant="info" className="mt-3">
-            <Icon className="h-4 w-4" />
-            <span className="text-sm">{config.helpText}</span>
-          </Alert>
-        )}
       </div>
-
-      {/* Provider-specific fields */}
-      {config?.fields && (
-        <div className="border-t pt-6">
-          <h4 className="text-sm font-semibold text-neutral-700 mb-4">
-            {provider.toUpperCase()} Configuration
-          </h4>
-          {config.fields}
-        </div>
-      )}
 
       {/* Common sender fields */}
       <div className="border-t pt-6">
