@@ -144,7 +144,8 @@ export function SupplierForm({ supplier, mode, returnTo }: SupplierFormProps) {
           : await updateSupplier(supplier!.id, values);
 
       if (result.success && result.data) {
-        router.push(`/suppliers/${result.data.id}`);
+        const safeReturnTo = mode === 'create' ? safeInternalPath(returnTo) : null;
+        router.push(safeReturnTo ?? `/suppliers/${result.data.id}`);
         router.refresh();
         return;
       }
