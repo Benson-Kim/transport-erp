@@ -61,6 +61,11 @@ export interface SupplierFormInitial {
 interface SupplierFormProps {
   supplier?: SupplierFormInitial;
   mode: 'create' | 'edit';
+  /**
+   * Post-create navigation target (#64). Validated with safeInternalPath at
+   * the navigation call site; anything unsafe falls back to the detail page.
+   */
+  returnTo?: string | undefined;
 }
 
 const CURRENCIES = [
