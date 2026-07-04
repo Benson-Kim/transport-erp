@@ -184,14 +184,17 @@ export function derivePaymentState(
  * Minimal structural client (method shorthand for parameter bivariance -
  * the db-helpers.ts AuditLogWriter / loading-orders.ts pattern): satisfied
  * by the $extends-ed app singleton, an interactive transaction client, and
- * the raw PrismaClient the DB test harness uses.
+ * the raw PrismaClient the DB test harness uses. Reads return `unknown`
+ * (the $extends-ed client's generic signatures do not instantiate to the
+ * selected payload) and are narrowed at the single call site in
+ * recomputeInvoicePaymentState - the numbering.ts structural doctrine.
  */
 export type InvoicePaymentTxClient = {
   invoice: {
     findFirst(args: {
       where: { id: string; deletedAt: null };
       select: { totalAmount: true; paidAt: true };
-    }): Promise<{ totalAmount: MoneyInput; paidAt: Date | null } | null>;
+    }): Promise<unknown>;
     update(args: {
       where: { id: string };
       data: { paidAmount: string; paymentStatus: PaymentStatus; paidAt: Date | null };
@@ -201,7 +204,7 @@ export type InvoicePaymentTxClient = {
     findMany(args: {
       where: { invoiceId: string };
       select: { amount: true; status: true };
-    }): Promise<Array<{ amount: MoneyInput; status: PaymentStatus }>>;
+    }): Promise<unknown>;
   };
 };
 

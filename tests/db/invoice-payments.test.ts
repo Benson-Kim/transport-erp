@@ -16,27 +16,15 @@ import { recomputeInvoicePaymentState } from '@/lib/invoices';
 import { withTransaction } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 
-import {
-  prisma,
-  uid,
-  createUserFixture,
-  createClientFixture,
-  createSupplierFixture,
-} from './helpers';
+import { prisma, uid, createUserFixture, createClientFixture } from './helpers';
 
 let userId: string;
 let clientId: string;
-let supplierId: string;
 
 beforeAll(async () => {
-  const [user, client, supplier] = await Promise.all([
-    createUserFixture(),
-    createClientFixture(),
-    createSupplierFixture(),
-  ]);
+  const [user, client] = await Promise.all([createUserFixture(), createClientFixture()]);
   userId = user.id;
   clientId = client.id;
-  supplierId = supplier.id;
 });
 
 afterAll(async () => {
