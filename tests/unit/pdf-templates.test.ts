@@ -7,6 +7,8 @@
  *   no client identity in the rendered document.
  */
 
+import { describe, expect, it } from '@jest/globals';
+
 import type { InvoicePdfData, LoadingOrderPdfData, PdfBranding } from '@/lib/pdf/templates';
 import { escapeHtml, invoiceHtml, loadingOrderHtml } from '@/lib/pdf/templates';
 
