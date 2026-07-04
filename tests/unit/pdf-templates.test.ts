@@ -75,10 +75,14 @@ describe('loadingOrderHtml', () => {
   });
 
   it('is carrier-facing: no pricing markers', () => {
-    expect(html).not.toMatch(/€/);
-    expect(html).not.toMatch(/margin/i);
-    expect(html).not.toMatch(/amount/i);
-    expect(html).not.toMatch(/price/i);
+    // CSS layout properties (margin, margin-top, ...) are not pricing
+    // markers - the invariant is about document content, so strip the
+    // stylesheet before asserting.
+    const content = html.replace(/<style>[\s\S]*?<\/style>/, '');
+    expect(content).not.toMatch(/€/);
+    expect(content).not.toMatch(/margin/i);
+    expect(content).not.toMatch(/amount/i);
+    expect(content).not.toMatch(/price/i);
   });
 
   it('renders the branding header and footer', () => {
