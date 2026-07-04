@@ -44,16 +44,20 @@ import type {
  * Singleton with environment-aware sending, queuing, retries, and logging
  */
 export class EmailService {
+  /** DB-config re-read interval: settings saved on another replica take
+   * effect here within this window (#40). */
+  private static readonly CONFIG_TTL_MS = 60_000;
+
   private static instance: EmailService;
   private config: EmailConfig;
   private resend: Resend | null = null;
+  private configFetchedAt = 0;
 
   private constructor() {
+    // Env baseline only - no async work at module load; the DB overlay is
+    // applied lazily by send() via ensureFreshConfig() (#40).
     this.config = getEmailConfig();
-
-    if (this.config.resendApiKey) {
-      this.resend = new Resend(this.config.resendApiKey);
-    }
+    this.applyConfig();
   }
 
   public static getInstance(): EmailService {
@@ -63,14 +67,27 @@ export class EmailService {
     return EmailService.instance;
   }
 
-  /**
-   * Reload config (useful for testing)
-   */
-  public reloadConfig(): void {
-    this.config = getEmailConfig();
+  private applyConfig(): void {
     this.resend = this.config.resendApiKey
       ? new Resend(this.config.resendApiKey)
       : null;
+  }
+
+  /**
+   * Force a fresh read of the effective config (DB SettingKey.EMAIL over
+   * env, #40). saveEmailSettings and testEmailConfiguration call this for
+   * same-process immediacy; other replicas converge within CONFIG_TTL_MS.
+   */
+  public async reloadConfig(): Promise<void> {
+    this.config = await resolveEmailConfig();
+    this.configFetchedAt = Date.now();
+    this.applyConfig();
+  }
+
+  /** TTL re-read so long-lived replicas pick up settings changes. */
+  private async ensureFreshConfig(): Promise<void> {
+    if (Date.now() - this.configFetchedAt < EmailService.CONFIG_TTL_MS) return;
+    await this.reloadConfig();
   }
 
   /**
