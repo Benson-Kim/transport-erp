@@ -13,6 +13,7 @@ import {
   ScrollText,
 } from 'lucide-react';
 
+import { getDocumentDownloadUrl } from '@/actions/document-actions';
 import type { DocumentType } from '@/app/generated/prisma';
 import { Card, CardBody, Button, EmptyState } from '@/components/ui';
 import { cn } from '@/lib/utils/cn';
@@ -36,30 +37,30 @@ interface RelatedDocumentsProps {
   documents: Document[];
 }
 
-export function RelatedDocuments({ serviceId, documents = [] }: Readonly<RelatedDocumentsProps>) {
-  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+export function RelatedDocuments({ documents = [] }: Readonly<RelatedDocumentsProps>) {
+  const [isFetching, setIsFetching] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleDownload = async (doc: Document) => {
-    setIsDownloading(doc.id);
+  /**
+   * Documents live in a private bucket; access is a short-lived presigned
+   * URL minted by the gated server action AFTER permission + ownership
+   * checks (#34). The raw storage key never reaches a click handler.
+   */
+  const openDocument = async (doc: Document, mode: 'view' | 'download') => {
+    setIsFetching(doc.id);
+    setError(null);
     try {
-      // In production, you might want to use a signed URL or API endpoint
-      // For now, open the file path in a new tab
-      console.log('Downloading document for service:', serviceId, doc.filePath);
-      window.open(doc.filePath, '_blank');
-    } catch (error) {
-      console.error('Failed to download document:', error);
+      const result = await getDocumentDownloadUrl(doc.id, mode);
+      if (!result.success || !result.data) {
+        setError(result.error ?? 'Failed to prepare the document download');
+        return;
+      }
+      window.open(result.data.url, '_blank', 'noopener,noreferrer');
+    } catch (openError) {
+      console.error('Failed to open document:', openError);
+      setError('Failed to prepare the document download');
     } finally {
-      setIsDownloading(null);
-    }
-  };
-
-  const handleView = (doc: Document) => {
-    // For PDFs and images, open in new tab
-    // For other types, trigger download
-    if (doc.mimeType.includes('pdf') || doc.mimeType.includes('image')) {
-      window.open(doc.filePath, '_blank');
-    } else {
-      handleDownload(doc);
+      setIsFetching(null);
     }
   };
 
@@ -100,7 +101,7 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
   const getDocumentLabel = (type: DocumentType, documentNumber?: string | null) => {
     switch (type) {
       case 'LOADING_ORDER':
-        return 'Loading Order';
+        return documentNumber ? `Loading Order ${documentNumber}` : 'Loading Order';
       case 'INVOICE':
         return documentNumber ? `Invoice ${documentNumber}` : 'Invoice';
       case 'RECEIPT':
@@ -129,6 +130,8 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
           <FileText className="h-4 w-4 mr-2" />
           Related Documents
         </h3>
+
+        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
         {documents.length === 0 ? (
           <EmptyState
@@ -181,7 +184,8 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleView(doc)}
+                          onClick={() => openDocument(doc, 'view')}
+                          loading={isFetching === doc.id}
                           title="View document"
                         >
                           <Eye className="h-4 w-4" />
@@ -191,8 +195,8 @@ export function RelatedDocuments({ serviceId, documents = [] }: Readonly<Related
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDownload(doc)}
-                        loading={isDownloading === doc.id}
+                        onClick={() => openDocument(doc, 'download')}
+                        loading={isFetching === doc.id}
                         title="Download document"
                       >
                         <Download className="h-4 w-4" />
