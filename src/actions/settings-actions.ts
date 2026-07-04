@@ -8,6 +8,7 @@ import z from 'zod';
 
 import { AuditAction } from '@/app/generated/prisma';
 import { getServerAuth, requireAuth } from '@/lib/auth';
+import { emailService } from '@/lib/email';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
