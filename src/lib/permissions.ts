@@ -246,6 +246,7 @@ const ROUTE_RESOURCE_ACTIONS: Record<string, readonly [Resource, Action]> = {
   '/documents/loading-orders': [RESOURCES.LOADING_ORDERS, ACTIONS.VIEW],
   '/documents/loading-orders/new': [RESOURCES.LOADING_ORDERS, ACTIONS.CREATE],
   '/invoices': [RESOURCES.INVOICES, ACTIONS.VIEW],
+  '/invoices/new': [RESOURCES.INVOICES, ACTIONS.CREATE],
   '/reports': [RESOURCES.REPORTS, ACTIONS.VIEW],
   '/settings': [RESOURCES.SETTINGS, ACTIONS.VIEW],
   '/settings/users': [RESOURCES.USERS, ACTIONS.VIEW],
