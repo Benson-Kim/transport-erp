@@ -18,6 +18,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
 import {
+  DocumentType,
   InvoiceDirection,
   InvoiceStatus,
   ServiceStatus,
@@ -178,6 +179,17 @@ export async function getInvoiceById(id: string): Promise<ActionResult<InvoiceDe
 
     const remaining = toDecimal(invoice.totalAmount).minus(toDecimal(invoice.paidAmount));
 
+    // Live Document row for the stored invoice PDF (#34): generation
+    // supersedes the previous rows, so at most one is live per invoice.
+    const pdfDocument = await prisma.document.findFirst({
+      where: {
+        documentType: DocumentType.INVOICE,
+        documentNumber: invoice.invoiceNumber,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
     const detail: InvoiceDetail = {
       id: invoice.id,
       invoiceNumber: invoice.invoiceNumber,
@@ -202,6 +214,7 @@ export async function getInvoiceById(id: string): Promise<ActionResult<InvoiceDe
       party,
       createdByName: invoice.createdBy.name,
       createdAt: invoice.createdAt,
+      pdfDocumentId: pdfDocument?.id ?? null,
       items: invoice.items.map((item) => ({
         id: item.id,
         description: item.description,

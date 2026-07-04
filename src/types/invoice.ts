@@ -88,6 +88,8 @@ export interface InvoiceDetail {
   party: { id: string; name: string; type: 'client' | 'supplier' };
   createdByName: string;
   createdAt: Date;
+  /** Live INVOICE Document row for the stored PDF, null until generated (#34). */
+  pdfDocumentId: string | null;
   items: InvoiceItemDto[];
   payments: InvoicePaymentDto[];
 }
