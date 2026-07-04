@@ -8,7 +8,7 @@ import { render } from '@react-email/render';
 import * as React from 'react';
 
 import prisma from '@/lib/prisma/prisma';
-import { getEmailConfig } from './config';
+import { getEmailConfig, resolveEmailConfig } from './config';
 import {
   VerificationEmailTemplate,
   PasswordResetEmailTemplate,
