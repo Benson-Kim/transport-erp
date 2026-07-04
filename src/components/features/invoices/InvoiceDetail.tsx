@@ -3,14 +3,16 @@
  *
  * Pure server component: receives plain DTO numbers from the page (Decimal
  * already converted by the action). Renders header, line items, payment
- * history, and status controls. No pricing fields are shown to roles that
- * lack invoices:view - the page gate handles that.
+ * history, status controls and the record-payment form (#31). No pricing
+ * fields are shown to roles that lack invoices:view - the page gate
+ * handles that.
  */
 
 import Link from 'next/link';
 
 import { InvoiceDirection, InvoiceStatus } from '@/app/generated/prisma';
 import { updateInvoiceStatus } from '@/actions/invoice-actions';
+import { RecordPaymentForm } from '@/components/features/invoices/RecordPaymentForm';
 import { Badge, Button, PageHeader } from '@/components/ui';
 import { formatCurrency, formatDate, formatPercentPoints } from '@/lib/utils';
 import type { InvoiceDetail as InvoiceDetailDto } from '@/types/invoice';
@@ -20,6 +22,7 @@ interface InvoiceDetailProps {
   canEdit: boolean;
   canDelete: boolean;
   canSend: boolean;
+  canRecordPayment: boolean;
 }
 
 const DIRECTION_LABEL: Record<InvoiceDirection, string> = {
@@ -27,17 +30,30 @@ const DIRECTION_LABEL: Record<InvoiceDirection, string> = {
   [InvoiceDirection.PURCHASE]: 'Purchase invoice',
 };
 
-const STATUS_VARIANT: Record<InvoiceStatus, 'default' | 'success' | 'warning' | 'error'> = {
+/**
+ * Badge ships 'active' | 'completed' | 'cancelled' | 'billed' | 'archived'
+ * | 'default' - map invoice statuses onto those (there is no
+ * success/warning/error variant).
+ */
+type InvoiceBadgeVariant = 'default' | 'billed' | 'completed' | 'cancelled' | 'archived';
+
+const STATUS_VARIANT: Record<InvoiceStatus, InvoiceBadgeVariant> = {
   [InvoiceStatus.DRAFT]: 'default',
-  [InvoiceStatus.SENT]: 'default',
-  [InvoiceStatus.VIEWED]: 'default',
-  [InvoiceStatus.PAID]: 'success',
-  [InvoiceStatus.OVERDUE]: 'error',
-  [InvoiceStatus.CANCELLED]: 'warning',
+  [InvoiceStatus.SENT]: 'billed',
+  [InvoiceStatus.VIEWED]: 'billed',
+  [InvoiceStatus.PAID]: 'completed',
+  [InvoiceStatus.OVERDUE]: 'cancelled',
+  [InvoiceStatus.CANCELLED]: 'archived',
 };
 
-export function InvoiceDetail({ invoice, canEdit, canSend }: InvoiceDetailProps) {
+export function InvoiceDetail({ invoice, canSend, canRecordPayment }: InvoiceDetailProps) {
   const currency = invoice.currency;
+
+  const showRecordPayment =
+    canRecordPayment &&
+    invoice.remainingAmount > 0 &&
+    invoice.status !== InvoiceStatus.DRAFT &&
+    invoice.status !== InvoiceStatus.CANCELLED;
 
   return (
     <div className="space-y-6">
@@ -197,7 +213,7 @@ export function InvoiceDetail({ invoice, canEdit, canSend }: InvoiceDetailProps)
                   <td>{payment.paymentMethod}</td>
                   <td className="text-sm text-gray-500">{payment.reference ?? '—'}</td>
                   <td>
-                    <Badge variant={payment.status === 'COMPLETED' ? 'success' : 'default'}>
+                    <Badge variant={payment.status === 'COMPLETED' ? 'completed' : 'default'}>
                       {payment.status}
                     </Badge>
                   </td>
@@ -208,6 +224,21 @@ export function InvoiceDetail({ invoice, canEdit, canSend }: InvoiceDetailProps)
               ))}
             </tbody>
           </table>
+        </section>
+      )}
+
+      {/* Record payment (#31): capability derived server-side by the page;
+          the action re-checks permission, remaining balance and status. */}
+      {showRecordPayment && (
+        <section aria-labelledby="record-payment-heading" className="card">
+          <h2 id="record-payment-heading" className="mb-4 text-lg font-semibold">
+            Record payment
+          </h2>
+          <RecordPaymentForm
+            invoiceId={invoice.id}
+            remainingAmount={invoice.remainingAmount}
+            currency={currency}
+          />
         </section>
       )}
 
