@@ -328,10 +328,21 @@ async function updateSetting<T>(
 /**
  * Email secret fields are write-only (#19): they are never sent to the client,
  * and a blank value on save means "keep the stored secret". This prevents the
- * plaintext API key / SMTP password from being hydrated into the browser.
+ * plaintext API key from being hydrated into the browser.
  */
 function redactEmailSecrets(email: EmailConfigInput): EmailConfigInput {
-  return { ...email, apiKey: '', password: '' };
+  return { ...email, apiKey: '' };
+}
+
+/**
+ * Stored email settings predating #40 (sendgrid/ses/smtp shapes) no longer
+ * parse; surface the defaults so the form starts from a valid Resend config
+ * instead of an uneditable legacy one. The stored row is left untouched
+ * until the admin saves.
+ */
+function sanitizeEmailSettings(stored: EmailConfigInput): EmailConfigInput {
+  const parsed = emailConfigSchema.safeParse({ ...DEFAULT_SYSTEM_SETTINGS.email, ...stored });
+  return parsed.success ? parsed.data : DEFAULT_SYSTEM_SETTINGS.email;
 }
 
 /**
@@ -349,7 +360,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 
   return {
     // Never surface stored email secrets to the client. (#19)
-    email: redactEmailSecrets({ ...DEFAULT_SYSTEM_SETTINGS.email, ...email }),
+    email: redactEmailSecrets(sanitizeEmailSettings(email)),
     pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
     backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...backup },
     general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...general },
