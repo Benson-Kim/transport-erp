@@ -1,8 +1,8 @@
 /**
  * Invoice Detail Page (#30, ADR 0001)
  *
- * Full invoice view: header, line items, payment history, and status
- * controls. Pure server component; Suspense streaming.
+ * Full invoice view: header, line items, payment history, status controls
+ * and the PDF panel (#34). Pure server component; Suspense streaming.
  * force-dynamic: paidAmount and status must never be stale.
  */
 
@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 
 import { getInvoiceById } from '@/actions/invoice-actions';
 import { InvoiceDetail } from '@/components/features/invoices/InvoiceDetail';
+import { InvoicePdfPanel } from '@/components/features/invoices/InvoicePdfPanel';
 import { Breadcrumbs, Skeleton } from '@/components/ui';
 import { getServerAuth } from '@/lib/auth';
 import { hasPermission, RESOURCES, ACTIONS } from '@/lib/permissions';
@@ -67,15 +68,25 @@ async function InvoiceContent({ id }: { id: string }) {
   const canDelete = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.DELETE);
   const canSend = hasPermission(userRole, RESOURCES.INVOICES, ACTIONS.SEND);
   const canRecordPayment = hasPermission(userRole, RESOURCES.PAYMENTS, ACTIONS.CREATE);
+  // PDF generation needs documents:create on top of the page's invoices:view
+  // gate; the server action enforces both again (#34).
+  const canGeneratePdf = hasPermission(userRole, RESOURCES.DOCUMENTS, ACTIONS.CREATE);
 
   return (
-    <InvoiceDetail
-      invoice={result.data}
-      canEdit={canEdit}
-      canDelete={canDelete}
-      canSend={canSend}
-      canRecordPayment={canRecordPayment}
-    />
+    <>
+      <InvoiceDetail
+        invoice={result.data}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        canSend={canSend}
+        canRecordPayment={canRecordPayment}
+      />
+      <InvoicePdfPanel
+        invoiceId={result.data.id}
+        pdfDocumentId={result.data.pdfDocumentId}
+        canGenerate={canGeneratePdf}
+      />
+    </>
   );
 }
 
