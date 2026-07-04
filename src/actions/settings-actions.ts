@@ -369,10 +369,9 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 
 /** Write-only secret handling flags for saveEmailSettings (#19, review 6). */
 interface EmailSecretFlags {
-  /** Explicitly erase the stored API key (blank alone means "keep"). */
+  /** Explicitly erase the stored API key (blank alone means "keep").
+   * Cleared sends fall back to the RESEND_API_KEY environment variable. */
   clearApiKey?: boolean;
-  /** Explicitly erase the stored SMTP password (blank alone means "keep"). */
-  clearPassword?: boolean;
 }
 
 export async function saveEmailSettings(data: unknown) {
@@ -383,26 +382,33 @@ export async function saveEmailSettings(data: unknown) {
   //
   // NOTE: getSetting -> updateSetting is read-merge-write and non-atomic.
   // Acceptable at single-admin scale; revisit if settings gain concurrent
-  // writers.
+  // writers (#38's queue worker must NOT write to SettingKey.EMAIL).
   let incoming = data as (Partial<EmailConfigInput> & EmailSecretFlags) | null;
   if (incoming && typeof incoming === 'object') {
-    const { clearApiKey, clearPassword, ...rest } = incoming;
+    const { clearApiKey, ...rest } = incoming;
     const stored = await getSetting<EmailConfigInput>(
       SettingKey.EMAIL,
       DEFAULT_SYSTEM_SETTINGS.email
     );
     const merged: Partial<EmailConfigInput> = { ...rest };
     if (!merged.apiKey) merged.apiKey = clearApiKey ? '' : stored.apiKey;
-    if (!merged.password) merged.password = clearPassword ? '' : stored.password;
     incoming = merged;
   }
 
-  return updateSetting(
+  const result = await updateSetting(
     SettingKey.EMAIL,
     incoming,
     emailConfigSchema,
     'Email configuration for System notifications'
   );
+
+  if (result.success) {
+    // Same-process freshness: the just-saved config is what the next send
+    // uses. Other replicas converge within EmailService's config TTL (#40).
+    await emailService.reloadConfig();
+  }
+
+  return result;
 }
 
 export async function updatePDF(data: unknown): Promise<ActionResult> {
