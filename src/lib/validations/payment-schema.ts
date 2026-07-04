@@ -26,10 +26,11 @@ export const createPaymentSchema = z.object({
   currency: z.string().min(1).max(3).default('EUR'),
   paymentDate: z.preprocess(
     emptyStringToUndefined,
-    z.coerce.date({ required_error: 'Payment date is required' })
+    // zod v4: the unified `error` param replaced required_error.
+    z.coerce.date({ error: 'Payment date is required' })
   ),
   paymentMethod: z.enum(PAYMENT_METHODS, {
-    required_error: 'Payment method is required',
+    error: 'Payment method is required',
   }),
   reference: emptyableString(
     z.string().max(100, 'Reference must be less than 100 characters')
