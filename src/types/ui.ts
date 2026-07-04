@@ -14,7 +14,15 @@ export type ComponentSize = 'sm' | 'md' | 'lg';
 export type ComponentStatus = 'default' | 'success' | 'warning' | 'error';
 
 // Input types
-export type InputType = 'text' | 'email' | 'tel' | 'number' | 'password' | 'url' | 'search';
+export type InputType =
+  | 'text'
+  | 'email'
+  | 'tel'
+  | 'number'
+  | 'password'
+  | 'url'
+  | 'search'
+  | 'date';
 
 // Common component props
 export interface BaseComponentProps {

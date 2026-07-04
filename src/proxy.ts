@@ -68,7 +68,19 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Check route permissions for dashboard routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/settings')) {
+  const GATED_PREFIXES = [
+     '/dashboard',
+     '/settings',
+     '/invoices',
+     '/reports',
+     '/documents',
+     '/suppliers',
+     '/clients',
+     '/services',
+     '/audit-logs',
+  ];
+  
+  if (GATED_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     const hasAccess = canAccessRoute(session.user.role, pathname);
 
     if (!hasAccess) {
