@@ -8,3 +8,4 @@
 export { formatCurrency, formatPercent, formatPercentPoints, formatNumber, formatDistance } from './formatting';
 export { formatDate, toDate } from './date-formats';
 export { cn } from './cn';
+export { safeInternalPath } from './safe-internal-path';

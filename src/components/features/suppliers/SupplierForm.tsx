@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 
 import { createSupplier, updateSupplier } from '@/actions/supplier-actions';
 import { Alert, Input, Label, Textarea } from '@/components/ui';
+import { safeInternalPath } from '@/lib/utils';
 import {
   supplierSchema,
   PAYMENT_METHODS,
@@ -60,6 +61,11 @@ export interface SupplierFormInitial {
 interface SupplierFormProps {
   supplier?: SupplierFormInitial;
   mode: 'create' | 'edit';
+  /**
+   * Post-create navigation target (#64). Validated with safeInternalPath at
+   * the navigation call site; anything unsafe falls back to the detail page.
+   */
+  returnTo?: string | undefined;
 }
 
 const CURRENCIES = [
@@ -113,7 +119,7 @@ function FieldError({ message }: { message?: string | undefined }) {
 }
 
 // eslint-disable-next-line max-lines-per-function
-export function SupplierForm({ supplier, mode }: SupplierFormProps) {
+export function SupplierForm({ supplier, mode, returnTo }: SupplierFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -138,7 +144,8 @@ export function SupplierForm({ supplier, mode }: SupplierFormProps) {
           : await updateSupplier(supplier!.id, values);
 
       if (result.success && result.data) {
-        router.push(`/suppliers/${result.data.id}`);
+        const safeReturnTo = mode === 'create' ? safeInternalPath(returnTo) : null;
+        router.push(safeReturnTo ?? `/suppliers/${result.data.id}`);
         router.refresh();
         return;
       }
