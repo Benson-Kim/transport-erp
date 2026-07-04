@@ -1,8 +1,23 @@
 /**
- * Email configuration
+ * Email configuration (#40).
+ *
+ * Two layers, ONE consumer path:
+ * - getEmailConfig(): the env baseline (available before the DB is
+ *   reachable, e.g. boot-time auth emails and tests).
+ * - resolveEmailConfig(): overlays the DB SettingKey.EMAIL record that the
+ *   settings UI writes (saveEmailSettings) onto that baseline. EmailService
+ *   reads THIS (with a TTL), so the settings screen configures real sends
+ *   and test-email exercises the same config as production.
+ *
+ * The DB read is server-only and unredacted; never read email config through
+ * getSystemSettings(), which redacts secrets for the client (#19).
  */
 
-import { EmailConfig, Environment } from "@/types/mail";
+import prisma from '@/lib/prisma/prisma';
+import { emailConfigSchema } from '@/lib/validations/settings-schema';
+import { SettingKey } from '@/types/settings';
+
+import type { EmailConfig, Environment } from '@/types/mail';
 
 function parseEnvList(value: string | undefined): string[] {
     if (!value) return [];
@@ -145,5 +160,43 @@ export function getEmailConfig(): EmailConfig {
 
         default:
             return base;
+    }
+}
+
+/**
+ * Pure overlay of the stored settings value onto the env baseline. Exported
+ * for unit tests. Invalid or legacy rows (pre-#40 sendgrid/ses/smtp shapes)
+ * leave the baseline untouched - a bad row must never take email down.
+ */
+export function overlayStoredEmailConfig(base: EmailConfig, stored: unknown): EmailConfig {
+    const parsed = emailConfigSchema.safeParse(stored);
+    if (!parsed.success) return base;
+
+    const settings = parsed.data;
+    return {
+        ...base,
+        resendApiKey: settings.apiKey || base.resendApiKey,
+        from: {
+            name: settings.fromName || base.from.name,
+            email: settings.fromEmail || base.from.email,
+        },
+    };
+}
+
+/**
+ * Effective runtime config: DB SettingKey.EMAIL over the env baseline (#40).
+ */
+export async function resolveEmailConfig(): Promise<EmailConfig> {
+    const base = getEmailConfig();
+
+    try {
+        const row = await prisma.systemSetting.findUnique({
+            where: { key: SettingKey.EMAIL },
+        });
+        if (!row) return base;
+        return overlayStoredEmailConfig(base, row.value);
+    } catch {
+        // DB unreachable: env baseline keeps boot-critical email paths alive.
+        return base;
     }
 }

@@ -8,6 +8,7 @@ import z from 'zod';
 
 import { AuditAction } from '@/app/generated/prisma';
 import { getServerAuth, requireAuth } from '@/lib/auth';
+import { emailService } from '@/lib/email';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
 import { requirePermission } from '@/lib/rbac';
@@ -327,10 +328,21 @@ async function updateSetting<T>(
 /**
  * Email secret fields are write-only (#19): they are never sent to the client,
  * and a blank value on save means "keep the stored secret". This prevents the
- * plaintext API key / SMTP password from being hydrated into the browser.
+ * plaintext API key from being hydrated into the browser.
  */
 function redactEmailSecrets(email: EmailConfigInput): EmailConfigInput {
-  return { ...email, apiKey: '', password: '' };
+  return { ...email, apiKey: '' };
+}
+
+/**
+ * Stored email settings predating #40 (sendgrid/ses/smtp shapes) no longer
+ * parse; surface the defaults so the form starts from a valid Resend config
+ * instead of an uneditable legacy one. The stored row is left untouched
+ * until the admin saves.
+ */
+function sanitizeEmailSettings(stored: EmailConfigInput): EmailConfigInput {
+  const parsed = emailConfigSchema.safeParse({ ...DEFAULT_SYSTEM_SETTINGS.email, ...stored });
+  return parsed.success ? parsed.data : DEFAULT_SYSTEM_SETTINGS.email;
 }
 
 /**
@@ -348,49 +360,51 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 
   return {
     // Never surface stored email secrets to the client. (#19)
-    email: redactEmailSecrets({ ...DEFAULT_SYSTEM_SETTINGS.email, ...email }),
+    email: redactEmailSecrets(sanitizeEmailSettings(email)),
     pdf: { ...DEFAULT_SYSTEM_SETTINGS.pdf, ...pdf },
     backup: { ...DEFAULT_SYSTEM_SETTINGS.backup, ...backup },
     general: { ...DEFAULT_SYSTEM_SETTINGS.general, ...general },
   };
 }
 
-/** Write-only secret handling flags for saveEmailSettings (#19, review 6). */
-interface EmailSecretFlags {
-  /** Explicitly erase the stored API key (blank alone means "keep"). */
-  clearApiKey?: boolean;
-  /** Explicitly erase the stored SMTP password (blank alone means "keep"). */
-  clearPassword?: boolean;
-}
-
 export async function saveEmailSettings(data: unknown) {
   // Write-only fields (#19): the redacted values sent to the client come
   // back empty unless the admin typed a new secret. Blank = keep stored;
   // an explicit clear flag = erase (an empty string alone must never mean
-  // "delete", or a routine save would wipe the key).
+  // "delete", or a routine save would wipe the key). clearApiKey rides in
+  // on emailConfigSchema itself as a transport-only flag (#19 review 6,
+  // #40): consumed and stripped here, never persisted; cleared sends fall
+  // back to the RESEND_API_KEY environment variable.
   //
   // NOTE: getSetting -> updateSetting is read-merge-write and non-atomic.
   // Acceptable at single-admin scale; revisit if settings gain concurrent
-  // writers.
-  let incoming = data as (Partial<EmailConfigInput> & EmailSecretFlags) | null;
+  // writers (#38's queue worker must NOT write to SettingKey.EMAIL).
+  let incoming = data as Partial<EmailConfigInput> | null;
   if (incoming && typeof incoming === 'object') {
-    const { clearApiKey, clearPassword, ...rest } = incoming;
+    const { clearApiKey, ...rest } = incoming;
     const stored = await getSetting<EmailConfigInput>(
       SettingKey.EMAIL,
       DEFAULT_SYSTEM_SETTINGS.email
     );
     const merged: Partial<EmailConfigInput> = { ...rest };
     if (!merged.apiKey) merged.apiKey = clearApiKey ? '' : stored.apiKey;
-    if (!merged.password) merged.password = clearPassword ? '' : stored.password;
     incoming = merged;
   }
 
-  return updateSetting(
+  const result = await updateSetting(
     SettingKey.EMAIL,
     incoming,
     emailConfigSchema,
     'Email configuration for System notifications'
   );
+
+  if (result.success) {
+    // Same-process freshness: the just-saved config is what the next send
+    // uses. Other replicas converge within EmailService's config TTL (#40).
+    await emailService.reloadConfig();
+  }
+
+  return result;
 }
 
 export async function updatePDF(data: unknown): Promise<ActionResult> {
@@ -416,159 +430,59 @@ export async function updateGeneral(data: unknown): Promise<ActionResult> {
 }
 
 /**
- * Test email configuration
+ * Test email configuration (#40): the test button exercises the SAME
+ * subsystem and config source as production sends - emailService with the
+ * DB-over-env config. A passing test means real sends work; a simulated
+ * result says so instead of claiming delivery.
  */
 export async function testEmailConfiguration(testEmail?: string): Promise<ActionResult<string>> {
   try {
     await requirePermission('settings', 'edit');
 
-    const emailConfig = await getSetting<EmailConfigInput>(
-      SettingKey.EMAIL,
-      null as unknown as EmailConfigInput
-    );
-
-    if (!emailConfig?.fromEmail) {
+    if (!testEmail) {
       return {
         success: false,
-        error: 'Email configuration not found. Please configure email settings first.',
+        error: 'Provide a recipient (the From Email field is used by default).',
       };
     }
 
-    const recipient = testEmail || emailConfig.fromEmail;
-    await sendTestEmail(emailConfig, recipient);
+    // Force a fresh config read so a key saved moments ago is the one tested.
+    await emailService.reloadConfig();
 
-    return {
-      success: true,
-      data: `Test email sent successfully to ${recipient}`,
-    };
+    const result = await emailService.send({
+      to: testEmail,
+      subject: 'Test Email - Configuration Verified',
+      html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">Email Configuration Test</h2>
+                <p>This is a test email to verify your email configuration is working correctly.</p>
+                <p style="color: #666; font-size: 12px;">
+                    If you received this email, your email configuration is working correctly.
+                </p>
+            </div>
+        `,
+      text: 'Email Configuration Test\n\nIf you received this email, your email configuration is working correctly.',
+      metadata: { test: true },
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error ?? 'Failed to send test email' };
+    }
+
+    if (result.simulated) {
+      return {
+        success: true,
+        data: `Sending is disabled in this environment - the test email to ${testEmail} was simulated, not delivered.`,
+      };
+    }
+
+    return { success: true, data: `Test email sent successfully to ${testEmail}` };
   } catch (error) {
     console.error('Test email error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to send test email',
     };
-  }
-}
-
-/**
- * Send test email implementation
- */
-async function sendTestEmail(config: EmailConfigInput, recipient: string): Promise<void> {
-  const emailContent = {
-    to: recipient,
-    from: { name: config.fromName, email: config.fromEmail },
-    subject: 'Test Email - Configuration Verified',
-    html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Email Configuration Test</h2>
-                <p>This is a test email to verify your email configuration is working correctly.</p>
-                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                    <p><strong>Provider:</strong> ${config.provider}</p>
-                    <p><strong>From:</strong> ${config.fromName} &lt;${config.fromEmail}&gt;</p>
-                    <p><strong>Sent at:</strong> ${new Date().toISOString()}</p>
-                </div>
-                <p style="color: #666; font-size: 12px;">
-                    If you received this email, your email configuration is working correctly.
-                </p>
-            </div>
-        `,
-    text: `Email Configuration Test\n\nProvider: ${config.provider}\nFrom: ${config.fromName} <${config.fromEmail}>\nSent at: ${new Date().toISOString()}`,
-  };
-
-  switch (config.provider) {
-    case 'resend': {
-      if (!config.apiKey) throw new Error('Resend API key is required');
-      const { Resend } = await import('resend');
-      const resend = new Resend(config.apiKey);
-
-      const { error } = await resend.emails.send({
-        from: `${emailContent.from.name} <${emailContent.from.email}>`,
-        to: emailContent.to,
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      });
-
-      if (error) throw new Error(`Resend error: ${error.message}`);
-      break;
-    }
-
-    case 'sendgrid': {
-      if (!config.apiKey) throw new Error('SendGrid API key is required');
-      const sgMail = await import('@sendgrid/mail');
-      sgMail.default.setApiKey(config.apiKey);
-
-      await sgMail.default.send({
-        to: emailContent.to,
-        from: { name: emailContent.from.name, email: emailContent.from.email },
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      });
-      break;
-    }
-
-    case 'ses': {
-      if (!config.apiKey) throw new Error('AWS SES credentials are required');
-      const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
-
-      let credentials: { accessKeyId: string; secretAccessKey: string; region: string };
-      try {
-        credentials = JSON.parse(config.apiKey);
-      } catch {
-        throw new Error(
-          'Invalid AWS SES credentials. Expected JSON with accessKeyId, secretAccessKey, region.'
-        );
-      }
-
-      const sesClient = new SESClient({
-        region: credentials.region || 'eu-west-1',
-        credentials: {
-          accessKeyId: credentials.accessKeyId,
-          secretAccessKey: credentials.secretAccessKey,
-        },
-      });
-
-      await sesClient.send(
-        new SendEmailCommand({
-          Source: `${emailContent.from.name} <${emailContent.from.email}>`,
-          Destination: { ToAddresses: [emailContent.to] },
-          Message: {
-            Subject: { Charset: 'UTF-8', Data: emailContent.subject },
-            Body: {
-              Html: { Charset: 'UTF-8', Data: emailContent.html },
-              Text: { Charset: 'UTF-8', Data: emailContent.text },
-            },
-          },
-        })
-      );
-      break;
-    }
-
-    case 'smtp': {
-      if (!config.host || !config.port) throw new Error('SMTP host and port are required');
-      const nodemailer = await import('nodemailer');
-
-      const transporter = nodemailer.default.createTransport({
-        host: config.host,
-        port: config.port,
-        secure: config.secure ?? config.port === 465,
-        auth:
-          config.user && config.password ? { user: config.user, pass: config.password } : undefined,
-      });
-
-      await transporter.sendMail({
-        from: `"${emailContent.from.name}" <${emailContent.from.email}>`,
-        to: emailContent.to,
-        subject: emailContent.subject,
-        html: emailContent.html,
-        text: emailContent.text,
-      });
-      break;
-    }
-
-    default:
-      throw new Error(`Email provider '${config.provider}' is not supported`);
   }
 }
 
