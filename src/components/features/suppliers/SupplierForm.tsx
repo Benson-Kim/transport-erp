@@ -119,7 +119,7 @@ function FieldError({ message }: { message?: string | undefined }) {
 }
 
 // eslint-disable-next-line max-lines-per-function
-export function SupplierForm({ supplier, mode }: SupplierFormProps) {
+export function SupplierForm({ supplier, mode, returnTo }: SupplierFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
