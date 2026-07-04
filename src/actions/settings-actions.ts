@@ -367,23 +367,19 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   };
 }
 
-/** Write-only secret handling flags for saveEmailSettings (#19, review 6). */
-interface EmailSecretFlags {
-  /** Explicitly erase the stored API key (blank alone means "keep").
-   * Cleared sends fall back to the RESEND_API_KEY environment variable. */
-  clearApiKey?: boolean;
-}
-
 export async function saveEmailSettings(data: unknown) {
   // Write-only fields (#19): the redacted values sent to the client come
   // back empty unless the admin typed a new secret. Blank = keep stored;
   // an explicit clear flag = erase (an empty string alone must never mean
-  // "delete", or a routine save would wipe the key).
+  // "delete", or a routine save would wipe the key). clearApiKey rides in
+  // on emailConfigSchema itself as a transport-only flag (#19 review 6,
+  // #40): consumed and stripped here, never persisted; cleared sends fall
+  // back to the RESEND_API_KEY environment variable.
   //
   // NOTE: getSetting -> updateSetting is read-merge-write and non-atomic.
   // Acceptable at single-admin scale; revisit if settings gain concurrent
   // writers (#38's queue worker must NOT write to SettingKey.EMAIL).
-  let incoming = data as (Partial<EmailConfigInput> & EmailSecretFlags) | null;
+  let incoming = data as Partial<EmailConfigInput> | null;
   if (incoming && typeof incoming === 'object') {
     const { clearApiKey, ...rest } = incoming;
     const stored = await getSetting<EmailConfigInput>(
