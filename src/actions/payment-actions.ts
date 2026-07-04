@@ -17,7 +17,7 @@
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
-import { PaymentStatus, type Prisma } from '@/app/generated/prisma';
+import { InvoiceStatus, PaymentStatus, type Prisma } from '@/app/generated/prisma';
 import { getServerAuth } from '@/lib/auth';
 import { recomputeInvoicePaymentState } from '@/lib/invoices';
 import { RESOURCES, ACTIONS } from '@/lib/permissions';
@@ -78,6 +78,14 @@ export async function recordPayment(
         });
         if (!invoice) {
           throw new Error('Invoice not found');
+        }
+        // Money is only receivable against an issued document: the status
+        // was already re-read in this tx but never checked.
+        if (
+          invoice.status === InvoiceStatus.DRAFT ||
+          invoice.status === InvoiceStatus.CANCELLED
+        ) {
+          throw new Error('Payments can only be recorded against issued invoices');
         }
 
         const remaining = toDecimal(invoice.totalAmount).minus(toDecimal(invoice.paidAmount));
