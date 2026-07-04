@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 
 import { createSupplier, updateSupplier } from '@/actions/supplier-actions';
 import { Alert, Input, Label, Textarea } from '@/components/ui';
+import { safeInternalPath } from '@/lib/utils';
 import {
   supplierSchema,
   PAYMENT_METHODS,
