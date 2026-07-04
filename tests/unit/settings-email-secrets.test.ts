@@ -1,9 +1,10 @@
 /**
- * #19 / review !16 advisory - write-only email secrets in saveEmailSettings:
- * blank alone keeps the stored secret, an explicit clear flag persists '',
- * and clearing a secret the active provider still requires is rejected by
- * emailConfigSchema with NO partial write (the flag cannot corrupt an active
- * configuration; switch provider first, then clear).
+ * #19 / #40 - write-only email secrets in saveEmailSettings (Resend-only):
+ * blank alone keeps the stored key; the explicit clearApiKey flag persists
+ * '' - a VALID state since the runtime falls back to RESEND_API_KEY (#40);
+ * the flag itself is transport-only and never persisted; legacy
+ * multi-provider shapes fail validation with NO partial write; a successful
+ * save reloads the runtime config so the saved key is the key used.
  */
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -18,6 +19,14 @@ const mockGetServerAuth = jest.fn<() => Promise<unknown>>();
 jest.mock('@/lib/auth', () => ({
   getServerAuth: () => mockGetServerAuth(),
   requireAuth: () => mockGetServerAuth(),
+}));
+
+const mockReloadConfig = jest.fn<() => Promise<void>>();
+jest.mock('@/lib/email', () => ({
+  emailService: {
+    reloadConfig: () => mockReloadConfig(),
+    send: jest.fn(),
+  },
 }));
 
 const mockSettingFindUnique = jest.fn<() => Promise<unknown>>();
@@ -47,14 +56,9 @@ jest.mock('next/cache', () => ({
   revalidatePath: () => undefined,
 }));
 
-const storedSmtp = {
-  provider: 'smtp',
-  host: 'smtp.example.test',
-  port: 587,
-  user: 'mailer',
-  password: 'stored-password',
+const storedResend = {
+  provider: 'resend',
   apiKey: 'stored-key',
-  secure: true,
   fromName: 'Transport ERP',
   fromEmail: 'noreply@example.test',
 };
@@ -70,48 +74,50 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockRequirePermission.mockResolvedValue(undefined);
   mockGetServerAuth.mockResolvedValue({ user: { id: 'admin-1' } });
-  mockSettingFindUnique.mockResolvedValue({ value: storedSmtp });
+  mockSettingFindUnique.mockResolvedValue({ value: storedResend });
   mockUpsert.mockResolvedValue({});
   mockAuditCreate.mockResolvedValue({});
+  mockReloadConfig.mockResolvedValue(undefined);
 });
 
-describe('saveEmailSettings write-only secrets (#19)', () => {
-  it('blank secrets keep the stored values (routine save never wipes a key)', async () => {
-    const result = await saveEmailSettings({ ...storedSmtp, apiKey: '', password: '' });
+describe('saveEmailSettings write-only secrets (#19/#40)', () => {
+  it('blank apiKey keeps the stored key (routine save never wipes it)', async () => {
+    const result = await saveEmailSettings({ ...storedResend, apiKey: '' });
 
     expect(result.success).toBe(true);
-    expect(upsertedValue()['password']).toBe('stored-password');
     expect(upsertedValue()['apiKey']).toBe('stored-key');
   });
 
-  it('clearPassword: true persists an empty password; the other secret is untouched', async () => {
-    const result = await saveEmailSettings({ ...storedSmtp, password: '', clearPassword: true });
-
-    expect(result.success).toBe(true);
-    expect(upsertedValue()['password']).toBe('');
-    expect(upsertedValue()['apiKey']).toBe('stored-key');
-  });
-
-  it('clearApiKey: true persists an empty key when the provider does not require one (smtp)', async () => {
-    const result = await saveEmailSettings({ ...storedSmtp, apiKey: '', clearApiKey: true });
+  it('clearApiKey: true persists an empty key - the runtime falls back to RESEND_API_KEY', async () => {
+    const result = await saveEmailSettings({ ...storedResend, apiKey: '', clearApiKey: true });
 
     expect(result.success).toBe(true);
     expect(upsertedValue()['apiKey']).toBe('');
   });
 
-  it('clearing the key out from under an API-key provider fails validation with no partial write', async () => {
-    const storedResend = {
-      provider: 'resend',
-      apiKey: 'stored-key',
-      fromName: 'Transport ERP',
-      fromEmail: 'noreply@example.test',
-    };
-    mockSettingFindUnique.mockResolvedValue({ value: storedResend });
+  it('the clearApiKey transport flag is never persisted', async () => {
+    await saveEmailSettings({ ...storedResend, apiKey: '', clearApiKey: true });
 
-    const result = await saveEmailSettings({ ...storedResend, apiKey: '', clearApiKey: true });
+    expect(upsertedValue()).not.toHaveProperty('clearApiKey');
+  });
+
+  it('reloads the runtime email config after a successful save (#40)', async () => {
+    const result = await saveEmailSettings({ ...storedResend, apiKey: 'new-key' });
+
+    expect(result.success).toBe(true);
+    expect(mockReloadConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('legacy multi-provider shapes fail validation with no partial write (#40)', async () => {
+    const result = await saveEmailSettings({
+      ...storedResend,
+      provider: 'smtp',
+      host: 'smtp.example.test',
+      port: 587,
+    });
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/API key is required/i);
     expect(mockUpsert).not.toHaveBeenCalled();
+    expect(mockReloadConfig).not.toHaveBeenCalled();
   });
 });

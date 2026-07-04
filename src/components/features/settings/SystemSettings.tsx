@@ -74,6 +74,12 @@ export function SystemSettingsContent({ initialSettings }: SystemSettingsContent
       result = await actionMap[section]();
 
       if (result?.success) {
+        if (section === 'email') {
+          // Write-only secret hygiene (#19): drop the typed key from client
+          // form state and reset the one-shot clear flag after a save.
+          methods.setValue('email.apiKey', '');
+          methods.setValue('email.clearApiKey', false);
+        }
         toast.success(`${section} settings updated successfully`);
       } else {
         toast.error(result?.error || `Failed to update ${section} settings`);

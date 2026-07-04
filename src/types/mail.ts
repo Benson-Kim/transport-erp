@@ -84,6 +84,8 @@ export interface EmailOptions {
 export interface EmailSendResult {
     id: string;
     success: boolean;
+    /** True when no real delivery was attempted (sending disabled) (#40). */
+    simulated?: boolean;
     message?: string;
     error?: string;
     timestamp: Date;

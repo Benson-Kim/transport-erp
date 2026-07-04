@@ -8,7 +8,7 @@ import { render } from '@react-email/render';
 import * as React from 'react';
 
 import prisma from '@/lib/prisma/prisma';
-import { getEmailConfig } from './config';
+import { getEmailConfig, resolveEmailConfig } from './config';
 import {
   VerificationEmailTemplate,
   PasswordResetEmailTemplate,
@@ -44,16 +44,20 @@ import type {
  * Singleton with environment-aware sending, queuing, retries, and logging
  */
 export class EmailService {
+  /** DB-config re-read interval: settings saved on another replica take
+   * effect here within this window (#40). */
+  private static readonly CONFIG_TTL_MS = 60_000;
+
   private static instance: EmailService;
   private config: EmailConfig;
   private resend: Resend | null = null;
+  private configFetchedAt = 0;
 
   private constructor() {
+    // Env baseline only - no async work at module load; the DB overlay is
+    // applied lazily by send() via ensureFreshConfig() (#40).
     this.config = getEmailConfig();
-
-    if (this.config.resendApiKey) {
-      this.resend = new Resend(this.config.resendApiKey);
-    }
+    this.applyConfig();
   }
 
   public static getInstance(): EmailService {
@@ -63,14 +67,27 @@ export class EmailService {
     return EmailService.instance;
   }
 
-  /**
-   * Reload config (useful for testing)
-   */
-  public reloadConfig(): void {
-    this.config = getEmailConfig();
+  private applyConfig(): void {
     this.resend = this.config.resendApiKey
       ? new Resend(this.config.resendApiKey)
       : null;
+  }
+
+  /**
+   * Force a fresh read of the effective config (DB SettingKey.EMAIL over
+   * env, #40). saveEmailSettings and testEmailConfiguration call this for
+   * same-process immediacy; other replicas converge within CONFIG_TTL_MS.
+   */
+  public async reloadConfig(): Promise<void> {
+    this.config = await resolveEmailConfig();
+    this.configFetchedAt = Date.now();
+    this.applyConfig();
+  }
+
+  /** TTL re-read so long-lived replicas pick up settings changes. */
+  private async ensureFreshConfig(): Promise<void> {
+    if (Date.now() - this.configFetchedAt < EmailService.CONFIG_TTL_MS) return;
+    await this.reloadConfig();
   }
 
   /**
@@ -112,6 +129,9 @@ export class EmailService {
    */
   public async send(options: EmailOptions): Promise<EmailSendResult> {
     try {
+      // Effective config = DB SettingKey.EMAIL over env, re-read on TTL (#40).
+      await this.ensureFreshConfig();
+
       const recipients = this.resolveRecipients(options.to);
 
       // No valid recipients after filtering
@@ -122,6 +142,7 @@ export class EmailService {
         return {
           id: '',
           success: true,
+          simulated: true,
           message: msg,
           timestamp: new Date(),
         };
@@ -137,8 +158,16 @@ export class EmailService {
         });
       }
 
-      // If sending is disabled, log and return success
+      // Sending disabled: NEVER claim a real delivery (#40). In development
+      // and test the simulation is expected and reports a flagged success;
+      // anywhere else a disabled sender is a misconfiguration and must fail
+      // loudly - an ERP that says it emailed an invoice may not lie.
       if (!this.config.sending.enabled) {
+        const simulatedOk =
+          this.config.environment === 'development' ||
+          this.config.environment === 'test';
+        const disabledError = `Email sending is disabled in ${this.config.environment}; no email was sent`;
+
         this.log(
           'info',
           `[${this.config.environment}] Email not sent (sending disabled):`,
@@ -150,7 +179,8 @@ export class EmailService {
           await this.logEmail({
             to: recipients.join(', '),
             subject: options.subject,
-            status: 'sent',
+            status: simulatedOk ? 'sent' : 'failed',
+            ...(simulatedOk ? {} : { error: disabledError }),
             metadata: {
               ...options.metadata,
               environment: this.config.environment,
@@ -161,8 +191,11 @@ export class EmailService {
 
         return {
           id: `sim_${Date.now()}`,
-          success: true,
-          message: `Email simulated in ${this.config.environment}`,
+          success: simulatedOk,
+          simulated: true,
+          ...(simulatedOk
+            ? { message: `Email simulated in ${this.config.environment}` }
+            : { error: disabledError }),
           timestamp: new Date(),
         };
       }
