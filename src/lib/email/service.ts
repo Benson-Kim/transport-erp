@@ -129,6 +129,9 @@ export class EmailService {
    */
   public async send(options: EmailOptions): Promise<EmailSendResult> {
     try {
+      // Effective config = DB SettingKey.EMAIL over env, re-read on TTL (#40).
+      await this.ensureFreshConfig();
+
       const recipients = this.resolveRecipients(options.to);
 
       // No valid recipients after filtering
@@ -139,6 +142,7 @@ export class EmailService {
         return {
           id: '',
           success: true,
+          simulated: true,
           message: msg,
           timestamp: new Date(),
         };
@@ -154,8 +158,16 @@ export class EmailService {
         });
       }
 
-      // If sending is disabled, log and return success
+      // Sending disabled: NEVER claim a real delivery (#40). In development
+      // and test the simulation is expected and reports a flagged success;
+      // anywhere else a disabled sender is a misconfiguration and must fail
+      // loudly - an ERP that says it emailed an invoice may not lie.
       if (!this.config.sending.enabled) {
+        const simulatedOk =
+          this.config.environment === 'development' ||
+          this.config.environment === 'test';
+        const disabledError = `Email sending is disabled in ${this.config.environment}; no email was sent`;
+
         this.log(
           'info',
           `[${this.config.environment}] Email not sent (sending disabled):`,
@@ -167,7 +179,8 @@ export class EmailService {
           await this.logEmail({
             to: recipients.join(', '),
             subject: options.subject,
-            status: 'sent',
+            status: simulatedOk ? 'sent' : 'failed',
+            ...(simulatedOk ? {} : { error: disabledError }),
             metadata: {
               ...options.metadata,
               environment: this.config.environment,
@@ -178,8 +191,11 @@ export class EmailService {
 
         return {
           id: `sim_${Date.now()}`,
-          success: true,
-          message: `Email simulated in ${this.config.environment}`,
+          success: simulatedOk,
+          simulated: true,
+          ...(simulatedOk
+            ? { message: `Email simulated in ${this.config.environment}` }
+            : { error: disabledError }),
           timestamp: new Date(),
         };
       }
