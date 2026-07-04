@@ -14,7 +14,7 @@ import { useCallback, useTransition } from 'react';
 
 import { InvoiceDirection, InvoiceStatus } from '@/app/generated/prisma';
 import { deleteInvoice } from '@/actions/invoice-actions';
-import { Alert, Badge, Button, Pagination } from '@/components/ui';
+import { Badge, Button, Pagination } from '@/components/ui';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { InvoiceListItem, PaginatedInvoices } from '@/types/invoice';
 
@@ -32,13 +32,18 @@ const STATUS_LABELS: Record<InvoiceStatus, string> = {
   [InvoiceStatus.CANCELLED]: 'Cancelled',
 };
 
-const STATUS_VARIANT: Record<InvoiceStatus, 'default' | 'success' | 'warning' | 'error'> = {
+// Badge ships 'active' | 'completed' | 'cancelled' | 'billed' | 'archived'
+// | 'default' - there is no success/warning/error variant.
+const STATUS_VARIANT: Record<
+  InvoiceStatus,
+  'default' | 'billed' | 'completed' | 'cancelled' | 'archived'
+> = {
   [InvoiceStatus.DRAFT]: 'default',
-  [InvoiceStatus.SENT]: 'default',
-  [InvoiceStatus.VIEWED]: 'default',
-  [InvoiceStatus.PAID]: 'success',
-  [InvoiceStatus.OVERDUE]: 'error',
-  [InvoiceStatus.CANCELLED]: 'warning',
+  [InvoiceStatus.SENT]: 'billed',
+  [InvoiceStatus.VIEWED]: 'billed',
+  [InvoiceStatus.PAID]: 'completed',
+  [InvoiceStatus.OVERDUE]: 'cancelled',
+  [InvoiceStatus.CANCELLED]: 'archived',
 };
 
 interface InvoicesTableProps {
@@ -202,7 +207,7 @@ function InvoiceRow({ invoice, canDelete, onDelete, onNavigate }: InvoiceRowProp
     >
       <td className="font-mono text-sm">{invoice.invoiceNumber}</td>
       <td>
-        <Badge variant={invoice.direction === InvoiceDirection.SALES ? 'default' : 'warning'}>
+        <Badge variant={invoice.direction === InvoiceDirection.SALES ? 'billed' : 'default'}>
           {DIRECTION_LABELS[invoice.direction]}
         </Badge>
       </td>
