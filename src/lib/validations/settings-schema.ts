@@ -156,49 +156,28 @@ export const passwordChangeSchema = z
 /**
  * System settings schema
  */
-export const emailProviderSchema = z.enum(['resend', 'smtp', 'sendgrid', 'ses']);
+// Resend is the ONE email provider (#40; drift map: single Resend
+// subsystem). The sendgrid/ses/smtp options were dead affordances - only the
+// old test-email switch implemented them, so configuring one silently broke
+// real sends. Legacy stored rows with those shapes no longer parse; readers
+// fall back to defaults (UI) or the env baseline (runtime).
+export const emailProviderSchema = z.enum(['resend']);
 
-export const emailConfigSchema = z
-  .object({
-    provider: emailProviderSchema,
-    apiKey: z.string().optional(),
-    host: z.string().optional(),
-    port: z.coerce.number().int().min(1).max(65535).optional(),
-    user: z.string().optional(),
-    password: z.string().optional(),
-    secure: z.boolean().default(true).optional(),
-    fromName: z
-      .string()
-      .min(1, 'From name is required')
-      .max(100, 'From name must be less than 100 characters'),
-    fromEmail: z.email('Invalid email address').toLowerCase(),
-  })
-  .superRefine((data, ctx) => {
-    // Validate SMTP settings if SMTP is selected
-    if (data.provider === 'smtp') {
-      if (!data.host) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'SMTP host is required when using SMTP',
-          path: ['host'],
-        });
-      }
-      if (!data.port) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'SMTP port is required when using SMTP',
-          path: ['port'],
-        });
-      }
-    }
-    if (['resend', 'sendgrid', 'ses'].includes(data.provider) && !data.apiKey) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `API key is required for ${data.provider}`,
-        path: ['apiKey'],
-      });
-    }
-  });
+export const emailConfigSchema = z.object({
+  provider: emailProviderSchema,
+  // Write-only secret (#19): blank on save means "keep the stored key".
+  // Optional because an EMPTY stored key is a valid state - the runtime
+  // falls back to the RESEND_API_KEY environment variable (#40).
+  apiKey: z.string().optional(),
+  fromName: z
+    .string()
+    .min(1, 'From name is required')
+    .max(100, 'From name must be less than 100 characters'),
+  fromEmail: z.email('Invalid email address').toLowerCase(),
+  // Transport-only flag (#19 review 6): carried from the settings form to
+  // saveEmailSettings, which consumes and strips it - never persisted.
+  clearApiKey: z.boolean().optional(),
+});
 
 export const pdfSettingsSchema = z.object({
   paperSize: z.enum(['A4', 'Letter', 'Legal']),

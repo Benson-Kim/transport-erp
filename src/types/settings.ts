@@ -1,5 +1,7 @@
-/** Email provider options */
-export type EmailProvider = 'resend' | 'smtp' | 'sendgrid' | 'ses';
+/** Email provider options. Narrowed to Resend in #40 - ONE email subsystem;
+ * the sendgrid/ses/smtp options were dead affordances that only the old
+ * test-email path implemented, so selecting one silently broke real sends. */
+export type EmailProvider = 'resend';
 
 /** Paper size options */
 export type PaperSize = 'A4' | 'Letter' | 'Legal';
