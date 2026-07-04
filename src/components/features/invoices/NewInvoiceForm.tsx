@@ -57,8 +57,13 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
   const direction = watch('direction');
   const partyId = watch('partyId');
   const selectedServiceIds = watch('serviceIds') ?? [];
-  const vatRatePoints = watch('vatRatePoints') ?? 21;
-  const irpfRatePoints = watch('irpfRatePoints');
+  // z.input of the preprocessed rate fields is `unknown`; coerce for the
+  // live preview exactly like the schema does ('' -> default / not provided).
+  const vatRateRaw = watch('vatRatePoints');
+  const irpfRateRaw = watch('irpfRatePoints');
+  const vatRatePoints = vatRateRaw === undefined || vatRateRaw === '' ? 21 : Number(vatRateRaw);
+  const irpfRatePoints =
+    irpfRateRaw === undefined || irpfRateRaw === '' ? null : Number(irpfRateRaw);
 
   const parties = direction === InvoiceDirection.SALES ? clients : suppliers;
 
@@ -77,8 +82,12 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
   const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id));
   const lineAmounts = selectedServices.map((s) => s.amount);
   const totals =
-    lineAmounts.length > 0
-      ? computeInvoiceTotals(lineAmounts, vatRatePoints, irpfRatePoints)
+    lineAmounts.length > 0 && Number.isFinite(vatRatePoints)
+      ? computeInvoiceTotals(
+          lineAmounts,
+          vatRatePoints,
+          irpfRatePoints !== null && Number.isFinite(irpfRatePoints) ? irpfRatePoints : null
+        )
       : null;
 
   const onSubmit = (data: CreateInvoiceInput) => {
@@ -103,7 +112,7 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">1. Direction and party</h2>
 
-        <FormField label="Direction" required error={errors.direction?.message}>
+        <FormField label="Direction" required error={errors.direction?.message ?? ''}>
           <Select
             {...register('direction')}
             options={[
@@ -118,7 +127,7 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
           />
         </FormField>
 
-        <FormField label={direction === InvoiceDirection.SALES ? 'Client' : 'Supplier'} required error={errors.partyId?.message}>
+        <FormField label={direction === InvoiceDirection.SALES ? 'Client' : 'Supplier'} required error={errors.partyId?.message ?? ''}>
           <Select
             {...register('partyId')}
             options={[
@@ -137,7 +146,7 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
             label="Supplier's invoice number"
             required
             helperText="The supplier's own reference (stored as externalReference; our RINV number is allocated automatically)"
-            error={errors.externalReference?.message}
+            error={errors.externalReference?.message ?? ''}
           >
             <Input {...register('externalReference')} placeholder="e.g. SUP-2026-0042" />
           </FormField>
@@ -212,7 +221,7 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
           <h2 className="text-lg font-semibold">3. Rates and totals</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="VAT rate (%)" required error={errors.vatRatePoints?.message}>
+            <FormField label="VAT rate (%)" required error={errors.vatRatePoints?.message ?? ''}>
               <Input
                 type="number"
                 step="0.01"
@@ -226,7 +235,7 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
               <FormField
                 label="IRPF retention (%)"
                 helperText="Leave blank if no retention applies"
-                error={errors.irpfRatePoints?.message}
+                error={errors.irpfRatePoints?.message ?? ''}
               >
                 <Input
                   type="number"
@@ -238,11 +247,11 @@ export function NewInvoiceForm({ clients, suppliers }: NewInvoiceFormProps) {
               </FormField>
             )}
 
-            <FormField label="Invoice date" error={errors.invoiceDate?.message}>
+            <FormField label="Invoice date" error={errors.invoiceDate?.message ?? ''}>
               <Input type="date" {...register('invoiceDate')} />
             </FormField>
 
-            <FormField label="Due date" error={errors.dueDate?.message}>
+            <FormField label="Due date" error={errors.dueDate?.message ?? ''}>
               <Input type="date" {...register('dueDate')} />
             </FormField>
           </div>
