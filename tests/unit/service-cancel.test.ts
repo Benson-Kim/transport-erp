@@ -50,6 +50,15 @@ jest.mock('@/lib/prisma/prisma', () => ({
 }));
 
 jest.mock('@/lib/prisma/db-helpers', () => ({
+  // #45: getServices paginates through the real shared helper.
+  getPaginationParams: (
+    jest.requireActual('@/lib/prisma/db-helpers') as {
+      getPaginationParams: (params: { page?: number; limit?: number }) => {
+        skip: number;
+        take: number;
+      };
+    }
+  ).getPaginationParams,
   createAuditLog: () => Promise.resolve(),
   withTransaction: async (fn: (tx: unknown) => Promise<unknown>) => {
     const prismaMock = jest.requireMock('@/lib/prisma/prisma') as { default: unknown };

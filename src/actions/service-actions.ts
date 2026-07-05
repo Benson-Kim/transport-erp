@@ -19,7 +19,7 @@ import {
   round2,
   toDecimal,
 } from '@/lib/pricing';
-import { createAuditLog, withTransaction } from '@/lib/prisma/db-helpers';
+import { createAuditLog, getPaginationParams, withTransaction } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import {
@@ -101,11 +101,24 @@ export async function getServices(filters: ServiceFiltersAPI) {
 
   // Apply filters
   if (filters.search) {
+    // #46: resolve matching client ids FIRST against the trgm-indexed
+    // clients.name (bounded), then filter services by clientId. The
+    // previous ILIKE-over-join ({ client: { name: contains } }) probed the
+    // join per candidate row and could not use any index. Every leg below
+    // is served by a pg_trgm GIN index (migration 20260705000001).
+    const matchingClients = await prisma.client.findMany({
+      where: { deletedAt: null, name: { contains: filters.search, mode: 'insensitive' } },
+      select: { id: true },
+      take: 100,
+    });
+
     where.OR = [
       { serviceNumber: { contains: filters.search, mode: 'insensitive' } },
-      { client: { name: { contains: filters.search, mode: 'insensitive' } } },
       { driverName: { contains: filters.search, mode: 'insensitive' } },
       { vehiclePlate: { contains: filters.search, mode: 'insensitive' } },
+      ...(matchingClients.length > 0
+        ? [{ clientId: { in: matchingClients.map((client) => client.id) } }]
+        : []),
     ];
   }
 
@@ -133,9 +146,14 @@ export async function getServices(filters: ServiceFiltersAPI) {
     where.driverName = { contains: filters.driver, mode: 'insensitive' };
   }
 
-  // Pagination
-  const skip = ((filters.page || 1) - 1) * (filters.pageSize || 50);
-  const take = filters.pageSize || 50;
+  // Pagination (#45): through the ONE shared helper, which enforces the
+  // hard server-side cap (max 100, floor 1) that serviceFilterSchema
+  // declares but this path bypassed - getServices({ pageSize: 1_000_000 })
+  // must never stream the whole table. Default page size stays 50.
+  const { skip, take } = getPaginationParams({
+    page: filters.page ?? 1,
+    limit: filters.pageSize ?? 50,
+  });
 
   // Sorting
   const sortKeyMap: Record<
@@ -240,8 +258,15 @@ export async function getServices(filters: ServiceFiltersAPI) {
 }
 
 /**
- * Get clients and suppliers for filters
+ * Initial selector pages for filters/forms (#47): CAPPED - this used to be
+ * a full-table load of every active client and supplier. The selectors
+ * stream further results server-side via searchClientOptions /
+ * searchSupplierOptions as the user types.
  */
+const SELECTOR_INITIAL_CAP = 50;
+/** Results per keystroke - small, index-backed (#46), debounced client-side. */
+const SELECTOR_SEARCH_CAP = 20;
+
 export async function getClientsAndSuppliers() {
   await requirePermission('services', 'view');
 
@@ -254,6 +279,7 @@ export async function getClientsAndSuppliers() {
         clientCode: true,
       },
       orderBy: { name: 'asc' },
+      take: SELECTOR_INITIAL_CAP,
     }),
     prisma.supplier.findMany({
       where: { deletedAt: null, isActive: true },
@@ -263,10 +289,61 @@ export async function getClientsAndSuppliers() {
         supplierCode: true,
       },
       orderBy: { name: 'asc' },
+      take: SELECTOR_INITIAL_CAP,
     }),
   ]);
 
   return { clients, suppliers };
+}
+
+/**
+ * Server-side selector search (#47): services:view gated, contains-search
+ * on name/code backed by the #46 trgm indexes, hard-capped.
+ */
+export async function searchClientOptions(query: string) {
+  await requirePermission('services', 'view');
+
+  const term = query.trim();
+  return prisma.client.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { clientCode: { contains: term, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, clientCode: true },
+    orderBy: { name: 'asc' },
+    take: SELECTOR_SEARCH_CAP,
+  });
+}
+
+export async function searchSupplierOptions(query: string) {
+  await requirePermission('services', 'view');
+
+  const term = query.trim();
+  return prisma.supplier.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { supplierCode: { contains: term, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, supplierCode: true },
+    orderBy: { name: 'asc' },
+    take: SELECTOR_SEARCH_CAP,
+  });
 }
 
 /**
