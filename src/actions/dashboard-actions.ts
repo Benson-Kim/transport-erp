@@ -5,7 +5,7 @@
 
 'use server';
 
-import { revalidateTag, unstable_cache } from 'next/cache';
+import { updateTag, unstable_cache } from 'next/cache';
 
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 
