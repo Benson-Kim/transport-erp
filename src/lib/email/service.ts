@@ -7,6 +7,7 @@ import { type CreateEmailOptions, Resend } from 'resend';
 import { render } from '@react-email/render';
 import * as React from 'react';
 
+import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma/prisma';
 import { getEmailConfig, resolveEmailConfig } from './config';
 import {
@@ -566,10 +567,9 @@ export class EmailService {
       });
     } catch (error) {
       // Don't let logging failures break email sending
-      console.error(
-        '[EmailService] Logging error:',
-        error instanceof Error ? error.message : error
-      );
+      logger.error('[EmailService] Logging error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -584,13 +584,10 @@ export class EmailService {
     if (!this.config.logging.enabled) return;
     if (level === 'debug' && !this.config.logging.debug) return;
 
-    const prefix = `[EmailService][${this.config.environment}]`;
-    const logFn = level === 'error'
-      ? console.error
-      : level === 'warn'
-        ? console.warn
-        : console.log;
-
-    logFn(`${prefix} ${message}`, data !== undefined ? data : '');
+    // Structured seam (#42): one JSON line, never raw console output.
+    logger[level](`[EmailService] ${message}`, {
+      environment: this.config.environment,
+      ...(data === undefined ? {} : { data }),
+    });
   }
 }

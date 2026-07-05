@@ -32,6 +32,28 @@ phase0-gate:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH'
 
+# #42: no raw console.log in server/UI code - PII, roles and secrets have
+# leaked through exactly this hole (QuickActions role log, storage config).
+# src/lib/logger.ts emit() is the ONE sanctioned console seam. ADVISORY
+# (allow_failure) until the trees still owned by #54/#57/#58 cleanups are
+# clean; #59 flips it to enforcing.
+console-leak-gate:
+  stage: verify
+  image: node:22
+  script:
+    - |
+      leaks=$(grep -rn "console\.log(" src --include='*.ts' --include='*.tsx' | grep -v 'src/lib/logger.ts' || true)
+      if [ -n "$leaks" ]; then
+        echo "console.log leaks found (use src/lib/logger.ts):"
+        echo "$leaks"
+        exit 1
+      fi
+      echo "No console.log leaks."
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+
 # Pure unit tests (no DB). Phase 2 (#17) makes the RBAC matrix the single
 # security source of truth; its tests must run on every pipeline. ts-jest is
 # installed --no-save for the same reason as test-db (follow-up: #59).

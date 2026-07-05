@@ -322,14 +322,6 @@ class StorageService {
         queueSize: 4, // Concurrent parts
       });
 
-      // Track progress
-      upload.on('httpUploadProgress', (progress) => {
-        if (progress.loaded && progress.total) {
-          const percentage = Math.round((progress.loaded / progress.total) * 100);
-          console.log(`Upload progress: ${percentage}%`);
-        }
-      });
-
       await upload.done();
 
       return {
@@ -552,10 +544,9 @@ class StorageService {
   /**
    * Ensure directory exists (B2 doesn't have real directories, this is for compatibility)
    */
-  public async ensureDirectory(directory: string): Promise<void> {
-    // In B2, directories don't exist - they're just key prefixes
-    // This method is here for API compatibility
-    console.log(`Directory ensured: ${directory}`);
+  public async ensureDirectory(_directory: string): Promise<void> {
+    // In B2, directories don't exist - they're just key prefixes.
+    // This method is here for API compatibility; intentionally a no-op.
   }
 
   /**
