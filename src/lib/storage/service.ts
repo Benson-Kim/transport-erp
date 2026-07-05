@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import path from 'path';
+import type { Readable } from 'stream';
 
 import {
   PutObjectCommand,
@@ -347,8 +348,54 @@ class StorageService {
     }
   }
 
+  /** getFile() hard cap (#49): larger objects MUST use getFileStream(). */
+  private static readonly BUFFERED_READ_MAX_BYTES = 25 * 1024 * 1024;
+
   /**
-   * Get file
+   * Stream a file (#49): the object's byte stream plus size/type metadata.
+   * Memory stays bounded regardless of object size - consumers pipe it
+   * (stream/promises pipeline), never Buffer.concat it. Browser downloads
+   * do not belong here at all: they use short-lived presigned URLs (#34,
+   * getPresignedDownloadUrl) so bytes never transit the app.
+   */
+  public async getFileStream(key: string): Promise<{
+    stream: Readable;
+    contentLength?: number;
+    contentType?: string;
+  }> {
+    try {
+      const client = await this.getClient();
+      const response = await client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key })
+      );
+
+      if (!response.Body) {
+        throw new FileNotFoundError(key);
+      }
+
+      return {
+        stream: response.Body as Readable,
+        ...(response.ContentLength !== undefined && { contentLength: response.ContentLength }),
+        ...(response.ContentType && { contentType: response.ContentType }),
+      };
+    } catch (error: any) {
+      if (error instanceof FileNotFoundError) throw error;
+      if (error.Code === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+        throw new FileNotFoundError(key);
+      }
+      throw new StorageError(`Failed to get file: ${error.message}`, 'FILE_GET_FAILED', 500, {
+        key,
+        error,
+      });
+    }
+  }
+
+  /**
+   * Get file into memory - SMALL internal reads only (#49).
+   *
+   * Refuses objects above BUFFERED_READ_MAX_BYTES so a large download can
+   * never be silently buffered again; use getFileStream() (server-side
+   * piping) or getPresignedDownloadUrl() (browser downloads, #34) instead.
    */
   public async getFile(key: string): Promise<Buffer> {
     try {
@@ -364,6 +411,18 @@ class StorageService {
         throw new FileNotFoundError(key);
       }
 
+      if (
+        response.ContentLength !== undefined &&
+        response.ContentLength > StorageService.BUFFERED_READ_MAX_BYTES
+      ) {
+        throw new StorageError(
+          `Object ${key} (${response.ContentLength} bytes) exceeds the buffered-read cap; use getFileStream() or a presigned URL`,
+          'STREAM_REQUIRED',
+          413,
+          { key, contentLength: response.ContentLength }
+        );
+      }
+
       const chunks: Uint8Array[] = [];
       for await (const chunk of response.Body as any) {
         chunks.push(chunk);
@@ -371,6 +430,7 @@ class StorageService {
 
       return Buffer.concat(chunks);
     } catch (error: any) {
+      if (error instanceof StorageError) throw error;
       if (error.Code === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
         throw new FileNotFoundError(key);
       }
