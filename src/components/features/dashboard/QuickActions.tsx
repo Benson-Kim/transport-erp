@@ -45,14 +45,12 @@ type QuickActionsProps = Readonly<{
 }>;
 
 export function QuickActions({
-  userRole,
   loading = false,
   error = null,
   onRefresh,
 }: QuickActionsProps) {
   const permissions = usePermissions();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
-  console.log('User Role in QuickActions:', userRole);
 
   const actions = useMemo(
     () => [
@@ -135,7 +133,6 @@ export function QuickActions({
         onClick: async () => {
           setLoadingAction('import');
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log('Import data');
           setLoadingAction(null);
         },
         show: permissions.isAdmin,
@@ -149,7 +146,6 @@ export function QuickActions({
         onClick: async () => {
           setLoadingAction('export');
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log('Export report');
           setLoadingAction(null);
         },
         show: permissions.can('reports', 'export'),
@@ -163,7 +159,6 @@ export function QuickActions({
         onClick: async () => {
           setLoadingAction('notifications');
           await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log('Send notifications');
           setLoadingAction(null);
         },
         show: permissions.isManager,

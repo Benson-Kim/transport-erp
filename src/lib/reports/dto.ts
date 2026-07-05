@@ -8,8 +8,6 @@
  * pricing.ts before the single decimalToNumber exit.
  */
 
-import { addMonths, startOfMonth, subMonths } from 'date-fns';
-
 import { decimalToNumber, marginPercentage, toDecimal, ZERO, type MoneyInput } from '@/lib/pricing';
 
 /** Half-open month-aligned window: start inclusive, end exclusive. */
@@ -20,12 +18,21 @@ export interface ReportRange {
 
 /**
  * The last `months` calendar months including the current one:
- * [startOfMonth(now - (months - 1)), startOfMonth(now + 1)).
+ * [startOfUtcMonth(now - (months - 1)), startOfUtcMonth(now + 1)).
+ *
+ * #65 / ADR 0002: boundaries are computed in UTC (Date.UTC month
+ * arithmetic), NOT with date-fns startOfMonth/subMonths, which operate in
+ * server-local time and shift the month boundary on non-UTC deployments
+ * while the stored "date" column holds UTC instants. Date.UTC normalizes
+ * out-of-range months (month -3, month 13) per spec, so no clamping is
+ * needed.
  */
 export function lastMonthsRange(months: number, now: Date = new Date()): ReportRange {
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
   return {
-    start: startOfMonth(subMonths(now, months - 1)),
-    end: startOfMonth(addMonths(now, 1)),
+    start: new Date(Date.UTC(year, month - (months - 1), 1)),
+    end: new Date(Date.UTC(year, month + 1, 1)),
   };
 }
 

@@ -5,7 +5,7 @@
 
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, updateTag } from 'next/cache';
 
 import type { Prisma } from '@/app/generated/prisma';
 import { ServiceStatus, UserRole } from '@/app/generated/prisma';
@@ -41,6 +41,10 @@ import type { ServiceFiltersAPI } from '@/types/service';
 function revalidateReportPaths(): void {
   revalidatePath('/reports/revenue');
   revalidatePath('/reports/margins');
+  // #66: the dashboard stat cards cache (unstable_cache tag 'dashboard',
+  // dashboard-actions.ts) is invalidated by the SAME mutation sites as the
+  // reports - the single freshness mechanism; there is no TTL fallback.
+  updateTag('dashboard');
 }
 
 /**

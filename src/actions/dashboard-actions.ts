@@ -5,7 +5,7 @@
 
 'use server';
 
-import { unstable_cache } from 'next/cache';
+import { updateTag, unstable_cache } from 'next/cache';
 
 import { startOfMonth, endOfMonth, subMonths, subDays } from 'date-fns';
 
@@ -248,9 +248,15 @@ export const getDashboardData = unstable_cache(
       recentServices: formattedRecentServices,
     };
   },
+  // Cache key (#37): unstable_cache serializes the function ARGUMENTS into
+  // the key, so {userId, dateRange} scope entries per caller and per range;
+  // 'dashboard-data' is only the shared key prefix. Freshness (#66): ONE
+  // mechanism - the 'dashboard' tag is invalidated by the same mutation
+  // sites that call revalidateReportPaths() (service-actions.ts), so there
+  // is deliberately NO time-based revalidate here: a recognized-service
+  // edit is visible on the next request instead of up to 300s late.
   ['dashboard-data'],
   {
-    revalidate: 300, // Cache for 5 minutes
     tags: ['dashboard'],
   }
 );
@@ -261,9 +267,8 @@ export const getDashboardData = unstable_cache(
 export async function refreshDashboardData() {
   'use server';
 
-  // Revalidate the dashboard cache
-  const { revalidateTag } = await import('next/cache');
-  revalidateTag('dashboard', 'default');
+  // The very next read (even on the current request) blocks and fetches live DB data.
+  updateTag('dashboard');
 
   return { success: true };
 }

@@ -92,6 +92,7 @@ jest.mock('@/lib/data/service-data', () => ({
 }));
 jest.mock('next/cache', () => ({
   revalidatePath: () => undefined,
+  updateTag: () => undefined,
 }));
 
 function session(role: UserRole, id: string) {
