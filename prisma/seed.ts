@@ -32,6 +32,7 @@ import type {
 const prisma = new PrismaClient();
 
 interface SeedUsers {
+  superAdmin: User;
   admin: User;
   manager: User;
   accountant: User;
@@ -117,6 +118,15 @@ async function createUsers(): Promise<SeedUsers> {
 
   const userData = [
     {
+      // #60: without a SUPER_ADMIN seed every SUPER_ADMIN-gated path was
+      // unreachable with seed data.
+      email: 'superadmin@example.com',
+      name: 'Super Admin',
+      role: UserRole.SUPER_ADMIN,
+      department: 'Management',
+      phone: '+34 600 000 000',
+    },
+    {
       email: 'admin@example.com',
       name: 'Admin User',
       role: UserRole.ADMIN,
@@ -156,10 +166,11 @@ async function createUsers(): Promise<SeedUsers> {
   );
 
   return {
-    admin: users[0]!,
-    manager: users[1]!,
-    accountant: users[2]!,
-    operator: users[3]!,
+    superAdmin: users[0]!,
+    admin: users[1]!,
+    manager: users[2]!,
+    accountant: users[3]!,
+    operator: users[4]!,
   };
 }
 
@@ -791,51 +802,63 @@ async function createNotifications(users: SeedUsers): Promise<Notification[]> {
 async function createSystemSettings(): Promise<SystemSetting[]> {
   console.log('Creating system settings...');
 
+  // #60: keys ALIGNED with SettingKey.* (src/types/settings.ts) - the old
+  // seed wrote company.info / invoice.settings / email.templates /
+  // features.enabled, keys the application never reads, so a seeded system
+  // behaved as if settings had never been configured. Shapes match the
+  // zod schemas in src/lib/validations/settings-schema.ts. Backups and
+  // auto-backup seed DISABLED (dev has no B2).
   const settings = [
     {
-      key: 'company.info',
+      key: 'email_config', // SettingKey.EMAIL
       value: {
-        name: 'Enterprise Dashboard Corp',
-        address: 'Calle Principal 1, 28001 Madrid',
-        vat: 'B00000000',
-        email: 'info@enterprise-dashboard.com',
-        phone: '+34 91 000 0000',
+        provider: 'resend',
+        apiKey: '',
+        fromName: 'Transport ERP',
+        fromEmail: 'noreply@transport-erp.com',
       },
-      description: 'Company information',
-      isPublic: true,
+      description: 'Email configuration for System notifications',
+      isPublic: false,
     },
     {
-      key: 'invoice.settings',
+      key: 'pdf_settings', // SettingKey.PDF
       value: {
-        prefix: 'INV',
-        startNumber: 1,
+        paperSize: 'A4',
+        includeLogo: true,
+        logoPosition: 'left',
         footerText: 'Thank you for your business',
-        paymentTerms: 30,
-        latePaymentFee: 1.5,
       },
-      description: 'Invoice configuration',
+      description: 'PDF generation settings',
       isPublic: false,
     },
     {
-      key: 'email.templates',
+      key: 'backup_settings', // SettingKey.BACKUP
       value: {
-        invoiceSubject: 'Invoice {number} from {company}',
-        invoiceBody: 'Please find attached invoice {number} with due date {dueDate}.',
-        reminderSubject: 'Payment reminder for invoice {number}',
-        reminderBody: 'This is a friendly reminder that invoice {number} is due.',
+        frequency: 'daily',
+        time: '02:00',
+        retentionDays: 30,
+        storageLocation: 'backups',
+        enabled: false,
       },
-      description: 'Email template settings',
+      description: 'Automatic backup configuration',
       isPublic: false,
     },
     {
-      key: 'features.enabled',
+      key: 'general_settings', // SettingKey.GENERAL
       value: {
-        twoFactorAuth: true,
-        emailNotifications: true,
-        autoBackup: true,
-        apiAccess: false,
+        defaultCurrency: 'EUR',
+        dateFormat: 'DD/MM/YYYY',
+        timeFormat: '24',
+        defaultVatRate: 21,
+        defaultIrpfRate: 15,
+        itemsPerPage: 50,
+        enableTwoFactor: false,
+        enableNotifications: true,
+        enableAutoBackup: false,
+        requireClientVat: false,
+        autoArchiveMonths: 12,
       },
-      description: 'Feature flags',
+      description: 'General application settings',
       isPublic: false,
     },
   ];
@@ -935,12 +958,25 @@ async function initDocumentCounters(
 }
 
 async function main() {
+  // #60: prisma:seed:prod must never plant admin@example.com/password123
+  // in production. The seed also WIPES every table (cleanDatabase). Fail
+  // closed; overriding requires typing out the consequence.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    process.env.ALLOW_PROD_SEED !== 'I_UNDERSTAND_THIS_DESTROYS_DATA'
+  ) {
+    throw new Error(
+      'Refusing to seed a production database: the seed WIPES ALL DATA and plants known ' +
+        'credentials. Set ALLOW_PROD_SEED=I_UNDERSTAND_THIS_DESTROYS_DATA to override deliberately.'
+    );
+  }
+
   console.log('Starting database seed...');
 
   await cleanDatabase();
 
   const users = await createUsers();
-  console.log(`Created 4 users.`);
+  console.log(`Created 5 users.`);
 
   const companies = await createCompanies();
   console.log(`Created ${companies.length} companies.`);
@@ -978,7 +1014,7 @@ async function main() {
   console.log('Database seed completed successfully!');
 
   console.log('\nSeed Summary:');
-  console.log(`  - Users: 4`);
+  console.log(`  - Users: 5`);
   console.log(`  - Companies: ${companies.length}`);
   console.log(`  - Clients: ${clients.length}`);
   console.log(`  - Suppliers: ${suppliers.length}`);
@@ -989,9 +1025,9 @@ async function main() {
   console.log(`  - System Settings: ${settings.length}`);
   console.log(`  - Audit Logs: ${auditLogs.length}`);
 
-  console.log('\nTest Credentials:');
-  console.log('  Email: admin@example.com');
-  console.log('  Password: password123');
+  console.log('\nTest Credentials (password for ALL seed users: password123):');
+  console.log('  superadmin@example.com (SUPER_ADMIN)');
+  console.log('  admin@example.com / manager@ / accountant@ / operator@example.com');
 }
 
 /* ---------- Run ---------- */
