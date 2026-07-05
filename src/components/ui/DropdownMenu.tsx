@@ -126,6 +126,18 @@ export function DropdownMenu({
     }
   });
 
+  // #55: initialize focus when the menu opens - previously focusedIndex
+  // stayed -1 and the menu container was never focused, so the keydown
+  // handler below never even fired until a mouse click landed inside.
+  useEffect(() => {
+    if (isOpen) {
+      setFocusedIndex(0);
+      menuRef.current?.focus();
+    } else {
+      setFocusedIndex(-1);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -186,16 +198,25 @@ export function DropdownMenu({
           setIsOpen(false);
         }
         break;
+      case 'Home':
+        e.preventDefault();
+        setFocusedIndex(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        setFocusedIndex(enabledItems.length - 1);
+        break;
       case 'Escape':
         e.preventDefault();
         setIsOpen(false);
+        triggerRef.current?.focus();
         break;
       case 'Tab':
         setIsOpen(false);
         break;
       default:
-        e.preventDefault();
-        setIsOpen(false);
+        // #55: do NOT close on arbitrary keys - the old default case
+        // dismissed the menu the moment a user typed a character.
         break;
     }
   };
@@ -240,6 +261,13 @@ export function DropdownMenu({
         ref={triggerRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          // ArrowDown on the closed trigger opens the menu (APG pattern).
+          if (e.key === 'ArrowDown' && !isOpen) {
+            e.preventDefault();
+            setIsOpen(true);
+          }
+        }}
         className={cn(
           'inline-flex items-center justify-center gap-2',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
