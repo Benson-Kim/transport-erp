@@ -99,6 +99,7 @@ jest.mock('@/lib/prisma/db-helpers', () => ({
 }));
 jest.mock('next/cache', () => ({
   revalidatePath: () => undefined,
+  revalidateTag: () => undefined,
 }));
 jest.mock('@/lib/prisma/numbering', () => ({
   generateDocumentNumber: () => Promise.resolve('SRV-2026-00001'),
