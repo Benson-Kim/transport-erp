@@ -22,7 +22,7 @@ import { isJobName, JOB_NAMES, runJob } from '@/lib/jobs/runner';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const secret = process.env.CRON_SECRET;
+  const secret = process.env['CRON_SECRET'];
   if (!secret) {
     return NextResponse.json(
       { error: 'Job runner disabled: CRON_SECRET is not configured' },

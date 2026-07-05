@@ -36,7 +36,6 @@ type QuickActionsProps = Readonly<{
 }>;
 
 export function QuickActions({
-  userRole,
   loading = false,
   error = null,
   onRefresh,

@@ -526,7 +526,7 @@ export async function restoreBackupToScratch(key: string): Promise<ActionResult>
     await requirePermission('settings', 'edit');
     const session = await getServerAuth();
 
-    const target = process.env.BACKUP_RESTORE_DATABASE_URL;
+    const target = process.env['BACKUP_RESTORE_DATABASE_URL'];
     if (!target) {
       return {
         success: false,

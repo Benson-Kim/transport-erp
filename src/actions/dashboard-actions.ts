@@ -267,10 +267,8 @@ export const getDashboardData = unstable_cache(
 export async function refreshDashboardData() {
   'use server';
 
-  // revalidateTag takes exactly ONE tag: the previous
-  // revalidateTag('dashboard', 'default') call was invalid and the manual
-  // Refresh button never invalidated anything (#37).
-  revalidateTag('dashboard');
+  // The very next read (even on the current request) blocks and fetches live DB data.
+  updateTag('dashboard');
 
   return { success: true };
 }

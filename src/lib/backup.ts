@@ -56,7 +56,9 @@ export interface B2Config {
   endpoint: string;
   keyName: string;
   maxFileSize: number;
-  cdnUrl?: string;
+  // `| undefined` is deliberate (exactOptionalPropertyTypes): getOptionalEnv
+  // returns string | undefined for the boot-optional B2_CDN_URL (#58).
+  cdnUrl?: string | undefined;
 }
 
 export function getB2Config(): B2Config {
