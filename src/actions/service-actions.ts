@@ -97,11 +97,24 @@ export async function getServices(filters: ServiceFiltersAPI) {
 
   // Apply filters
   if (filters.search) {
+    // #46: resolve matching client ids FIRST against the trgm-indexed
+    // clients.name (bounded), then filter services by clientId. The
+    // previous ILIKE-over-join ({ client: { name: contains } }) probed the
+    // join per candidate row and could not use any index. Every leg below
+    // is served by a pg_trgm GIN index (migration 20260705000001).
+    const matchingClients = await prisma.client.findMany({
+      where: { deletedAt: null, name: { contains: filters.search, mode: 'insensitive' } },
+      select: { id: true },
+      take: 100,
+    });
+
     where.OR = [
       { serviceNumber: { contains: filters.search, mode: 'insensitive' } },
-      { client: { name: { contains: filters.search, mode: 'insensitive' } } },
       { driverName: { contains: filters.search, mode: 'insensitive' } },
       { vehiclePlate: { contains: filters.search, mode: 'insensitive' } },
+      ...(matchingClients.length > 0
+        ? [{ clientId: { in: matchingClients.map((client) => client.id) } }]
+        : []),
     ];
   }
 
