@@ -8,6 +8,15 @@ import z from 'zod';
 
 import { AuditAction } from '@/app/generated/prisma';
 import { getServerAuth, requireAuth } from '@/lib/auth';
+import {
+  cleanupOldBackups,
+  executeBackup,
+  getB2Client,
+  getB2Config,
+  restoreBackupToDatabase,
+  validateB2Config,
+  type BackupInfo,
+} from '@/lib/backup';
 import { emailService } from '@/lib/email';
 import { createAuditLog } from '@/lib/prisma/db-helpers';
 import prisma from '@/lib/prisma/prisma';
@@ -30,47 +39,9 @@ import {
 import type { ActionResult } from '@/types/settings';
 import { SettingKey } from '@/types/settings';
 
-/**
- * B2 Configuration Interface
- */
-interface B2Config {
-  applicationKeyId: string;
-  applicationKey: string;
-  bucketId: string;
-  bucketName: string;
-  region: string;
-  endpoint: string;
-  keyName: string;
-  maxFileSize: number;
-  cdnUrl?: string;
-}
-
-function getB2Config(): B2Config {
-  const cleanEndpoint = getEnv('B2_ENDPOINT').trim().replace(/\/+$/, '');
-  const endpoint = cleanEndpoint.startsWith('http') ? cleanEndpoint : `https://${cleanEndpoint}`;
-  const config: B2Config = {
-    applicationKeyId: getEnv('B2_APPLICATION_KEY_ID') || '',
-    applicationKey: getEnv('B2_APPLICATION_KEY') || '',
-    bucketId: getEnv('B2_BUCKET_ID') || '',
-    bucketName: getEnv('B2_BUCKET_NAME') || '',
-    region: getEnv('B2_REGION') || 'us-west-004',
-    endpoint: endpoint || '',
-    keyName: getEnv('B2_KEYNAME') || 'backups',
-    maxFileSize: parseInt(getEnv('B2_MAX_FILE_SIZE') || '104857600', 10), // 100MB default
-    cdnUrl: getEnv('B2_CDN_URL'),
-  };
-
-  return config;
-}
-
-function validateB2Config(config: B2Config): void {
-  const required = ['applicationKeyId', 'applicationKey', 'bucketName', 'endpoint'] as const;
-  const missing = required.filter((key) => !config[key]);
-
-  if (missing.length > 0) {
-    throw new Error(`Missing B2 configuration: ${missing.join(', ')}`);
-  }
-}
+// B2 config + the backup engine moved to src/lib/backup.ts (#39): ONE
+// implementation shared by these RBAC-gated actions and the #38 job runner
+// (which has no session and cannot call server actions).
 
 /**
  * Update company settings
@@ -486,36 +457,8 @@ export async function testEmailConfiguration(testEmail?: string): Promise<Action
   }
 }
 
-// Backup Operations with Backblaze B2
-export interface BackupInfo {
-  filename: string;
-  key: string;
-  size: number;
-  createdAt: string;
-  url?: string;
-}
-
-/**
- * Get B2 S3 Client
- */
-async function getB2Client() {
-  const { S3Client } = await import('@aws-sdk/client-s3');
-  const b2Config = getB2Config();
-  validateB2Config(b2Config);
-
-  return {
-    client: new S3Client({
-      region: b2Config.region,
-      endpoint: b2Config.endpoint,
-      credentials: {
-        accessKeyId: b2Config.applicationKeyId,
-        secretAccessKey: b2Config.applicationKey,
-      },
-      forcePathStyle: true,
-    }),
-    config: b2Config,
-  };
-}
+// Backup Operations with Backblaze B2 (engine: src/lib/backup.ts, #39)
+export type { BackupInfo } from '@/lib/backup';
 
 /**
  * Trigger manual backup
@@ -552,8 +495,8 @@ export async function runManualBackup(): Promise<ActionResult<BackupInfo>> {
       session?.user.id
     );
 
-    // Cleanup old backups based on retention
-    await cleanupOldBackups(backupSettings.retentionDays);
+    // Cleanup old backups based on retention, under the configured prefix (#39)
+    await cleanupOldBackups(backupSettings.retentionDays, backupSettings.storageLocation);
 
     return { success: true, data: result };
   } catch (error) {
@@ -565,172 +508,65 @@ export async function runManualBackup(): Promise<ActionResult<BackupInfo>> {
   }
 }
 
+// executeBackup / cleanupOldBackups live in src/lib/backup.ts (#39):
+// execFile argument vectors (no shell interpolation), URL-parsed
+// credentials, storageLocation honored as the key prefix.
+
 /**
- * Execute backup - creates SQL dump and uploads to Backblaze B2
+ * Restore a backup into the VERIFICATION database (#39).
+ *
+ * Deliberately never touches the primary: the target is
+ * BACKUP_RESTORE_DATABASE_URL and the action refuses when it is unset or
+ * equal to DATABASE_URL. Restoring over the primary is a manual,
+ * eyes-open psql operation (documented in src/lib/backup.ts); a one-click
+ * primary restore in a settings screen is a footgun, not a feature. The
+ * CI backup-restore-check job proves restorability on every pipeline.
  */
-async function executeBackup(_settings: BackupSettingsInput): Promise<BackupInfo> {
-  const { exec } = await import('child_process');
-  const { promisify } = await import('util');
-  const fs = await import('fs/promises');
-  const path = await import('path');
-  const os = await import('os');
-  const { createGzip } = await import('zlib');
-  const { createReadStream, createWriteStream } = await import('fs');
-  const { pipeline } = await import('stream/promises');
-  const { PutObjectCommand } = await import('@aws-sdk/client-s3');
-
-  const execAsync = promisify(exec);
-
-  // Get database URL
-  const databaseUrl = getEnv('DATABASE_URL');
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-
-  // Parse database URL
-  const dbUrlMatch = databaseUrl.match(
-    /^postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)(\?.*)?$/
-  );
-
-  if (!dbUrlMatch) {
-    throw new Error('Invalid DATABASE_URL format');
-  }
-
-  const [, user, password, host, port, database] = dbUrlMatch;
-
-  if (!database) {
-    throw new Error('Database name could not be parsed from DATABASE_URL');
-  }
-
-  // Create temp directory for backup
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backup-'));
-  const timestamp = formatDate(new Date(), 'yyyy-MM-dd-HHmmss');
-  const sqlFilename = `backup-${timestamp}.sql`;
-  const gzFilename = `${sqlFilename}.gz`;
-  const sqlPath = path.join(tempDir, sqlFilename);
-  const gzPath = path.join(tempDir, gzFilename);
-
+export async function restoreBackupToScratch(key: string): Promise<ActionResult> {
   try {
-    // Create SQL dump using pg_dump
-    console.log('Creating database dump...');
-    await execAsync(
-      `pg_dump -h ${host} -p ${port} -U ${user} -d ${database} --no-owner --no-acl -F p -f "${sqlPath}"`,
-      {
-        env: { ...process.env, PGPASSWORD: password },
-        maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-      }
-    );
+    await requirePermission('settings', 'edit');
+    const session = await getServerAuth();
 
-    // Compress the SQL file
-    console.log('Compressing backup...');
-    await pipeline(createReadStream(sqlPath), createGzip({ level: 9 }), createWriteStream(gzPath));
-
-    // Get compressed file stats
-    const stats = await fs.stat(gzPath);
-    const b2Config = getB2Config();
-
-    // Check file size limit
-    if (stats.size > b2Config.maxFileSize) {
-      throw new Error(
-        `Backup size (${formatBytes(stats.size)}) exceeds maximum allowed size (${formatBytes(b2Config.maxFileSize)})`
-      );
+    const target = process.env.BACKUP_RESTORE_DATABASE_URL;
+    if (!target) {
+      return {
+        success: false,
+        error:
+          'BACKUP_RESTORE_DATABASE_URL is not configured; refusing to restore over the primary database.',
+      };
+    }
+    if (target === getEnv('DATABASE_URL')) {
+      return {
+        success: false,
+        error: 'BACKUP_RESTORE_DATABASE_URL must not point at the primary database.',
+      };
     }
 
-    // Upload to B2
-    console.log('Uploading to Backblaze B2...');
-    const { client, config } = await getB2Client();
-    const key = `${config.keyName}/${gzFilename}`;
+    // Key hygiene: stored-backup shape only, no traversal.
+    if (key.includes('..') || !/^[\w\-./]+\.sql\.gz$/.test(key)) {
+      return { success: false, error: 'Invalid backup key' };
+    }
 
-    const fileContent = await fs.readFile(gzPath);
+    await restoreBackupToDatabase(key, target);
 
-    await client.send(
-      new PutObjectCommand({
-        Bucket: config.bucketName,
-        Key: key,
-        Body: fileContent,
-        ContentType: 'application/gzip',
-        ContentLength: stats.size,
-        Metadata: {
-          'backup-timestamp': new Date().toISOString(),
-          database,
-          'original-size': (await fs.stat(sqlPath).catch(() => ({ size: 0 }))).size.toString(),
-        },
-      })
-    );
+    if (session?.user.id) {
+      await createAuditLog({
+        userId: session.user.id,
+        action: AuditAction.UPDATE,
+        tableName: 'backups',
+        recordId: key,
+        metadata: { action: 'backup_restore_verified', key, target: 'scratch' },
+      });
+    }
 
-    console.log(`Backup uploaded successfully: ${key}`);
-
-    // Generate URL
-    const url = config.cdnUrl
-      ? `${config.cdnUrl}/${key}`
-      : `${config.endpoint}/${config.bucketName}/${key}`;
-
+    return { success: true };
+  } catch (error) {
+    console.error('Restore verification error:', error);
     return {
-      filename: gzFilename,
-      key,
-      size: stats.size,
-      createdAt: new Date().toISOString(),
-      url,
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to restore backup',
     };
-  } finally {
-    // Cleanup temp files
-    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
-}
-
-/**
- * Format bytes to human readable string
- */
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
-}
-
-/**
- * Clean up old backups based on retention policy
- */
-async function cleanupOldBackups(retentionDays: number): Promise<number> {
-  const { ListObjectsV2Command, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
-  const { client, config } = await getB2Client();
-
-  const prefix = `${config.keyName}/`;
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-
-  let deletedCount = 0;
-  let continuationToken: string | undefined;
-
-  do {
-    const listResponse = await client.send(
-      new ListObjectsV2Command({
-        Bucket: config.bucketName,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
-      })
-    );
-
-    if (listResponse.Contents) {
-      for (const object of listResponse.Contents) {
-        if (object.LastModified && object.LastModified < cutoffDate && object.Key) {
-          await client.send(
-            new DeleteObjectCommand({
-              Bucket: config.bucketName,
-              Key: object.Key,
-            })
-          );
-          console.log(`Deleted old backup: ${object.Key}`);
-          deletedCount++;
-        }
-      }
-    }
-
-    continuationToken = listResponse.NextContinuationToken;
-  } while (continuationToken);
-
-  return deletedCount;
 }
 
 /**

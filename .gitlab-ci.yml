@@ -175,3 +175,25 @@ test-db:
     # Contract recorded in #59 (move to a locked devDependency).
     - npm install --no-save ts-jest@^29.4.0
     - npm run test:db
+
+# #39: a backup you cannot restore is a false safety net. Prove that
+# pg_dump -> gzip -> psql round-trips against the migrated + seeded schema
+# on every pipeline. Client tools come from PGDG (bookworm ships client 15;
+# the service is Postgres 16 and pg_dump must be >= the server version).
+backup-restore-check:
+  extends: .database-job
+  script:
+    - npx prisma migrate deploy
+    - npx prisma db seed
+    - apt-get update >/dev/null
+    - apt-get install -y --no-install-recommends postgresql-common >/dev/null
+    - YES=yes /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+    - apt-get install -y --no-install-recommends postgresql-client-16 >/dev/null
+    - PGPASSWORD=postgres pg_dump -h postgres -U postgres -d transport_erp --no-owner --no-acl -F p -f backup.sql
+    - gzip -9 backup.sql
+    - PGPASSWORD=postgres psql -h postgres -U postgres -d postgres -c 'CREATE DATABASE restore_check;'
+    - gunzip -c backup.sql.gz | PGPASSWORD=postgres psql -h postgres -U postgres -d restore_check -v ON_ERROR_STOP=1 >/dev/null
+    - |
+      rows=$(PGPASSWORD=postgres psql -h postgres -U postgres -d restore_check -tAc 'SELECT COUNT(*) FROM users;')
+      if [ "$rows" -lt 1 ]; then echo "Restore produced no users rows"; exit 1; fi
+      echo "Restore verified: $rows users rows survived the round-trip."
