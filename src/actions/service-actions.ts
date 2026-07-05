@@ -19,7 +19,7 @@ import {
   round2,
   toDecimal,
 } from '@/lib/pricing';
-import { createAuditLog, withTransaction } from '@/lib/prisma/db-helpers';
+import { createAuditLog, getPaginationParams, withTransaction } from '@/lib/prisma/db-helpers';
 import { generateDocumentNumber } from '@/lib/prisma/numbering';
 import prisma from '@/lib/prisma/prisma';
 import {
@@ -129,9 +129,14 @@ export async function getServices(filters: ServiceFiltersAPI) {
     where.driverName = { contains: filters.driver, mode: 'insensitive' };
   }
 
-  // Pagination
-  const skip = ((filters.page || 1) - 1) * (filters.pageSize || 50);
-  const take = filters.pageSize || 50;
+  // Pagination (#45): through the ONE shared helper, which enforces the
+  // hard server-side cap (max 100, floor 1) that serviceFilterSchema
+  // declares but this path bypassed - getServices({ pageSize: 1_000_000 })
+  // must never stream the whole table. Default page size stays 50.
+  const { skip, take } = getPaginationParams({
+    page: filters.page ?? 1,
+    limit: filters.pageSize ?? 50,
+  });
 
   // Sorting
   const sortKeyMap: Record<
