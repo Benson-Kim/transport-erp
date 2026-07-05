@@ -1,135 +1,91 @@
 # Transport ERP
 
-A complete enterprise management system built with Next.js 16, TypeScript, and modern web
-technologies.
+Spanish (EU) freight-brokerage ERP: the margin between the client sale and
+the supplier cost is the product. Services, clients, suppliers, loading
+orders, invoicing (sales + registered purchase invoices), payments,
+reports, documents.
 
-## Tech Stack
+Stack: Next.js 16 (App Router, `src/proxy.ts` middleware convention - see
+ADR 0006), NextAuth v5, Prisma 6 + PostgreSQL 16, Tailwind v4, Backblaze
+B2 (S3-compatible), Resend, react-hook-form + zod. Tests: Jest.
 
-- **Framework:** Next.js 16.0.1 with App Router
-- **Language:** TypeScript (strict mode)
-- **Styling:** Tailwind CSS v4.0
-- **Database:** PostgreSQL with Prisma ORM
-- **Authentication:** NextAuth.js v5
-- **State Management:** Zustand
-- **Forms:** React Hook Form + Zod
-- **Charts:** Recharts
-- **PDF Generation:** Puppeteer
-- **Icons:** Lucide React
+## Setup
 
-## Prerequisites
-
-- Node.js 20.0.0 or higher
-- npm 10.0.0 or higher
-- PostgreSQL 14 or higher
-- Git
-
-## Installation
-
-1. **Clone the repository** `bash git clone <repository-url> cd enterprise-dashboard `
-
-2. **Install dependencies** `bash  npm install  `
-
-3. **Set up environment variables** `bash      cp .env.example .env      ` Edit .env with your
-   configuration values.
-
-4. **Set up the database** `bash  npm run db:push  npm run db:seed  `
-
-5. **Run development server** `bash  npm run dev  `
-
-Open http://localhost:3000 in your browser.
-
-## Project Structure
-
-```
-src/
-├── app/               # Next.js App Router pages
-│   ├── (auth)/        # Authentication pages
-│   └── (dashboard)/   # Protected dashboard pages
-├── components/        # React components
-│   ├── ui/            # Reusable UI components
-│   ├── features/      # Feature-specific components
-│   └── layouts/       # Layout components
-├── lib/               # Utilities and configurations
-│   ├── utils/         # Helper functions
-│   ├── validations/   # Zod schemas
-│   └── constants/     # App constants
-├── hooks/             # Custom React hooks
-├── types/             # TypeScript type definitions
-├── actions/           # Server actions
-└── api/               # API route handlers
+```bash
+npm ci
+cp .env.example .env.local     # fill in the values below
+npx prisma generate
+npm run prisma:migrate         # applies migrations (dev)
+npm run prisma:seed            # sample data + test users
+npm run dev
 ```
 
-## Available Scripts
+### Required environment
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
-- `npm run type-check` - Run TypeScript compiler checks
-- `npm run test` - Run tests
-- `npm run db:studio` - Open Prisma Studio
+| Variable | Notes |
+|---|---|
+| `DATABASE_URL` | postgresql:// URL, Postgres 16 |
+| `AUTH_SECRET` | REQUIRED in every environment (NextAuth v5 name - v5 throws MissingSecret without it). `openssl rand -base64 32` |
+| `NEXT_PUBLIC_APP_URL` / `AUTH_URL` | app origin |
 
-## Security Features
+### Optional integrations (the app boots without them - features degrade, #58)
 
-- Authentication with NextAuth.js
-- CSRF protection
-- XSS prevention
-- SQL injection protection via Prisma
-- Rate limiting
-- Security headers
-- Input validation with Zod
+| Variable | Enables |
+|---|---|
+| `RESEND_API_KEY`, `EMAIL_FROM*` | outbound email (runtime config can also come from Settings -> Email, #40) |
+| `B2_*` | document storage, PDF archiving, backups |
+| `GOOGLE_CLIENT_ID/SECRET` | Google sign-in |
+| `AUTH_ALLOWED_SIGNUP_DOMAINS/EMAILS` | signup allow-list (#23) - empty denies all NEW sign-ups |
+| `ENABLE_USER_REGISTRATION` | /register page (fail closed, #35) |
+| `CRON_SECRET` | the job runner `/api/jobs/run` (#38) - disabled while unset |
+| `BACKUP_RESTORE_DATABASE_URL` | in-app backup restore VERIFICATION target (#39) - never the primary |
+| `CSP_ENFORCE_NONCE` | flips the #63 nonce CSP from report-only to enforced |
 
-## Styling Guidelines
+See `.env.example` for the full annotated list.
 
-- Mobile-first responsive design
-- Dark mode support
-- WCAG 2.1 AA accessibility compliance
-- Consistent design tokens
-- Component-based architecture
+### Seed credentials (dev/test ONLY - the prod seed is guarded)
 
-## Performance Optimizations
+Password for all seed users: `password123`
 
-- Turbopack for faster development builds
-- Code splitting and lazy loading
-- Image optimization with Next.js Image
-- Font optimization
-- API route caching
-- Database query optimization
+- `superadmin@example.com` (SUPER_ADMIN)
+- `admin@example.com`, `manager@`, `accountant@`, `operator@example.com`
 
-## Contributing
+`prisma:seed:prod` refuses to run unless
+`ALLOW_PROD_SEED=I_UNDERSTAND_THIS_DESTROYS_DATA` - the seed wipes all
+data and plants known credentials.
 
-- Fork the repository
-- Create a feature branch (`git checkout -b feature/amazing-feature`)
-- Commit your changes (`git commit -m 'Add amazing feature'`)
-- Push to the branch (`git push origin feature/amazing-feature`)
-- Open a Pull Request
+## Scripts
 
-## Code Standards
+- `npm run dev` / `build` / `start`
+- `npm run type-check` / `lint:check` / `format:check`
+- `npm run test:unit` - pure unit tests (no DB)
+- `npm run test:db` - integration suite against a real Postgres
+  (constraints, numbering races, query plans, retention)
+- `npm run prisma:migrate` / `prisma:seed` / `prisma:studio`
 
-- TypeScript strict mode enabled
-- ESLint and Prettier configured
-- Maximum 300 lines per component
-- Maximum 50 lines per function
-- Comprehensive error handling
-- JSDoc comments for functions
-- Unit tests for utilities
-- Integration tests for features
+## CI gates (.gitlab-ci.yml)
 
-## Resources
+phase0-gate (type-check, lint, build) - test-unit - console-leak-gate
+(advisory, #42) - database stage: migrate-fresh (idempotency re-apply),
+drift-check (exact-name allowlist for SQL-managed objects),
+test-db, backup-restore-check (dump -> restore proof, #39).
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [TypeScript Documentation](https://www.typescriptlang.org/docs/)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [NextAuth.js Documentation](https://authjs.dev/)
+## Operations
 
-## License
+- Health: `GET /api/health` (readiness: DB + migrations), `?probe=live`
+  (liveness). Entrypoint modes: `MIGRATE_ONLY=true` one-shot migration
+  job; `RUN_MIGRATIONS=false` + wait-on-readiness for multi-replica (#41/#44).
+- Scheduled work: external cron -> `POST /api/jobs/run` with
+  `Authorization: Bearer $CRON_SECRET` and `{"job": "email-queue" |
+  "audit-maintenance" | "backup"}` (#38).
+- Logging: JSON lines via `src/lib/logger.ts`; requestId correlates with
+  audit rows (#21/#42).
 
-This project is proprietary and confidential.
+## Documentation
 
-Built with ❤️ using Next.js 16 and TypeScript
-
-```
-
-```
+- `CONTRIBUTING.md` - ground rules, single sources of truth, the two
+  KNOWN CORRECTIONS, CI constraints.
+- `docs/adr/` - 0001 invoice billing direction, 0002 UTC reporting,
+  0003 RBAC, 0004 money/Decimal, 0005 revenue recognition, 0006 proxy.ts
+  convention, 0007 theme tokens.
+- Hardening plan and phase ledger: work item #62.
