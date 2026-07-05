@@ -7,6 +7,9 @@ import { type CreateEmailOptions, Resend } from 'resend';
 import { render } from '@react-email/render';
 import * as React from 'react';
 
+import type { Prisma } from '@/app/generated/prisma';
+
+import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma/prisma';
 import { getEmailConfig, resolveEmailConfig } from './config';
 import {
@@ -329,7 +332,11 @@ export class EmailService {
       data: {
         template,
         to: Array.isArray(to) ? to.join(',') : to,
-        data: JSON.stringify(data),
+        // email_queue.data is JSONB: store the OBJECT. The previous
+        // JSON.stringify(data) double-serialized (a JSON string inside
+        // JSONB), making the column unqueryable and coupling readers to a
+        // parse step (#38). normalizeQueuePayload still drains legacy rows.
+        data: data as unknown as Prisma.InputJsonValue,
         priority,
         scheduledAt: scheduledAt ?? null,
         status: 'pending',
@@ -422,15 +429,22 @@ export class EmailService {
    */
   private async processQueueJob(job: EmailQueueRecord): Promise<boolean> {
     try {
-      await prisma.emailQueue.update({
-        where: { id: job.id },
+      // Claim-locking (#38): atomically claim pending -> processing and act
+      // ONLY if this worker won the claim. Under two workers, the loser
+      // sees count === 0 and skips - each job is processed exactly once.
+      const claimed = await prisma.emailQueue.updateMany({
+        where: { id: job.id, status: 'pending' },
         data: {
           status: 'processing',
           attempts: { increment: 1 },
         },
       });
+      if (claimed.count !== 1) {
+        // Another worker owns this job; not a failure of THIS run.
+        return true;
+      }
 
-      const parsedData = JSON.parse(job.data) as EmailTemplateData;
+      const parsedData = normalizeQueuePayload(job.data);
       const recipients = job.to.includes(',')
         ? job.to.split(',').map((s) => s.trim())
         : job.to;
@@ -566,10 +580,9 @@ export class EmailService {
       });
     } catch (error) {
       // Don't let logging failures break email sending
-      console.error(
-        '[EmailService] Logging error:',
-        error instanceof Error ? error.message : error
-      );
+      logger.error('[EmailService] Logging error', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -584,13 +597,25 @@ export class EmailService {
     if (!this.config.logging.enabled) return;
     if (level === 'debug' && !this.config.logging.debug) return;
 
-    const prefix = `[EmailService][${this.config.environment}]`;
-    const logFn = level === 'error'
-      ? console.error
-      : level === 'warn'
-        ? console.warn
-        : console.log;
-
-    logFn(`${prefix} ${message}`, data !== undefined ? data : '');
+    // Structured seam (#42): one JSON line, never raw console output.
+    logger[level](`[EmailService] ${message}`, {
+      environment: this.config.environment,
+      ...(data === undefined ? {} : { data }),
+    });
   }
+}
+
+/**
+ * Queue payload normalization (#38), exported for unit tests.
+ *
+ * New rows store the template data OBJECT directly in the JSONB column.
+ * Legacy rows (pre-#38) were double-serialized - a JSON string inside
+ * JSONB - so a string payload is parsed once. Anything else is the object
+ * Prisma already deserialized.
+ */
+export function normalizeQueuePayload(raw: unknown): EmailTemplateData {
+  if (typeof raw === 'string') {
+    return JSON.parse(raw) as EmailTemplateData;
+  }
+  return raw as EmailTemplateData;
 }

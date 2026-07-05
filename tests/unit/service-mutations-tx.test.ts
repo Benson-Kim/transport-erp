@@ -61,6 +61,7 @@ jest.mock('@/lib/prisma/db-helpers', () => ({
 const mockRevalidate = jest.fn<(...args: unknown[]) => void>();
 jest.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidate(...args),
+  updateTag: (...args: unknown[]) => mockRevalidate(...args),
 }));
 jest.mock('@/lib/prisma/numbering', () => ({
   generateDocumentNumber: () => Promise.resolve('SRV-2026-00001'),

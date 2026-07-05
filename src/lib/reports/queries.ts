@@ -33,6 +33,10 @@ function recognizedStatusesSql(): Prisma.Sql {
 export async function queryMonthlyFinancials(range: ReportRange): Promise<MonthlyFinancialsRow[]> {
   return prisma.$queryRaw<MonthlyFinancialsRow[]>`
     SELECT
+      -- #65 / ADR 0002: "date" is timestamp WITHOUT time zone holding UTC
+      -- instants, so date_trunc('month', ...) buckets deterministically in
+      -- UTC regardless of the session TimeZone. Do NOT cast to timestamptz
+      -- here - that is what WOULD make bucketing session-TZ-dependent.
       date_trunc('month', "date") AS "month",
       COUNT(*)::int AS "services",
       COALESCE(SUM("saleAmount"), 0) AS "revenue",
