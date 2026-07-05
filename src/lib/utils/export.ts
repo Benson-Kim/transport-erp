@@ -239,10 +239,7 @@ export async function exportToExcel(
   }
 }
 
-export function getEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing environment variable: ${name}`);
-  }
-  return value;
-}
+// #58: getEnv moved to src/lib/env.ts (this file is a BROWSER module -
+// server code must not drag toast/xlsx into its graph). Re-exported so
+// existing imports keep compiling; new server code imports '@/lib/env'.
+export { getEnv } from '@/lib/env';
