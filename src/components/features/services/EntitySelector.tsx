@@ -34,7 +34,9 @@ interface EntitySelectorProps {
   placeholder?: string;
   error?: string;
   disabled?: boolean;
-  createHref?: string;
+  // `| undefined` is deliberate (exactOptionalPropertyTypes): wrappers pass
+  // `allowCreate ? href : undefined`.
+  createHref?: string | undefined;
   createLabel?: string;
   emptyMessage?: string;
 }

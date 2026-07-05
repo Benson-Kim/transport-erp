@@ -10,6 +10,8 @@
  * one unique needle for the trgm search probe. Deleted in afterAll.
  */
 
+import { afterAll, beforeAll, describe, expect, it, jest } from '@jest/globals';
+
 import { ServiceStatus } from '@/app/generated/prisma';
 
 import { createSupplierFixture, createUserFixture, prisma, uid } from './helpers';

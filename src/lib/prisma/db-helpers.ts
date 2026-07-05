@@ -47,8 +47,11 @@ export interface PaginationResult<T> {
 }
 
 export function getPaginationParams(params: PaginationParams) {
-  const page = Math.max(1, params.page || 1);
-  const limit = Math.min(100, Math.max(1, params.limit || 20));
+  const page = Math.max(1, Math.floor(params.page ?? 1) || 1);
+  // #45: default 20 only when the caller passed nothing; explicit invalid
+  // values (0, negatives, NaN) floor at 1 instead of silently widening to
+  // the default, and everything is hard-capped at 100.
+  const limit = Math.min(100, Math.max(1, Math.floor(params.limit ?? 20) || 1));
   const skip = (page - 1) * limit;
 
   return {

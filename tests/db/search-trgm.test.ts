@@ -4,6 +4,8 @@
  * EXPLAIN validation suite (tests/db/query-plans.test.ts).
  */
 
+import { afterAll, describe, expect, it } from '@jest/globals';
+
 import { prisma } from './helpers';
 
 afterAll(async () => {
@@ -24,7 +26,7 @@ describe('search trgm indexes (#46)', () => {
     ['services', 'services_vehiclePlate_trgm_idx'],
     ['clients', 'clients_name_trgm_idx'],
     ['suppliers', 'suppliers_name_trgm_idx'],
-  ])('has GIN index %s.%s', async (table, indexName) => {
+  ])('has GIN index %s.%s', async (table: string, indexName: string) => {
     const rows = await prisma.$queryRaw<Array<{ indexdef: string }>>`
       SELECT indexdef FROM pg_indexes
       WHERE tablename = ${table} AND indexname = ${indexName}

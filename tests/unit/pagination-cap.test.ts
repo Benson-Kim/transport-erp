@@ -4,9 +4,13 @@
  * passing pageSize 1_000_000 must get take <= 100.
  */
 
-jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: {} }));
+import { describe, expect, it, jest } from '@jest/globals';
 
 import { getPaginationParams } from '@/lib/prisma/db-helpers';
+
+// db-helpers imports the prisma singleton; jest.mock is hoisted above the
+// import so the unit suite never instantiates a real PrismaClient.
+jest.mock('@/lib/prisma/prisma', () => ({ __esModule: true, default: {} }));
 
 describe('getPaginationParams (#45)', () => {
   it('caps take at 100 even for absurd pageSize values', () => {
