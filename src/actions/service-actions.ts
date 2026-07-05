@@ -254,8 +254,15 @@ export async function getServices(filters: ServiceFiltersAPI) {
 }
 
 /**
- * Get clients and suppliers for filters
+ * Initial selector pages for filters/forms (#47): CAPPED - this used to be
+ * a full-table load of every active client and supplier. The selectors
+ * stream further results server-side via searchClientOptions /
+ * searchSupplierOptions as the user types.
  */
+const SELECTOR_INITIAL_CAP = 50;
+/** Results per keystroke - small, index-backed (#46), debounced client-side. */
+const SELECTOR_SEARCH_CAP = 20;
+
 export async function getClientsAndSuppliers() {
   await requirePermission('services', 'view');
 
@@ -268,6 +275,7 @@ export async function getClientsAndSuppliers() {
         clientCode: true,
       },
       orderBy: { name: 'asc' },
+      take: SELECTOR_INITIAL_CAP,
     }),
     prisma.supplier.findMany({
       where: { deletedAt: null, isActive: true },
@@ -277,10 +285,61 @@ export async function getClientsAndSuppliers() {
         supplierCode: true,
       },
       orderBy: { name: 'asc' },
+      take: SELECTOR_INITIAL_CAP,
     }),
   ]);
 
   return { clients, suppliers };
+}
+
+/**
+ * Server-side selector search (#47): services:view gated, contains-search
+ * on name/code backed by the #46 trgm indexes, hard-capped.
+ */
+export async function searchClientOptions(query: string) {
+  await requirePermission('services', 'view');
+
+  const term = query.trim();
+  return prisma.client.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { clientCode: { contains: term, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, clientCode: true },
+    orderBy: { name: 'asc' },
+    take: SELECTOR_SEARCH_CAP,
+  });
+}
+
+export async function searchSupplierOptions(query: string) {
+  await requirePermission('services', 'view');
+
+  const term = query.trim();
+  return prisma.supplier.findMany({
+    where: {
+      deletedAt: null,
+      isActive: true,
+      ...(term
+        ? {
+            OR: [
+              { name: { contains: term, mode: 'insensitive' } },
+              { supplierCode: { contains: term, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    },
+    select: { id: true, name: true, supplierCode: true },
+    orderBy: { name: 'asc' },
+    take: SELECTOR_SEARCH_CAP,
+  });
 }
 
 /**
