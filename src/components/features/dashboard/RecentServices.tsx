@@ -8,7 +8,9 @@
 import { useState, useCallback, useMemo } from 'react';
 
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+// App Router (#43): next/router's useRouter throws "NextRouter was not
+// mounted" in app/ components; next/navigation is the App Router API.
+import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   Truck,
@@ -19,7 +21,6 @@ import {
   Eye,
   FileText,
   TrendingUp,
-  Download,
   Calendar,
 } from 'lucide-react';
 
@@ -221,18 +222,10 @@ export function RecentServices({
           <span>•</span>
           <span> {formatCurrency(totalValue)} total</span>
         </div>
-        <Tooltip content="Download data as CSV file" position="bottom">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              console.log('Export selected:', selectedRows);
-            }}
-            icon={<Download className="h-3 w-3" />}
-          >
-            Export
-          </Button>
-        </Tooltip>
+        {/* The bulk Export button was a dead affordance that only
+            console.log'ed selected rows (removed per #42's no-console-leak
+            gate and the no-dead-affordances rule). The DataTable-level
+            `exportable` feature is the real CSV export. */}
       </>
     );
   }, []);
