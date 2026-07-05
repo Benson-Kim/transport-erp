@@ -1,14 +1,20 @@
 /**
- * DatePicker Component
- * Accessible date picker with calendar dropdown
+ * DatePicker Component (#53)
+ *
+ * Text input + react-day-picker calendar. The previous hand-rolled
+ * calendar rendered only "today + 29 days" (no month navigation, no past
+ * dates - unusable for recording completed services) and combined its
+ * min/max/custom constraints with `??`, which silently skipped later
+ * checks. react-day-picker was already a dependency (drift map).
  */
 
 'use client';
 
-import { forwardRef, useState, useRef, useEffect } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 
 import { format, parse, isValid, isBefore, isAfter } from 'date-fns';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
+import { DayPicker, type Matcher } from 'react-day-picker';
 
 import { cn } from '@/lib/utils/cn';
 import type { ComponentSize } from '@/types/ui';
@@ -66,7 +72,13 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       else ref.current = inputRef.current;
     }, [ref]);
 
-    // Sync input value with selected date
+    // #52: SYNC from the prop (was seeded once) - edit prefill and
+    // programmatic form resets must render.
+    useEffect(() => {
+      setSelectedDate(value ?? null);
+    }, [value]);
+
+    // Sync input text with selected date
     useEffect(() => {
       if (selectedDate && isValid(selectedDate)) {
         setInputValue(format(selectedDate, dateFormat));
@@ -75,20 +87,22 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       }
     }, [selectedDate, dateFormat]);
 
+    /** Constraints composed with || (#53): every check runs. */
+    const isDateDisallowed = (date: Date): boolean =>
+      Boolean(
+        (minDate && isBefore(date, minDate)) ||
+          (maxDate && isAfter(date, maxDate)) ||
+          disabledDates?.(date)
+      );
+
     // Handle manual input
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { value } = e.target;
-      setInputValue(value);
+      const text = e.target.value;
+      setInputValue(text);
 
-      // Try to parse the date
-      if (value.length === dateFormat.length) {
-        const parsed = parse(value, dateFormat, new Date());
-        if (isValid(parsed)) {
-          // Check constraints
-          if (minDate && isBefore(parsed, minDate)) return;
-          if (maxDate && isAfter(parsed, maxDate)) return;
-          if (disabledDates?.(parsed)) return;
-
+      if (text.length === dateFormat.length) {
+        const parsed = parse(text, dateFormat, new Date());
+        if (isValid(parsed) && !isDateDisallowed(parsed)) {
           setSelectedDate(parsed);
           onChange?.(parsed);
         }
@@ -102,7 +116,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       onChange?.(null);
     };
 
-    const handleDateSelect = (date: Date) => {
+    const handleDateSelect = (date: Date | undefined) => {
+      if (!date) return;
       setSelectedDate(date);
       onChange?.(date);
       setIsOpen(false);
@@ -110,7 +125,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
 
     // Handle click outside
     useEffect(() => {
-      if (!isOpen) return;
+      if (!isOpen) return undefined;
 
       const handleClickOutside = (e: MouseEvent) => {
         if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -122,31 +137,12 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    // Generate calendar days (simplified - you'd want a proper calendar component)
-    const generateCalendarDays = () => {
-      const today = new Date();
-      const days = [];
-
-      // This is a simplified calendar - in production, use a proper calendar library
-      for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-
-        const isDisabled =
-          (minDate && isBefore(date, minDate)) ??
-          (maxDate && isAfter(date, maxDate)) ??
-          disabledDates?.(date);
-
-        days.push({
-          date,
-          isDisabled,
-          isToday: i === 0,
-          isSelected: selectedDate?.toDateString() === date.toDateString(),
-        });
-      }
-
-      return days;
-    };
+    // DayPicker matchers: independent constraints, never short-circuited.
+    const disabledMatchers: Matcher[] = [
+      ...(minDate ? [{ before: minDate }] : []),
+      ...(maxDate ? [{ after: maxDate }] : []),
+      ...(disabledDates ? [disabledDates] : []),
+    ];
 
     return (
       <div className="relative w-full" ref={dropdownRef}>
@@ -188,6 +184,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
               disabled={disabled}
               className="p-1 hover:bg-neutral-100 rounded transition-colors"
               aria-label="Open calendar"
+              aria-expanded={isOpen}
+              aria-haspopup="dialog"
             >
               <CalendarIcon size={16} className="text-neutral-500" />
             </button>
@@ -201,35 +199,20 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         )}
 
         {isOpen && (
-          <div className="absolute z-50 mt-1 w-64 bg-white border border-neutral-200 rounded-md shadow-lg p-3">
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                <div key={day} className="text-xs font-medium text-neutral-500 text-center">
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays()
-                .slice(0, 28)
-                .map(({ date, isDisabled, isToday, isSelected }) => (
-                  <button
-                    key={date.toISOString()}
-                    type="button"
-                    onClick={() => !isDisabled && handleDateSelect(date)}
-                    disabled={isDisabled}
-                    className={cn(
-                      'h-8 text-sm rounded hover:bg-neutral-100 transition-colors',
-                      isDisabled && 'opacity-50 cursor-not-allowed',
-                      isToday && 'font-semibold',
-                      isSelected && 'bg-primary text-white hover:bg-primary-hover'
-                    )}
-                  >
-                    {date.getDate()}
-                  </button>
-                ))}
-            </div>
+          <div className="absolute z-50 mt-1 rounded-md border border-neutral-200 bg-white p-2 shadow-lg">
+            <DayPicker
+              mode="single"
+              selected={selectedDate ?? undefined}
+              onSelect={handleDateSelect}
+              defaultMonth={selectedDate ?? new Date()}
+              disabled={disabledMatchers}
+              showOutsideDays
+              weekStartsOn={1}
+              classNames={{
+                today: 'font-semibold text-primary',
+                selected: 'bg-primary text-white rounded-md',
+              }}
+            />
           </div>
         )}
       </div>

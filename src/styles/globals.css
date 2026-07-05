@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* #53: base styles for the react-day-picker calendar (DatePicker.tsx). */
+@import 'react-day-picker/style.css';
 
 :root {
   /* Neutral */
