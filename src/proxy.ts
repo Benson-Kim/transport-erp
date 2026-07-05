@@ -27,7 +27,12 @@ const PUBLIC_ROUTES = [
 /**
  * API routes that have their own authentication
  */
-const API_ROUTES = ['/api/auth'];
+const API_ROUTES = [
+  '/api/auth',
+  // #38: the job runner authenticates with CRON_SECRET (fails closed);
+  // a session redirect to /login would break the external cron.
+  '/api/jobs',
+];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

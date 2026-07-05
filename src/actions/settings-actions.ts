@@ -3,7 +3,6 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { format as formatDate } from 'date-fns';
 import z from 'zod';
 
 import { AuditAction } from '@/app/generated/prisma';
