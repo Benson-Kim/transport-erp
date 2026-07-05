@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -22,6 +22,12 @@ interface MobileMenuProps {
 export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // #55: move focus INTO the dialog when it opens.
+  useEffect(() => {
+    if (isOpen) closeButtonRef.current?.focus();
+  }, [isOpen]);
 
   // Lock scroll and handle Escape key
   useEffect(() => {
@@ -43,7 +49,11 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
     };
   }, [isOpen, onClose]);
 
-  if (typeof document === 'undefined') return null;
+  // #55: rendered ONLY while open - the previous always-mounted <dialog>
+  // was misused (no .showModal(), no `open` attribute; per spec it should
+  // not even display) and kept an interactive tree in the DOM while
+  // "closed".
+  if (typeof document === 'undefined' || !isOpen) return null;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -76,42 +86,29 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
   };
 
   const portal = (
-    <dialog
-      // role="dialog"
-      aria-modal="true"
-      aria-label="Mobile navigation menu"
-      className={cn('lg:hidden', !isOpen && 'pointer-events-none')}
-    >
+    <div role="dialog" aria-modal="true" aria-label="Mobile navigation menu" className="lg:hidden">
       {/* Backdrop */}
       <button
         type="button"
         aria-label="Close menu"
-        tabIndex={isOpen ? 0 : -1}
-        className={cn(
-          'fixed inset-0 z-50 bg-black/50 transition-opacity',
-          isOpen ? 'opacity-100' : 'opacity-0'
-        )}
+        className="fixed inset-0 z-50 bg-black/50"
         onClick={onClose}
       />
 
       {/* Panel */}
-      <aside
-        className={cn(
-          'fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-neutral transition-transform',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
+      <aside className="fixed inset-y-0 left-0 z-50 w-full max-w-xs bg-white">
         <div className="flex h-full flex-col">
           {/* Header */}
           <header className="flex layout-header items-center justify-between border-b border-neutral-200 px-4">
             <div className="flex items-center gap-2">
-              <div className="logo rounded-radius-md bg-primary" aria-hidden="true" />
+              <div className="logo rounded-md bg-primary" aria-hidden="true" />
               <span className="font-semibold">{companyName}</span>
             </div>
             <button
+              ref={closeButtonRef}
               type="button"
               onClick={onClose}
-              className="rounded-md p-1.5 hover:bg-row-hover"
+              className="rounded-md p-1.5 hover:bg-support-row-hover"
               aria-label="Close menu"
             >
               <X className="icon-sm" aria-hidden="true" />
@@ -135,7 +132,7 @@ export function MobileMenu({ isOpen, onClose, companyName, user }: MobileMenuPro
           </footer>
         </div>
       </aside>
-    </dialog>
+    </div>
   );
 
   return createPortal(portal, document.body);

@@ -1,15 +1,18 @@
 // ClientSelector.tsx
 'use client';
 
-import { useMemo } from 'react';
+/**
+ * #47: thin wrapper over the shared async EntitySelector. Public props are
+ * UNCHANGED (ServiceForm needs no edits): `clients` now feeds only the
+ * capped initial page; typing streams server-side, index-backed results
+ * via searchClientOptions - the full client table is never loaded.
+ */
 
-import { useRouter } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
 
-import { Plus } from 'lucide-react';
+import { searchClientOptions } from '@/actions/service-actions';
 
-import { Select, Badge } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import type { Option } from '@/types/ui';
+import { EntitySelector, type EntityOption } from './EntitySelector';
 
 interface Client {
   id: string;
@@ -38,59 +41,37 @@ export function ClientSelector({
   placeholder = 'Select client...',
   allowCreate = true,
 }: Readonly<ClientSelectorProps>) {
-  const router = useRouter();
+  const initialOptions = useMemo<EntityOption[]>(
+    () =>
+      clients.map((client) => ({
+        id: client.id,
+        name: client.name,
+        code: client.clientCode,
+      })),
+    [clients]
+  );
 
-  // Convert clients to Option format with groups
-  const options = useMemo<Option[]>(() => {
-    const clientOptions: Option[] = clients.map((client) => ({
-      value: client.id,
-      label: client.name,
-      description: [client.clientCode, client.email].filter(Boolean).join(' • '),
-      group: client.isActive === false ? 'Inactive Clients' : 'Active Clients',
-      disabled: false,
-      icon: (
-        <Badge variant={client.isActive === false ? 'cancelled' : 'active'} size="sm">
-          {client.clientCode}
-        </Badge>
-      ),
+  const search = useCallback(async (query: string): Promise<EntityOption[]> => {
+    const results = await searchClientOptions(query);
+    return results.map((client) => ({
+      id: client.id,
+      name: client.name,
+      code: client.clientCode,
     }));
-
-    // Add "Create New" option if allowed
-    if (allowCreate) {
-      clientOptions.push({
-        value: '__create_new__',
-        label: 'Create New Client',
-        icon: <Plus className="h-4 w-4" />,
-        group: 'Actions',
-      });
-    }
-
-    return clientOptions;
-  }, [clients, allowCreate]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-
-    if (selectedValue === '__create_new__') {
-      router.push('/clients/new?returnTo=/services/new');
-    } else {
-      onChange(selectedValue);
-    }
-  };
+  }, []);
 
   return (
-    <Select
-      value={value}
-      onChange={handleChange}
-      options={options}
+    <EntitySelector
+      value={value ?? ''}
+      onChange={onChange}
+      search={search}
+      initialOptions={initialOptions}
       placeholder={placeholder}
-      searchable
-      clearable={!!value}
-      onClear={() => onChange('')}
+      error={error ?? ''}
       disabled={disabled}
-      error={error || ''}
+      createHref={allowCreate ? '/clients/new?returnTo=/services/new' : undefined}
+      createLabel="Create New Client"
       emptyMessage="No clients found"
-      className={cn(error && 'border-red-500 ring-0 focus-visible:ring-red-500')}
     />
   );
 }

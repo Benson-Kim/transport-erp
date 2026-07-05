@@ -3,8 +3,8 @@
  * Accessible button with multiple variants and states
  */
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { forwardRef } from 'react';
+import type { ButtonHTMLAttributes, ReactElement, ReactNode } from 'react';
+import { cloneElement, forwardRef, isValidElement } from 'react';
 
 import { RefreshCw } from 'lucide-react';
 
@@ -50,11 +50,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       onClick,
       type = 'button',
+      asChild = false,
       ...props
     },
     ref
   ) => {
     const isDisabled = disabled || loading;
+
+    const composedClassName = cn(
+      'button',
+      variantClasses[variant],
+      sizeClasses[size],
+      fullWidth && 'w-full',
+      'inline-flex items-center justify-center gap-2',
+      'transition-all duration-150',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+      isDisabled && 'cursor-not-allowed opacity-60',
+      className
+    );
+
+    // #55: Slot composition. asChild was DECLARED but unimplemented - it
+    // leaked onto the DOM (<button aschild>) and callers got <button><a>
+    // nesting. With asChild the CHILD (typically next/link) receives the
+    // button styling itself; icon/loading rendering is the caller's
+    // responsibility in this mode (one interactive element, no nesting).
+    if (asChild && isValidElement(children)) {
+      const child = children as ReactElement<React.HTMLAttributes<HTMLElement>>;
+      return cloneElement(child, {
+        className: cn(composedClassName, child.props.className),
+        ...(isDisabled ? { 'aria-disabled': true } : {}),
+      });
+    }
 
     const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled && onClick) {
@@ -85,17 +111,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         type={type}
-        className={cn(
-          'button',
-          variantClasses[variant],
-          sizeClasses[size],
-          fullWidth && 'w-full',
-          'inline-flex items-center justify-center gap-2',
-          'transition-all duration-150',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
-          isDisabled && 'cursor-not-allowed opacity-60',
-          className
-        )}
+        className={composedClassName}
         disabled={isDisabled}
         onClick={handleClick}
         aria-busy={loading}

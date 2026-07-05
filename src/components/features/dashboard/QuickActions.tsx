@@ -41,6 +41,7 @@ export function QuickActions({
   onRefresh,
 }: QuickActionsProps) {
   const permissions = usePermissions();
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const actions = useMemo(
     () => [
@@ -118,6 +119,45 @@ export function QuickActions({
   // reintroduce each only alongside its real implementation.
   const shortcuts = useMemo(
     () => [
+      {
+        id: 'import',
+        label: 'Import Data',
+        description: 'Bulk import from Excel or CSV',
+        icon: Upload,
+        onClick: async () => {
+          setLoadingAction('import');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          setLoadingAction(null);
+        },
+        show: permissions.isAdmin,
+        color: 'bg-cyan-500',
+      },
+      {
+        id: 'export',
+        label: 'Export Report',
+        description: 'Download reports in various formats',
+        icon: Download,
+        onClick: async () => {
+          setLoadingAction('export');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          setLoadingAction(null);
+        },
+        show: permissions.can('reports', 'export'),
+        color: 'bg-teal-500',
+      },
+      {
+        id: 'notifications',
+        label: 'Send Notifications',
+        description: 'Send bulk notifications to users',
+        icon: Send,
+        onClick: async () => {
+          setLoadingAction('notifications');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          setLoadingAction(null);
+        },
+        show: permissions.isManager,
+        color: 'bg-amber-500',
+      },
       {
         id: 'settings',
         label: 'Settings',

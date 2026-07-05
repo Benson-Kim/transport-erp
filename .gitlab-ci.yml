@@ -154,7 +154,9 @@ drift-check:
     # deterministic list, NOT time-computed names, so this allowlist stays
     # exact); anything else fails the job.
     # (grep exits 1 when nothing remains: that is the good case, hence || true.)
-    - grep -vE '"clients_clientCode_active_key"|"suppliers_supplierCode_active_key"|"companies_code_active_key"|"companies_vatNumber_active_key"|"services_status_date_active_idx"|"services_clientId_date_active_idx"|"services_supplierId_date_active_idx"|"billingCountry"|"audit_logs_default"|"audit_logs_y2026m07"|"audit_logs_y2026m08"|"audit_logs_y2026m09"|"audit_logs_y2026m10"|"audit_logs_y2026m11"|"audit_logs_y2026m12"|"audit_logs_y2027m01"|"audit_logs_y2027m02"|"audit_logs_y2027m03"|"audit_logs_y2027m04"|"audit_logs_y2027m05"|"audit_logs_y2027m06"|"audit_logs_y2027m07"|"audit_logs_y2027m08"|"audit_logs_y2027m09"|"audit_logs_y2027m10"|"audit_logs_y2027m11"|"audit_logs_y2027m12"|^[[:space:]]*$|^--|empty migration' drift.sql > unexpected.sql || true
+    # #46 additions: pg_trgm extension + the five trgm GIN index names
+    # (SQL-managed; Prisma cannot express extensions or gin_trgm_ops).
+    - grep -vE '"clients_clientCode_active_key"|"suppliers_supplierCode_active_key"|"companies_code_active_key"|"companies_vatNumber_active_key"|"services_status_date_active_idx"|"services_clientId_date_active_idx"|"services_supplierId_date_active_idx"|"billingCountry"|"services_serviceNumber_trgm_idx"|"services_driverName_trgm_idx"|"services_vehiclePlate_trgm_idx"|"clients_name_trgm_idx"|"suppliers_name_trgm_idx"|pg_trgm|"audit_logs_default"|"audit_logs_y2026m07"|"audit_logs_y2026m08"|"audit_logs_y2026m09"|"audit_logs_y2026m10"|"audit_logs_y2026m11"|"audit_logs_y2026m12"|"audit_logs_y2027m01"|"audit_logs_y2027m02"|"audit_logs_y2027m03"|"audit_logs_y2027m04"|"audit_logs_y2027m05"|"audit_logs_y2027m06"|"audit_logs_y2027m07"|"audit_logs_y2027m08"|"audit_logs_y2027m09"|"audit_logs_y2027m10"|"audit_logs_y2027m11"|"audit_logs_y2027m12"|^[[:space:]]*$|^--|empty migration' drift.sql > unexpected.sql || true
     - |
       if [ -s unexpected.sql ]; then
         echo 'Unintended schema drift detected:'

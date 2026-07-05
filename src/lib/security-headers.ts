@@ -54,3 +54,30 @@ export function securityHeadersForEnv(isProduction: boolean): SecurityHeader[] {
   if (isProduction) return securityHeaders;
   return securityHeaders.filter((header) => header.key !== 'Strict-Transport-Security');
 }
+
+/**
+ * Nonce-based CSP (#63). script-src carries a per-request nonce and drops
+ * BOTH 'unsafe-eval' and 'unsafe-inline'; all other directives mirror the
+ * #24 baseline above (this function derives from the same authority - do
+ * not fork the directive list).
+ *
+ * Rollout: src/proxy.ts ships this as Content-Security-Policy-Report-Only
+ * until CSP_ENFORCE_NONCE=true. During enforcement the static baseline
+ * still ships from next.config; browsers apply BOTH policies and a script
+ * must satisfy EACH, so the nonce policy is the effective one. Applies in
+ * dev too (#24 decision: CSP breakage surfaces in dev, not first in prod).
+ */
+export function contentSecurityPolicyWithNonce(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.backblazeb2.com https://lh3.googleusercontent.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.backblazeb2.com",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ');
+}

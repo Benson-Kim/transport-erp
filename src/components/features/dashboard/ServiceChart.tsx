@@ -467,10 +467,26 @@ interface HeaderActionProps {
   onExport: () => void;
 }
 
+// #56: STATIC class lookup - template-literal classes (`bg-${color}-50`)
+// never appear literally in source, so Tailwind's scanner cannot generate
+// them and the trend chip rendered unstyled in production builds.
+const TREND_STYLES = {
+  up: {
+    chip: 'bg-green-50 dark:bg-green-900/20',
+    icon: 'text-green-600 dark:text-green-400',
+    text: 'text-green-900 dark:text-green-200',
+  },
+  down: {
+    chip: 'bg-red-50 dark:bg-red-900/20',
+    icon: 'text-red-600 dark:text-red-400',
+    text: 'text-red-900 dark:text-red-200',
+  },
+} as const;
+
 const HeaderAction = ({ data, stats, isExporting, onExport }: Readonly<HeaderActionProps>) => {
   if (data.length === 0) return null;
 
-  const trendColor = stats.trend >= 0 ? 'green' : 'red';
+  const trendStyle = TREND_STYLES[stats.trend >= 0 ? 'up' : 'down'];
   const TrendIcon = stats.trend >= 0 ? TrendingUp : TrendingDown;
 
   return (
@@ -515,16 +531,11 @@ const HeaderAction = ({ data, stats, isExporting, onExport }: Readonly<HeaderAct
           <div
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-help',
-              `bg-${trendColor}-50 dark:bg-${trendColor}-900/20`
+              trendStyle.chip
             )}
           >
-            <TrendIcon className={`h-4 w-4 text-${trendColor}-600 dark:text-${trendColor}-400`} />
-            <span
-              className={cn(
-                'text-sm font-semibold',
-                `text-${trendColor}-900 dark:text-${trendColor}-200`
-              )}
-            >
+            <TrendIcon className={cn('h-4 w-4', trendStyle.icon)} />
+            <span className={cn('text-sm font-semibold', trendStyle.text)}>
               {Math.abs(stats.trend).toFixed(1)}%
             </span>
           </div>

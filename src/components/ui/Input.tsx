@@ -5,7 +5,7 @@
 
 'use client';
 import type { InputHTMLAttributes, ReactNode } from 'react';
-import { forwardRef, useState, useCallback } from 'react';
+import { forwardRef, useState, useCallback, useRef } from 'react';
 
 import { X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -64,11 +64,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const [showPassword, setShowPassword] = useState(false);
-    const [internalValue, setInternalValue] = useState(value || '');
+    // #52: controlled/uncontrolled duality. When `value` is provided the
+    // input IS controlled - it renders the prop directly and never a
+    // seeded-once copy, so edit prefills and programmatic form resets
+    // actually show. Internal state exists only for uncontrolled usage.
+    const [internalValue, setInternalValue] = useState(value ?? '');
+    const isControlled = value !== undefined;
+    const currentValue = isControlled ? value : internalValue;
+
+    const innerRef = useRef<HTMLInputElement | null>(null);
+    const setRefs = useCallback(
+      (node: HTMLInputElement | null) => {
+        innerRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref]
+    );
 
     const effectiveType = type === 'password' && showPassword ? 'text' : type;
     const hasError = status === 'error' || !!error;
-    const characterCount = String(internalValue).length;
+    const characterCount = String(currentValue).length;
 
     const handleChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,24 +94,25 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           return;
         }
 
-        setInternalValue(newValue);
+        if (!isControlled) setInternalValue(newValue);
         onChange?.(e);
       },
-      [onChange, maxCharacters]
+      [onChange, maxCharacters, isControlled]
     );
 
     const handleClear = useCallback(() => {
-      setInternalValue('');
+      // #52: clear through OUR node via the merged ref - the previous
+      // document.querySelector('input[value="..."]') grabbed an arbitrary
+      // input elsewhere on the page with the same text.
+      if (!isControlled) setInternalValue('');
       onClear?.();
 
-      // Create synthetic event
-      const input = document.querySelector(`input[value="${internalValue}"]`) as HTMLInputElement;
-      if (input && onChange) {
-        const event = new Event('change', { bubbles: true });
-        Object.defineProperty(event, 'target', { value: input, writable: false });
-        onChange(event as any);
+      const node = innerRef.current;
+      if (node && onChange) {
+        node.value = '';
+        onChange({ target: node, currentTarget: node } as React.ChangeEvent<HTMLInputElement>);
       }
-    }, [internalValue, onChange, onClear]);
+    }, [isControlled, onChange, onClear]);
 
     const togglePassword = useCallback(() => {
       setShowPassword((prev) => !prev);
@@ -113,9 +130,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
 
           <input
-            ref={ref}
+            ref={setRefs}
             type={effectiveType}
-            value={internalValue}
+            value={currentValue}
             onChange={handleChange}
             disabled={disabled}
             readOnly={readOnly}
@@ -134,7 +151,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
 
           <div className="absolute right-3 flex items-center gap-1">
-            {clearable && internalValue && !disabled && !readOnly && (
+            {clearable && currentValue && !disabled && !readOnly && (
               <button
                 type="button"
                 onClick={handleClear}

@@ -46,7 +46,8 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Reado
 
     const base = cn(
       'nav-item',
-      depth > 0 && !collapsed && 'ps-9)]',
+      // #51: was the malformed 'ps-9)]' - a class Tailwind never generated.
+      depth > 0 && !collapsed && 'ps-9',
       collapsed && variant === 'tablet' && 'justify-center',
       active && 'nav-item-active'
     );
@@ -58,14 +59,14 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Reado
         className={base}
       >
         <Icon
-          className={cn('icon-sm)] shrink-0', collapsed && variant === 'tablet' && 'icon-md)]')}
+          className={cn('icon-sm shrink-0', collapsed && variant === 'tablet' && 'icon-md')}
         />
         {(!collapsed || variant === 'desktop') && (
           <>
             <span className="flex-1 text-left font-medium">{item.label}</span>
             {item.badge !== undefined && <span className="badge badge-active">{item.badge}</span>}
             {hasChildren && (
-              <ChevronRight className={cn('icon-sm)] transition-transform', open && 'rotate-90')} />
+              <ChevronRight className={cn('icon-sm transition-transform', open && 'rotate-90')} />
             )}
           </>
         )}
@@ -82,7 +83,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Reado
           content
         )}
         {hasChildren && open && (!collapsed || variant === 'desktop') && (
-          <ul className="mt-space-1)] space-y-space-1">
+          <ul className="mt-1 space-y-1">
             {item.children!.map((c) => renderItem(c, depth + 1))}
           </ul>
         )}
@@ -94,7 +95,9 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Reado
     <aside
       data-state={collapsed ? 'collapsed' : 'open'}
       className={cn(
-        'fixed inset-y-0 left-0 z-40 bg-neutral border-r border-neutral-200',
+        // #51: 'bg-neutral' does not exist as a utility; the sidebar surface
+        // was transparent.
+        'fixed inset-y-0 left-0 z-40 bg-white border-r border-neutral-200',
         'transition-[width] duration-300 ease-in-out',
         variant === 'desktop' && 'layout-sidebar',
         variant === 'tablet' && (collapsed ? 'layout-sidebar-collapsed' : 'layout-tablet')
@@ -107,7 +110,7 @@ export function Sidebar({ variant, collapsed = false, companyName, user }: Reado
             <button
               type="button"
               onClick={toggleSidebarCollapse}
-              className="rounded-md p-1.5 hover:bg-row-hover"
+              className="rounded-md p-1.5 hover:bg-support-row-hover"
             >
               <Menu className="icon-sm" />
             </button>

@@ -27,26 +27,35 @@ const sizeClasses = {
 };
 
 export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
-  ({ size = 'md', error, format = '24', showSeconds = false, className, ...props }, ref) => {
-    const [inputValue, setInputValue] = useState(props.value || '');
+  (
+    { size = 'md', error, format = '24', showSeconds = false, className, value, onChange, ...props },
+    ref
+  ) => {
+    // #52: value/onChange are DESTRUCTURED - previously they rode inside
+    // {...props}, which was spread AFTER the internal value/onChange and
+    // silently overrode them: auto-format was dead in controlled usage and
+    // the seeded-once internal state never synced. Controlled when `value`
+    // is provided; uncontrolled otherwise - formatting applies in BOTH.
+    const [internalValue, setInternalValue] = useState(value ?? '');
+    const isControlled = value !== undefined;
+    const currentValue = isControlled ? value : internalValue;
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let value = e.target.value.replaceAll(/[^\d:]/g, '');
+      let next = e.target.value.replaceAll(/[^\d:]/g, '');
 
       // Auto-format as user types
-      if (value.length === 2 && !value.includes(':')) {
-        value = `${value  }:`;
+      if (next.length === 2 && !next.includes(':')) {
+        next = `${next}:`;
       }
-      if (showSeconds && value.length === 5 && value.split(':').length === 2) {
-        value = `${value  }:`;
+      if (showSeconds && next.length === 5 && next.split(':').length === 2) {
+        next = `${next}:`;
       }
 
-      setInputValue(value);
+      if (!isControlled) setInternalValue(next);
 
-      // Call original onChange
-      if (props.onChange) {
-        e.target.value = value;
-        props.onChange(e);
+      if (onChange) {
+        e.target.value = next;
+        onChange(e);
       }
     };
 
@@ -64,7 +73,7 @@ export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(
           <input
             ref={ref}
             type="text"
-            value={inputValue}
+            value={currentValue}
             onChange={handleChange}
             placeholder={placeholder}
             className={cn('input pr-10', sizeClasses[size], error && 'input-error', className)}

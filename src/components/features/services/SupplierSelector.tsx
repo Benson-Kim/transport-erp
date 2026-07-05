@@ -1,15 +1,19 @@
-// SuppliersSelector.tsx
+// SupplierSelector.tsx
 'use client';
 
-import { useMemo } from 'react';
+/**
+ * #47: thin wrapper over the shared async EntitySelector. Public props are
+ * UNCHANGED: `suppliers` now feeds only the capped initial page; typing
+ * streams server-side, index-backed results via searchSupplierOptions -
+ * the full supplier table is never loaded. Create-new keeps the
+ * returnTo=/services/new contract (#64: the target validates the path).
+ */
 
-import { useRouter } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
 
-import { Plus } from 'lucide-react';
+import { searchSupplierOptions } from '@/actions/service-actions';
 
-import { Select, Badge } from '@/components/ui';
-import { cn } from '@/lib/utils/cn';
-import type { Option } from '@/types/ui';
+import { EntitySelector, type EntityOption } from './EntitySelector';
 
 interface Supplier {
   id: string;
@@ -38,59 +42,37 @@ export function SupplierSelector({
   placeholder = 'Select supplier...',
   allowCreate = true,
 }: Readonly<SupplierSelectorProps>) {
-  const router = useRouter();
+  const initialOptions = useMemo<EntityOption[]>(
+    () =>
+      suppliers.map((supplier) => ({
+        id: supplier.id,
+        name: supplier.name,
+        code: supplier.supplierCode,
+      })),
+    [suppliers]
+  );
 
-  // Convert suppliers to Option format with groups
-  const options = useMemo<Option[]>(() => {
-    const supplierOptions: Option[] = suppliers.map((supplier) => ({
-      value: supplier.id,
-      label: supplier.name,
-      description: [supplier.supplierCode, supplier.email].filter(Boolean).join(' • '),
-      group: supplier.isActive === false ? 'Inactive Suppliers' : 'Active Suppliers',
-      disabled: false,
-      icon: (
-        <Badge variant={supplier.isActive === false ? 'cancelled' : 'active'} size="sm">
-          {supplier.supplierCode}
-        </Badge>
-      ),
+  const search = useCallback(async (query: string): Promise<EntityOption[]> => {
+    const results = await searchSupplierOptions(query);
+    return results.map((supplier) => ({
+      id: supplier.id,
+      name: supplier.name,
+      code: supplier.supplierCode,
     }));
-
-    // Add "Create New" option if allowed
-    if (allowCreate) {
-      supplierOptions.push({
-        value: '__create_new__',
-        label: 'Create New Supplier',
-        icon: <Plus className="h-4 w-4" />,
-        group: 'Actions',
-      });
-    }
-
-    return supplierOptions;
-  }, [suppliers, allowCreate]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-
-    if (selectedValue === '__create_new__') {
-      router.push('/suppliers/new?returnTo=/services/new');
-    } else {
-      onChange(selectedValue);
-    }
-  };
+  }, []);
 
   return (
-    <Select
-      value={value}
-      onChange={handleChange}
-      options={options}
+    <EntitySelector
+      value={value ?? ''}
+      onChange={onChange}
+      search={search}
+      initialOptions={initialOptions}
       placeholder={placeholder}
-      searchable
-      clearable={!!value}
-      onClear={() => onChange('')}
+      error={error ?? ''}
       disabled={disabled}
-      error={error || ''}
+      createHref={allowCreate ? '/suppliers/new?returnTo=/services/new' : undefined}
+      createLabel="Create New Supplier"
       emptyMessage="No suppliers found"
-      className={cn(error && 'border-red-500 ring-0 focus-visible:ring-red-500')}
     />
   );
 }

@@ -9,6 +9,7 @@ import type { NextRequest } from 'next/server';
 
 import { auth } from '@/lib/auth';
 import { canAccessRoute } from '@/lib/permissions';
+import { contentSecurityPolicyWithNonce } from '@/lib/security-headers';
 
 /**
  * Public routes that don't require authentication
@@ -52,7 +53,28 @@ export default async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-request-id', requestId);
-  const nextWithRequestId = () => NextResponse.next({ request: { headers: requestHeaders } });
+
+  // #63: per-request CSP nonce, minted alongside the request id. Setting
+  // the nonce policy on the REQUEST 'content-security-policy' header is
+  // how Next.js discovers the nonce and tags its own inline
+  // bootstrap/hydration scripts; x-nonce is for custom <Script nonce>.
+  // The RESPONSE ships the policy Report-Only until CSP_ENFORCE_NONCE=true
+  // (validate ZERO violations across login/dashboard/services/clients
+  // first). securityHeadersForEnv stays the single directive authority.
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const nonceCsp = contentSecurityPolicyWithNonce(nonce);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('content-security-policy', nonceCsp);
+  const cspResponseHeader =
+    process.env['CSP_ENFORCE_NONCE'] === 'true'
+      ? 'Content-Security-Policy'
+      : 'Content-Security-Policy-Report-Only';
+
+  const nextWithRequestId = () => {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    response.headers.set(cspResponseHeader, nonceCsp);
+    return response;
+  };
 
   // Allow public routes. The request id still flows: audit writes on the
   // public auth paths need correlation too (#21).
@@ -109,11 +131,14 @@ export default async function proxy(request: NextRequest) {
   requestHeaders.set('x-user-email', session.user.email ?? '');
   requestHeaders.set('x-pathname', pathname);
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+  // #63: nonce CSP on every document response (report-only or enforced).
+  response.headers.set(cspResponseHeader, nonceCsp);
+  return response;
 }
 
 export const config = {
