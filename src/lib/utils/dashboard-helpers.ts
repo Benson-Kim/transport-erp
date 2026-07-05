@@ -4,14 +4,14 @@
  * Utility functions for dashboard calculations and data processing
  */
 
-import { startOfMonth, subDays } from 'date-fns';
+import { subDays } from 'date-fns';
 
 import { ServiceStatus } from '@/app/generated/prisma';
 import type { Decimal } from '@/app/generated/prisma/runtime/library';
 import { decimalToNumber, toDecimal, ZERO, type MoneyInput } from '@/lib/pricing';
 import { isRecognizedRevenueStatus } from '@/lib/revenue';
 
-import { formatDate, toDate } from './date-formats';
+import { toDate } from './date-formats';
 
 /**
  * Calculate percentage change between two values
@@ -51,6 +51,26 @@ export function calculateDateRange(dateRange: { from?: string; to?: string; pres
 }
 
 /**
+ * Month bucket key pinned to UTC (#65 / ADR 0002): the previous
+ * formatDate.monthYear(startOfMonth(date)) keyed months in SERVER-LOCAL
+ * time against UTC-stored dates, so a service at 2019-01-31T23:30:00Z
+ * bucketed into February on an east-of-UTC deployment. Exported for the
+ * boundary tests.
+ */
+export function utcMonthKey(date: Date): string {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+/** First instant of the UTC month `monthsBack` months before `now`. */
+function utcMonthStart(now: Date, monthsBack: number): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - monthsBack, 1));
+}
+
+/**
  * Aggregate services by month for chart
  */
 export function aggregateServicesByMonth(
@@ -60,7 +80,9 @@ export function aggregateServicesByMonth(
     saleAmount?: MoneyInput | null;
     costAmount?: MoneyInput | null;
     margin?: MoneyInput | null;
-  }>
+  }>,
+  /** Injectable for month-boundary tests (#65). */
+  now: Date = new Date()
 ) {
   const monthlyData: Record<
     string,
@@ -72,10 +94,11 @@ export function aggregateServicesByMonth(
     }
   > = {};
 
-  // Initialize last 6 months
+  // Initialize the last 6 UTC calendar months (#65): real month arithmetic,
+  // not the old subDays(i * 30) approximation which drifted across 31-day
+  // months and DST transitions.
   for (let i = 5; i >= 0; i--) {
-    const date = subDays(new Date(), i * 30);
-    const monthKey = formatDate.monthYear(startOfMonth(date));
+    const monthKey = utcMonthKey(utcMonthStart(now, i));
     monthlyData[monthKey] = {
       completed: 0,
       inProgress: 0,
@@ -86,7 +109,7 @@ export function aggregateServicesByMonth(
 
   // Aggregate services
   services.forEach((service) => {
-    const monthKey = formatDate.monthYear(startOfMonth(service.date));
+    const monthKey = utcMonthKey(service.date);
     if (monthlyData[monthKey]) {
       monthlyData[monthKey].total++;
 
@@ -122,7 +145,9 @@ export function aggregateRevenueByMonth(
     saleAmount: MoneyInput | null;
     costAmount: MoneyInput | null;
     margin: MoneyInput | null;
-  }>
+  }>,
+  /** Injectable for month-boundary tests (#65). */
+  now: Date = new Date()
 ) {
   // Accumulate in Decimal (#25): Prisma Decimal amounts summed as floats
   // lose precision. Convert once at the chart boundary.
@@ -135,10 +160,9 @@ export function aggregateRevenueByMonth(
     }
   > = {};
 
-  // Initialize last 6 months
+  // Initialize the last 6 UTC calendar months (#65).
   for (let i = 5; i >= 0; i--) {
-    const date = subDays(new Date(), i * 30);
-    const monthKey = formatDate.monthYear(startOfMonth(date));
+    const monthKey = utcMonthKey(utcMonthStart(now, i));
     monthlyData[monthKey] = {
       revenue: ZERO,
       cost: ZERO,
@@ -149,7 +173,7 @@ export function aggregateRevenueByMonth(
   // Aggregate revenue (recognized statuses only - the #33 single definition)
   services.forEach((service) => {
     if (isRecognizedRevenueStatus(service.status)) {
-      const monthKey = formatDate.monthYear(startOfMonth(service.date));
+      const monthKey = utcMonthKey(service.date);
       const bucket = monthlyData[monthKey];
       if (bucket) {
         bucket.revenue = bucket.revenue.plus(toDecimal(service.saleAmount ?? 0));
