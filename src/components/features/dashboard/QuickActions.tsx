@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import Link from 'next/link';
 
@@ -17,19 +17,10 @@ import {
   Building2,
   TrendingUp,
   Settings,
-  Download,
-  Upload,
-  Send,
   ArrowRight,
-  HelpCircle,
   Sparkles,
   Zap,
-  BookOpen,
-  Video,
-  MessageSquare,
-  ExternalLink,
   ChevronRight,
-  Loader2,
 } from 'lucide-react';
 
 import type { UserRole } from '@/app/generated/prisma';
@@ -51,7 +42,6 @@ export function QuickActions({
   onRefresh,
 }: QuickActionsProps) {
   const permissions = usePermissions();
-  const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const actions = useMemo(
     () => [
@@ -124,47 +114,11 @@ export function QuickActions({
     [permissions]
   );
 
+  // #58: Import/Export/Notifications were dead affordances - a fake 1s
+  // spinner and NOTHING else. A shown control must work or be removed;
+  // reintroduce each only alongside its real implementation.
   const shortcuts = useMemo(
     () => [
-      {
-        id: 'import',
-        label: 'Import Data',
-        description: 'Bulk import from Excel or CSV',
-        icon: Upload,
-        onClick: async () => {
-          setLoadingAction('import');
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          setLoadingAction(null);
-        },
-        show: permissions.isAdmin,
-        color: 'bg-cyan-500',
-      },
-      {
-        id: 'export',
-        label: 'Export Report',
-        description: 'Download reports in various formats',
-        icon: Download,
-        onClick: async () => {
-          setLoadingAction('export');
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          setLoadingAction(null);
-        },
-        show: permissions.can('reports', 'export'),
-        color: 'bg-teal-500',
-      },
-      {
-        id: 'notifications',
-        label: 'Send Notifications',
-        description: 'Send bulk notifications to users',
-        icon: Send,
-        onClick: async () => {
-          setLoadingAction('notifications');
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          setLoadingAction(null);
-        },
-        show: permissions.isManager,
-        color: 'bg-amber-500',
-      },
       {
         id: 'settings',
         label: 'Settings',
@@ -177,33 +131,6 @@ export function QuickActions({
     ],
     [permissions]
   );
-
-  const helpResources = [
-    {
-      id: 'getting-started',
-      label: 'Getting Started Guide',
-      description: 'Learn the basics',
-      icon: BookOpen,
-      href: '/help/getting-started',
-      external: false,
-    },
-    {
-      id: 'video-tutorials',
-      label: 'Video Tutorials',
-      description: 'Watch and learn',
-      icon: Video,
-      href: '/help/video-tutorials',
-      external: false,
-    },
-    {
-      id: 'contact-support',
-      label: 'Contact Support',
-      description: '24/7 assistance',
-      icon: MessageSquare,
-      href: '/help/contact',
-      external: false,
-    },
-  ];
 
   const visibleActions = actions.filter((action) => action.show);
   const visibleShortcuts = shortcuts.filter((shortcut) => shortcut.show);
@@ -303,142 +230,40 @@ export function QuickActions({
           <CardHeader title="Shortcuts" subtitle="Quick access to common tasks" />
           <CardBody>
             <div className="grid grid-cols-2 gap-3">
-              {visibleShortcuts.map((shortcut) => {
-                const isLoading = loadingAction === shortcut.id;
-
-                return (
-                  <Tooltip key={shortcut.id} content={shortcut.description} position="top">
-                    {shortcut.href ? (
-                      <Link href={shortcut.href} className="block">
-                        <div
-                          className={cn(
-                            'relative h-24 rounded-lg border-2 border-neutral-200',
-                            'hover:border-primary hover:shadow-md transition-all cursor-pointer',
-                            'dark:border-neutral-700 dark:hover:border-primary',
-                            'flex flex-col items-center justify-center gap-2 p-4',
-                            'group'
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'p-2 rounded-lg transition-colors',
-                              shortcut.color,
-                              'bg-opacity-10 group-hover:bg-opacity-20'
-                            )}
-                          >
-                            <shortcut.icon className="h-5 w-5" />
-                          </div>
-                          <span className="text-xs font-medium text-center">{shortcut.label}</span>
-                        </div>
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={shortcut.onClick}
-                        disabled={isLoading}
+              {visibleShortcuts.map((shortcut) => (
+                <Tooltip key={shortcut.id} content={shortcut.description} position="top">
+                  <Link href={shortcut.href} className="block">
+                    <div
+                      className={cn(
+                        'relative h-24 rounded-lg border-2 border-neutral-200',
+                        'hover:border-primary hover:shadow-md transition-all cursor-pointer',
+                        'dark:border-neutral-700 dark:hover:border-primary',
+                        'flex flex-col items-center justify-center gap-2 p-4',
+                        'group'
+                      )}
+                    >
+                      <div
                         className={cn(
-                          'relative h-24 w-full rounded-lg border-2 border-neutral-200',
-                          'hover:border-primary hover:shadow-md transition-all',
-                          'dark:border-neutral-700 dark:hover:border-primary',
-                          'flex flex-col items-center justify-center gap-2 p-4',
-                          'group disabled:opacity-50 disabled:cursor-not-allowed'
+                          'p-2 rounded-lg transition-colors',
+                          shortcut.color,
+                          'bg-opacity-10 group-hover:bg-opacity-20'
                         )}
                       >
-                        <div
-                          className={cn(
-                            'p-2 rounded-lg transition-colors',
-                            shortcut.color,
-                            'bg-opacity-10 group-hover:bg-opacity-20'
-                          )}
-                        >
-                          {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                          ) : (
-                            <shortcut.icon className="h-5 w-5" />
-                          )}
-                        </div>
-                        <span className="text-xs font-medium text-center">
-                          {isLoading ? 'Processing...' : shortcut.label}
-                        </span>
-                      </button>
-                    )}
-                  </Tooltip>
-                );
-              })}
+                        <shortcut.icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-xs font-medium text-center">{shortcut.label}</span>
+                    </div>
+                  </Link>
+                </Tooltip>
+              ))}
             </div>
           </CardBody>
         </Card>
       )}
 
-      {/* Help & Support */}
-      <Card variant="elevated" padding="none">
-        <CardHeader
-          title="Need Help?"
-          subtitle="Resources and support options"
-          action={
-            <Tooltip content="Get help anytime" position="left">
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            </Tooltip>
-          }
-        />
-        <CardBody>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Access guides, tutorials, and direct support to help you get the most out of the
-              platform.
-            </p>
-
-            <div className="grid gap-2">
-              {helpResources.map((resource) => (
-                <Link
-                  key={resource.id}
-                  href={resource.href}
-                  className="group"
-                  {...(resource.external && {
-                    target: '_blank',
-                    rel: 'noopener noreferrer',
-                  })}
-                >
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 p-3 rounded-lg',
-                      'border border-neutral-200 dark:border-neutral-700',
-                      'hover:border-primary hover:bg-neutral-50 dark:hover:bg-neutral-900',
-                      'transition-all'
-                    )}
-                  >
-                    <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                      <resource.icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{resource.label}</span>
-                        {resource.external && (
-                          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">{resource.description}</span>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Quick contact */}
-            <div className="pt-3 border-t flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">Need immediate assistance?</div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => window.open('mailto:support@example.com', '_blank')}
-              >
-                Email Support
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
+      {/* #58: the Help & Support card was a dead-affordance cluster - the
+          /help/* routes do not exist and mailto:support@example.com was a
+          placeholder. Reintroduce it WITH real destinations or not at all. */}
     </div>
   );
 }

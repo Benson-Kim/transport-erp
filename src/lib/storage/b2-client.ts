@@ -5,6 +5,8 @@ import { Agent as HttpsAgent } from 'node:https';
 import { S3Client } from '@aws-sdk/client-s3';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 
+import { logger } from '@/lib/logger';
+
 import { StorageConfigError } from './errors';
 import { getB2Config } from './utils';
 
@@ -31,10 +33,8 @@ class B2StorageClient {
       throw new StorageConfigError('B2 credentials not configured');
     }
 
-    console.log('Creating B2 client with config:', {
-      endpoint: this.config.endpoint,
-      region: this.config.region,
-      bucketName: this.config.bucketName,
+    // #42/#58: no config values in logs - presence flags only.
+    logger.debug('Creating B2 client', {
       hasKeyId: !!this.config.applicationKeyId,
       hasKey: !!this.config.applicationKey,
     });
@@ -119,7 +119,7 @@ class B2StorageClient {
    */
   public async initialize(): Promise<void> {
     try {
-      console.log('Initializing B2 client...');
+      logger.debug('Initializing B2 client');
 
       // Validate configuration
       if (!this.config.applicationKeyId || !this.config.applicationKey) {
@@ -147,9 +147,11 @@ class B2StorageClient {
       // Connection test is deferred to first real operation (issue #49).
 
       this.initialized = true;
-      console.log('B2 client initialized successfully');
+      logger.info('B2 client initialized');
     } catch (error) {
-      console.error('Failed to initialize B2 client:', error);
+      logger.error('Failed to initialize B2 client', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       this.initialized = false;
       this.client = null;
 
@@ -167,7 +169,7 @@ class B2StorageClient {
    * Reinitialize client
    */
   public async reinitialize(): Promise<void> {
-    console.log('Reinitializing B2 client...');
+    logger.info('Reinitializing B2 client');
     this.client = null;
     this.initialized = false;
     this.config = getB2Config();
@@ -182,4 +184,21 @@ class B2StorageClient {
   }
 }
 
-export const b2Client = B2StorageClient.getInstance();
+// #58: LAZY facade. `export const b2Client = B2StorageClient.getInstance()`
+// constructed B2 config AT IMPORT TIME, so one unset B2_* variable crashed
+// every route whose module graph touched storage. Instantiation now happens
+// on FIRST USE: with B2 unconfigured the app boots and only the storage-
+// dependent feature surfaces a StorageConfigError.
+function singleton(): B2StorageClient {
+  return B2StorageClient.getInstance();
+}
+
+export const b2Client = {
+  getClient: () => singleton().getClient(),
+  getConfig: () => singleton().getConfig(),
+  getBucketName: () => singleton().getBucketName(),
+  getCdnUrl: () => singleton().getCdnUrl(),
+  initialize: () => singleton().initialize(),
+  reinitialize: () => singleton().reinitialize(),
+  isInitialized: () => singleton().isInitialized(),
+};
