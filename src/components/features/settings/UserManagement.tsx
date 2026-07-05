@@ -185,6 +185,9 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<'deactivate' | 'delete' | null>(null);
   const router = useRouter();
+  // #54: hooks belong at the top level - usePermissions() previously lived
+  // INSIDE the per-row rowActions callback (Rules-of-Hooks crash).
+  const permissions = usePermissions();
 
   // Filter users to only show Admin, Manager, Operator roles
   const relevantRoles = [
@@ -412,11 +415,13 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
    */
   const rowActions = useCallback(
     (user: User) => {
-      const permissions = usePermissions();
       const isSelf = user.id === currentUserId;
 
       if (!isAdmin || isSelf) return null;
 
+      // #54: the permission-filtered list IS what renders - previously it
+      // was computed, discarded, and a hardcoded unfiltered menu shipped
+      // instead (controls the caller's role could not perform).
       const actions = [
         {
           id: 'edit',
@@ -435,7 +440,6 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
           onClick: () => handleDeactivate(user),
           show: permissions.can('users', 'manage'),
         },
-        { id: 'divider', divider: true },
         {
           id: 'delete',
           label: 'Delete',
@@ -445,47 +449,32 @@ export function UserManagement({ users, currentUserId, currentUserRole }: UserMa
           show: permissions.can('users', 'delete'),
         },
       ]
-        .filter((a) => a.show)
-        .map(({ show, ...rest }) => rest);
+        .filter((action) => action.show)
+        .map(({ show: _show, ...rest }) => rest);
 
       if (actions.length === 0) return null;
 
-      console.log(actions);
+      // Divider only when Delete follows other items.
+      const deleteIndex = actions.findIndex((action) => action.id === 'delete');
+      const items =
+        deleteIndex > 0
+          ? [
+              ...actions.slice(0, deleteIndex),
+              { id: 'divider', divider: true as const },
+              ...actions.slice(deleteIndex),
+            ]
+          : actions;
 
       return (
         <DropdownMenu
           position="left"
           trigger={<Button variant="ghost" size="sm" icon={<MoreVertical className="h-4 w-4" />} />}
-          items={[
-            {
-              id: 'edit',
-              label: 'Edit',
-              icon: <Edit className="h-4 w-4" />,
-              onClick: () => {
-                setEditingUser(user);
-                setUserFormOpen(true);
-              },
-            },
-            {
-              id: 'deactivate',
-              label: user.isActive ? 'Deactivate' : 'Activate',
-              icon: <UserX className="h-4 w-4" />,
-              onClick: () => handleDeactivate(user),
-            },
-            { id: 'divider', divider: true },
-            {
-              id: 'delete',
-              label: 'Delete',
-              icon: <Trash2 className="h-4 w-4" />,
-              onClick: () => setDeleteConfirm(user),
-              danger: true,
-            },
-          ]}
+          items={items}
           align="right"
         />
       );
     },
-    [currentUserId, currentUserRole, handleDeactivate]
+    [currentUserId, isAdmin, permissions, handleDeactivate]
   );
 
   return (

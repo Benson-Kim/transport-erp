@@ -50,6 +50,8 @@ export function variants<T extends Record<string, Record<string, string>>>(confi
 export const focusRing = cn(
   'outline-none',
   'ring-2 ring-offset-2',
+  // #56: ring-primary-500/ring-offset-background resolve now that #51
+  // registered the primary scale and --color-background in @theme.
   'ring-primary-500 ring-offset-background',
   'focus-visible:ring-2 focus-visible:ring-offset-2'
 );
@@ -106,9 +108,11 @@ export const utils = {
   label: cn('text-sm font-medium', 'text-neutral-900', 'dark:text-neutral-100'),
 
   /**
-   * Error text styles
+   * Error text styles. #56: text-error-* was never a defined family -
+   * error text styled with this was silently colorless; the registered
+   * feedback token is the real one.
    */
-  errorText: cn('text-sm text-error-600', 'dark:text-error-400'),
+  errorText: cn('text-sm text-feedback-error-text'),
 
   /**
    * Helper text styles
@@ -136,16 +140,64 @@ export const utils = {
   ),
 
   /**
-   * Responsive grid
+   * Responsive grid. #56: STATIC lookup - the previous template literals
+   * (`grid-cols-${n}`) are invisible to Tailwind's scanner, so every
+   * consumer's responsive grid collapsed to one column in production.
+   * Unsupported counts are ignored (no class beats a nonexistent class).
    */
   grid: (cols: { base?: number; sm?: number; md?: number; lg?: number; xl?: number }) => {
-    const classes = ['grid gap-4'];
+    const BASE: Record<number, string> = {
+      1: 'grid-cols-1',
+      2: 'grid-cols-2',
+      3: 'grid-cols-3',
+      4: 'grid-cols-4',
+      5: 'grid-cols-5',
+      6: 'grid-cols-6',
+      12: 'grid-cols-12',
+    };
+    const SM: Record<number, string> = {
+      1: 'sm:grid-cols-1',
+      2: 'sm:grid-cols-2',
+      3: 'sm:grid-cols-3',
+      4: 'sm:grid-cols-4',
+      5: 'sm:grid-cols-5',
+      6: 'sm:grid-cols-6',
+      12: 'sm:grid-cols-12',
+    };
+    const MD: Record<number, string> = {
+      1: 'md:grid-cols-1',
+      2: 'md:grid-cols-2',
+      3: 'md:grid-cols-3',
+      4: 'md:grid-cols-4',
+      5: 'md:grid-cols-5',
+      6: 'md:grid-cols-6',
+      12: 'md:grid-cols-12',
+    };
+    const LG: Record<number, string> = {
+      1: 'lg:grid-cols-1',
+      2: 'lg:grid-cols-2',
+      3: 'lg:grid-cols-3',
+      4: 'lg:grid-cols-4',
+      5: 'lg:grid-cols-5',
+      6: 'lg:grid-cols-6',
+      12: 'lg:grid-cols-12',
+    };
+    const XL: Record<number, string> = {
+      1: 'xl:grid-cols-1',
+      2: 'xl:grid-cols-2',
+      3: 'xl:grid-cols-3',
+      4: 'xl:grid-cols-4',
+      5: 'xl:grid-cols-5',
+      6: 'xl:grid-cols-6',
+      12: 'xl:grid-cols-12',
+    };
 
-    if (cols.base) classes.push(`grid-cols-${cols.base}`);
-    if (cols.sm) classes.push(`sm:grid-cols-${cols.sm}`);
-    if (cols.md) classes.push(`md:grid-cols-${cols.md}`);
-    if (cols.lg) classes.push(`lg:grid-cols-${cols.lg}`);
-    if (cols.xl) classes.push(`xl:grid-cols-${cols.xl}`);
+    const classes = ['grid gap-4'];
+    if (cols.base && BASE[cols.base]) classes.push(BASE[cols.base]!);
+    if (cols.sm && SM[cols.sm]) classes.push(SM[cols.sm]!);
+    if (cols.md && MD[cols.md]) classes.push(MD[cols.md]!);
+    if (cols.lg && LG[cols.lg]) classes.push(LG[cols.lg]!);
+    if (cols.xl && XL[cols.xl]) classes.push(XL[cols.xl]!);
 
     return cn(...classes);
   },

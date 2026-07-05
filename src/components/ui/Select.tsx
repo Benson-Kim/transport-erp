@@ -48,8 +48,9 @@ const DropdownContent: React.FC<{
   emptyMessage: string;
   groupedOptions: Record<string, Option[]>;
   value: SelectProps['value'];
+  highlightedValue?: string | undefined;
   onSelect: (option: Option) => void;
-}> = ({ loading, filteredOptions, emptyMessage, groupedOptions, value, onSelect }) => {
+}> = ({ loading, filteredOptions, emptyMessage, groupedOptions, value, highlightedValue, onSelect }) => {
   if (loading) {
     return <div className="px-3 py-2 text-sm text-neutral-500">Loading...</div>;
   }
@@ -77,6 +78,7 @@ const DropdownContent: React.FC<{
                 'w-full px-3 py-2 text-left text-sm hover:bg-neutral-50 transition-colors',
                 'flex items-center justify-between',
                 option.disabled && 'opacity-50 cursor-not-allowed',
+                option.value === highlightedValue && 'bg-neutral-100',
                 option.value === value && 'bg-primary-50 text-primary'
               )}
               role="option"
@@ -124,6 +126,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    // #55: keyboard navigation state (the old handler was a stub).
+    const [highlightedIndex, setHighlightedIndex] = useState(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -174,9 +178,17 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       [onChange, onClear]
     );
 
-    // Handle keyboard navigation
+    // Reset the highlight whenever the list (re)opens or the filter changes.
+    useEffect(() => {
+      if (isOpen) setHighlightedIndex(0);
+    }, [isOpen, searchTerm]);
+
+    // Handle keyboard navigation (#55: real implementation - ArrowUp/Down
+    // move the highlight over enabled options, Home/End jump, Enter picks).
     useEffect(() => {
       if (!isOpen) return;
+
+      const enabledOptions = filteredOptions.filter((opt) => !opt.disabled);
 
       const handleKeyDown = (e: KeyboardEvent) => {
         switch (e.key) {
@@ -184,16 +196,33 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             setIsOpen(false);
             break;
           case 'ArrowDown':
+            e.preventDefault();
+            setHighlightedIndex((i) => Math.min(i + 1, enabledOptions.length - 1));
+            break;
           case 'ArrowUp':
             e.preventDefault();
-            // Implement keyboard navigation logic
+            setHighlightedIndex((i) => Math.max(i - 1, 0));
             break;
+          case 'Home':
+            e.preventDefault();
+            setHighlightedIndex(0);
+            break;
+          case 'End':
+            e.preventDefault();
+            setHighlightedIndex(enabledOptions.length - 1);
+            break;
+          case 'Enter': {
+            e.preventDefault();
+            const option = enabledOptions[highlightedIndex];
+            if (option) handleSelect(option);
+            break;
+          }
         }
       };
 
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen]);
+    }, [isOpen, filteredOptions, highlightedIndex, handleSelect]);
 
     // Handle click outside
     useEffect(() => {
@@ -267,41 +296,45 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     // Custom dropdown implementation
     return (
       <div className="relative w-full" ref={dropdownRef}>
-        <button
-          type="button"
-          onClick={() => !disabled && setIsOpen(!isOpen)}
-          tabIndex={0}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          className={cn(
-            'input flex items-center justify-between cursor-pointer',
-            sizeClasses[size],
-            error && 'input-error',
-            disabled && 'input-disabled cursor-not-allowed',
-            className
-          )}
-        >
-          <span className={cn('truncate', !selectedOption && 'text-neutral-400')}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
-
-          <div className="flex items-center gap-1">
-            {clearable && value && !disabled && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="p-1 hover:bg-neutral-100 rounded transition-colors"
-                aria-label="Clear selection"
-              >
-                <X size={16} className="text-neutral-500" />
-              </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => !disabled && setIsOpen(!isOpen)}
+            tabIndex={0}
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
+            className={cn(
+              'input flex items-center justify-between cursor-pointer',
+              sizeClasses[size],
+              error && 'input-error',
+              disabled && 'input-disabled cursor-not-allowed',
+              clearable && value && 'pr-14',
+              className
             )}
+          >
+            <span className={cn('truncate', !selectedOption && 'text-neutral-400')}>
+              {selectedOption ? selectedOption.label : placeholder}
+            </span>
             <ChevronDown
               size={16}
               className={cn('text-neutral-500 transition-transform', isOpen && 'rotate-180')}
             />
-          </div>
-        </button>
+          </button>
+
+          {/* #55: the clear control sits BESIDE the trigger, not nested
+              inside it - button-in-button is invalid HTML and unreachable
+              by keyboard as a distinct control. */}
+          {clearable && value && !disabled && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-8 top-1/2 -translate-y-1/2 p-1 hover:bg-neutral-100 rounded transition-colors"
+              aria-label="Clear selection"
+            >
+              <X size={16} className="text-neutral-500" />
+            </button>
+          )}
+        </div>
 
         {error && (
           <div id={`${props.id}-error`} className="mt-1 text-danger text-xs" role="alert">
@@ -344,6 +377,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 emptyMessage={emptyMessage}
                 groupedOptions={groupedOptions}
                 value={value}
+                highlightedValue={String(
+                  filteredOptions.filter((opt) => !opt.disabled)[highlightedIndex]?.value ?? ''
+                )}
                 onSelect={handleSelect}
               />
             </div>
