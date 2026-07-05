@@ -27,9 +27,9 @@ import { createGunzip, createGzip } from 'zlib';
 
 import { format as formatDateFns } from 'date-fns';
 
+import { getEnv, getOptionalEnv } from '@/lib/env';
 import { logger } from '@/lib/logger';
 import prisma from '@/lib/prisma/prisma';
-import { getEnv } from '@/lib/utils/export';
 import {
   backupSettingsSchema,
   type BackupSettingsInput,
@@ -56,22 +56,29 @@ export interface B2Config {
   endpoint: string;
   keyName: string;
   maxFileSize: number;
-  cdnUrl?: string;
+  // `| undefined` is deliberate (exactOptionalPropertyTypes): getOptionalEnv
+  // returns string | undefined for the boot-optional B2_CDN_URL (#58).
+  cdnUrl?: string | undefined;
 }
 
 export function getB2Config(): B2Config {
-  const cleanEndpoint = getEnv('B2_ENDPOINT').trim().replace(/\/+$/, '');
-  const endpoint = cleanEndpoint.startsWith('http') ? cleanEndpoint : `https://${cleanEndpoint}`;
+  // #58: getOptionalEnv per variable - the old getEnv THREW on any unset
+  // name, so every `getEnv(x) || 'default'` fallback here was unreachable
+  // and an unset OPTIONAL B2_CDN_URL took backups down entirely.
+  // validateB2Config below is the single required-field gate.
+  const rawEndpoint = (getOptionalEnv('B2_ENDPOINT') ?? '').trim().replace(/\/+$/, '');
+  const endpoint =
+    !rawEndpoint || rawEndpoint.startsWith('http') ? rawEndpoint : `https://${rawEndpoint}`;
   return {
-    applicationKeyId: getEnv('B2_APPLICATION_KEY_ID') || '',
-    applicationKey: getEnv('B2_APPLICATION_KEY') || '',
-    bucketId: getEnv('B2_BUCKET_ID') || '',
-    bucketName: getEnv('B2_BUCKET_NAME') || '',
-    region: getEnv('B2_REGION') || 'us-west-004',
-    endpoint: endpoint || '',
-    keyName: getEnv('B2_KEYNAME') || 'backups',
-    maxFileSize: parseInt(getEnv('B2_MAX_FILE_SIZE') || '104857600', 10), // 100MB default
-    cdnUrl: getEnv('B2_CDN_URL'),
+    applicationKeyId: getOptionalEnv('B2_APPLICATION_KEY_ID') ?? '',
+    applicationKey: getOptionalEnv('B2_APPLICATION_KEY') ?? '',
+    bucketId: getOptionalEnv('B2_BUCKET_ID') ?? '',
+    bucketName: getOptionalEnv('B2_BUCKET_NAME') ?? '',
+    region: getOptionalEnv('B2_REGION') ?? 'us-west-004',
+    endpoint,
+    keyName: getOptionalEnv('B2_KEYNAME') ?? 'backups',
+    maxFileSize: parseInt(getOptionalEnv('B2_MAX_FILE_SIZE') ?? '104857600', 10), // 100MB default
+    cdnUrl: getOptionalEnv('B2_CDN_URL'),
   };
 }
 
