@@ -28,7 +28,11 @@ export function Tooltip({
 }: Readonly<TooltipProps>) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  // #55: the trigger is a SPAN - the previous <button> wrapper produced
+  // button-in-button (invalid HTML, split tab stops) around every
+  // tooltipped Button/row action in the app. Focus/blur events bubble
+  // from the focusable child, so keyboard reveal still works.
+  const triggerRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tooltipId = useId();
 
@@ -105,10 +109,9 @@ export function Tooltip({
 
   return (
     <>
-      <button
+      <span
         ref={triggerRef}
-        type="button"
-        className="inline-flex appearance-none bg-transparent border-0 p-0 cursor-default"
+        className="inline-flex"
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
         onFocus={showTooltip}
@@ -117,7 +120,7 @@ export function Tooltip({
         aria-describedby={isVisible ? tooltipId : undefined}
       >
         {children}
-      </button>
+      </span>
 
       {isVisible &&
         content &&
