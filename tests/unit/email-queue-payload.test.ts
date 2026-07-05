@@ -3,6 +3,8 @@
  * double-serialized (JSON string inside JSONB). normalizeQueuePayload must
  * accept both so the existing queue drains after the fix.
  */
+import { describe, expect, it } from '@jest/globals';
+
 
 import { normalizeQueuePayload } from '@/lib/email/service';
 
