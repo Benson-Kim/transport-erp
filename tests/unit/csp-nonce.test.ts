@@ -5,6 +5,8 @@
  * report-only phase runs against real pages.
  */
 
+import { describe, expect, it } from '@jest/globals';
+
 import {
   CONTENT_SECURITY_POLICY,
   contentSecurityPolicyWithNonce,

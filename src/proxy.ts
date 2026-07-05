@@ -58,7 +58,7 @@ export default async function proxy(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('content-security-policy', nonceCsp);
   const cspResponseHeader =
-    process.env.CSP_ENFORCE_NONCE === 'true'
+    process.env['CSP_ENFORCE_NONCE'] === 'true'
       ? 'Content-Security-Policy'
       : 'Content-Security-Policy-Report-Only';
 
