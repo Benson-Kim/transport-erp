@@ -29,6 +29,9 @@ const PUBLIC_ROUTES = [
  */
 const API_ROUTES = [
   '/api/auth',
+  // #41: liveness/readiness probes carry no session and must never be
+  // redirected to /login. The route is deliberately shape-only.
+  '/api/health',
   // #38: the job runner authenticates with CRON_SECRET (fails closed);
   // a session redirect to /login would break the external cron.
   '/api/jobs',
