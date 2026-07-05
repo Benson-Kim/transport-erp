@@ -25,9 +25,18 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // #44: this stack stores images in Backblaze B2 (logos, documents) -
+    // the previous AWS/Cloudinary patterns matched nothing we serve and
+    // would have blocked real B2-hosted images. Custom endpoints/CDNs
+    // register their hostnames via env at build time.
     remotePatterns: [
-      { protocol: 'https', hostname: '**.amazonaws.com' },
-      { protocol: 'https', hostname: '**.cloudinary.com' },
+      { protocol: 'https' as const, hostname: '**.backblazeb2.com' },
+      ...(process.env['B2_PUBLIC_HOSTNAME']
+        ? [{ protocol: 'https' as const, hostname: process.env['B2_PUBLIC_HOSTNAME'] }]
+        : []),
+      ...(process.env['B2_CDN_HOSTNAME']
+        ? [{ protocol: 'https' as const, hostname: process.env['B2_CDN_HOSTNAME'] }]
+        : []),
     ],
     formats: imageFormats,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -57,16 +66,11 @@ const nextConfig: NextConfig = {
   },
 
   webpack: (config, { isServer }) => {
-    config.module.rules.push({
-      test: /\.svg$/i,
-      issuer: /\.[jt]sx?$/,
-      use: [
-        {
-          loader: '@svgr/webpack',
-          options: { svgo: true, titleProp: true, ref: true },
-        },
-      ],
-    });
+    // #44: the @svgr/webpack rule was removed - the loader was never in
+    // package.json, so any SVG-as-component import failed the build. No
+    // call sites import .svg as components today. If the need appears,
+    // add @svgr/webpack as a LOCKED devDependency (the #59 lockfile pass)
+    // and restore the rule in the same MR.
 
     if (!isServer) {
       config.resolve.fallback = {
