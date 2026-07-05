@@ -15,10 +15,21 @@ export interface UseTableSelectionOptions<T> {
 export function useTableSelection<T extends { id: string }>({
   data,
   getRowId = (row) => row.id,
-  selectedRows = [],
+  selectedRows,
   onChange,
 }: UseTableSelectionOptions<T>) {
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(selectedRows));
+  // #52: controlled/uncontrolled duality. selectedRows was seeded into
+  // state ONCE, so a parent clearing selection (e.g. after a bulk action)
+  // left rows visually selected forever. When selectedRows is provided the
+  // hook is CONTROLLED: selection is DERIVED from the prop every render;
+  // internal state backs uncontrolled usage only.
+  const [internalIds, setInternalIds] = useState<Set<string>>(new Set(selectedRows ?? []));
+  const isControlled = selectedRows !== undefined;
+
+  const selectedIds = useMemo(
+    () => (isControlled ? new Set(selectedRows) : internalIds),
+    [isControlled, selectedRows, internalIds]
+  );
 
   const isAllSelected = useMemo(
     () => data.length > 0 && data.every((row) => selectedIds.has(getRowId(row))),
@@ -32,10 +43,10 @@ export function useTableSelection<T extends { id: string }>({
 
   const updateSelection = useCallback(
     (ids: Set<string>) => {
-      setSelectedIds(ids);
+      if (!isControlled) setInternalIds(ids);
       onChange?.(Array.from(ids));
     },
-    [onChange]
+    [isControlled, onChange]
   );
 
   const toggle = useCallback(

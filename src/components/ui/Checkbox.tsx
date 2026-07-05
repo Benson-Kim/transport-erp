@@ -3,8 +3,10 @@
  * Accessible checkbox with label support + controlled state
  */
 
-import type { InputHTMLAttributes} from 'react';
-import { forwardRef } from 'react';
+'use client';
+
+import type { InputHTMLAttributes } from 'react';
+import { forwardRef, useCallback, useEffect, useRef } from 'react';
 
 import { Check, Minus } from 'lucide-react';
 
@@ -33,6 +35,25 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     },
     ref
   ) => {
+    // #52/#55: `indeterminate` is a DOM PROPERTY, not an attribute - it was
+    // accepted as a prop and never applied, so the tri-state select-all
+    // header never rendered (or announced) mixed state.
+    const innerRef = useRef<HTMLInputElement | null>(null);
+    const setRefs = useCallback(
+      (node: HTMLInputElement | null) => {
+        innerRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref]
+    );
+
+    useEffect(() => {
+      if (innerRef.current) {
+        innerRef.current.indeterminate = indeterminate;
+      }
+    }, [indeterminate]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       onCheckedChange?.(e.target.checked);
       props.onChange?.(e);
@@ -42,7 +63,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
       <div className="flex items-start gap-3">
         <div className="relative flex items-center">
           <input
-            ref={ref}
+            ref={setRefs}
             type="checkbox"
             disabled={disabled}
             onChange={handleChange}
@@ -65,6 +86,11 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             className={cn(
               'h-4 w-4 rounded border-2 border-neutral-300',
               'peer-checked:bg-primary peer-checked:border-primary',
+              // #52: peer-* only styles SIBLINGS of the input; the Check icon
+              // is a grandchild, so its own peer-checked:opacity-100 never
+              // fired and the mark was invisible. The wrapper drives it.
+              'peer-checked:[&_svg]:opacity-100',
+              indeterminate && 'bg-primary border-primary',
               'peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2',
               'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
               error && 'border-danger',
@@ -74,7 +100,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             {indeterminate ? (
               <Minus size={10} className="text-white" />
             ) : (
-              <Check size={10} className="text-white opacity-0 peer-checked:opacity-100" />
+              <Check size={10} className="text-white opacity-0" />
             )}
           </div>
         </div>
