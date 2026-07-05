@@ -22,7 +22,7 @@ type Context = Record<string, unknown>;
 const LEVEL_RANK: Record<Level, number> = { debug: 10, info: 20, warn: 30, error: 40 };
 
 function minLevel(): Level {
-  const configured = process.env.LOG_LEVEL;
+  const configured = process.env['LOG_LEVEL'];
   if (configured === 'debug' || configured === 'info' || configured === 'warn' || configured === 'error') {
     return configured;
   }

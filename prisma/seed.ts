@@ -963,7 +963,7 @@ async function main() {
   // closed; overriding requires typing out the consequence.
   if (
     process.env.NODE_ENV === 'production' &&
-    process.env.ALLOW_PROD_SEED !== 'I_UNDERSTAND_THIS_DESTROYS_DATA'
+    process.env['ALLOW_PROD_SEED'] !== 'I_UNDERSTAND_THIS_DESTROYS_DATA'
   ) {
     throw new Error(
       'Refusing to seed a production database: the seed WIPES ALL DATA and plants known ' +
